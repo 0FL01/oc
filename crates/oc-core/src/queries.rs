@@ -994,6 +994,7 @@ pub enum ConfigDiagnosticKind {
     Unsupported,
     Invalid,
     Conflict,
+    FileUnavailable,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -1007,6 +1008,9 @@ impl ConfigDiagnostic {
             ConfigDiagnosticKind::Unsupported => "omitted unsupported legacy setting",
             ConfigDiagnosticKind::Invalid => "skipped malformed recognized value",
             ConfigDiagnosticKind::Conflict => "retained native value over legacy value",
+            ConfigDiagnosticKind::FileUnavailable => {
+                "unreadable file reference replaced with an empty string"
+            }
         }
     }
 }

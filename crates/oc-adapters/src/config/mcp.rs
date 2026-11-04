@@ -133,65 +133,8 @@ pub(super) fn merge_document(
     Ok(())
 }
 
-/// Credential authority belongs to the admitted source, even when a later
-/// Location entry replaces its provider/server. Inspect cached source text and
-/// the product env snapshot only: never open an inactive `{file:}` credential.
-pub(crate) fn source_credential_values(
-    source: &Source,
-    env: &BTreeMap<String, String>,
-) -> Result<Vec<String>, ConfigError> {
-    let value = super::parse_jsonc(&source.text, "config")?;
-    let Some(obj) = value.as_object() else {
-        return Ok(Vec::new());
-    };
-    let mut raw = Vec::new();
-    if let Some(providers) = obj.get("providers").and_then(Value::as_object) {
-        for provider in providers.values() {
-            let settings = provider.get("settings").and_then(Value::as_object);
-            raw.extend(
-                settings
-                    .and_then(|settings| settings.get("apiKey"))
-                    .and_then(Value::as_str),
-            );
-            for headers in [
-                settings.and_then(|settings| settings.get("headers")),
-                provider.get("headers"),
-            ] {
-                if let Some(headers) = headers.and_then(Value::as_object) {
-                    raw.extend(headers.values().filter_map(Value::as_str));
-                }
-            }
-        }
-    }
-    let mut entries = BTreeMap::new();
-    merge_document(
-        source,
-        obj,
-        &mut entries,
-        &mut McpTimeouts::default(),
-        &mut BTreeMap::new(),
-    )?;
-    for (entry, _) in entries.values() {
-        if entry.enabled && entry.failure.is_none() {
-            raw.extend(entry.headers.values().map(String::as_str));
-            raw.extend(entry.environment.values().map(String::as_str));
-        }
-    }
-    let mut values = Vec::new();
-    for value in raw {
-        if !value.contains("{file:") {
-            let value = super::substitute(value, &source.path, source.trusted, env)?;
-            if let Some(token) = value.strip_prefix("Bearer ") {
-                values.push(token.to_string());
-            }
-            values.push(value);
-        }
-    }
-    Ok(values)
-}
-
-/// Label protection includes inactive/failed definitions, but must not change
-/// the credential-domain inputs used to authorize a local process launch.
+/// Lifecycle label protection includes inactive/failed definitions without
+/// opening their file templates or changing process resource admission.
 pub(crate) fn source_protected_values(
     source: &Source,
     env: &BTreeMap<String, String>,
@@ -380,7 +323,6 @@ pub(crate) fn entry_credential_values(
     for value in entry
         .environment
         .values()
-        .chain(entry.blocked_inherited_values.iter())
         .chain(entry.url.iter())
         .chain(entry.headers.values())
         .chain(entry.command.iter())
@@ -463,22 +405,6 @@ fn parse_entry(raw: &Value, entry: &mut McpEntry) -> Result<(), (&'static str, S
     entry.kind = string("type")?.to_string();
     if !matches!(entry.kind.as_str(), "local" | "remote") {
         return Err(("type", InvalidConfig));
-    }
-    // Recognized security fields never become donor excess-field omission.
-    for field in [
-        "permission",
-        "permissions",
-        "trust",
-        "credentials",
-        "sandbox",
-        "env",
-        "inherit_credentials",
-        "resource_admitted",
-        "blocked_inherited_values",
-    ] {
-        if map.contains_key(field) {
-            return Err((field, UnsupportedCapability));
-        }
     }
     if entry.kind == "local" {
         entry.command = map

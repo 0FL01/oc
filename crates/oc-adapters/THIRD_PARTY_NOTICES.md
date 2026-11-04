@@ -23,3 +23,9 @@ W4's native WebSocket proxy/NO_PROXY selection is source-derived from OpenCode
 `packages/core/src/effect/websocket-constructor.ts`, MIT, revision
 `ff90ed91607cabf420a369e9009539c1aa0932af`. The complete original MIT notice is
 retained at `fixtures/OpenCode-MIT.txt`; source/test mapping is in docs/SOURCES.md.
+
+W5's minimal legacy policy ordering, file-reference semantics and local-MCP
+environment overlay follow the same MIT revision's `core/src/config/normalize.ts`,
+`core/src/v1/config/{agent,migrate}.ts`, `core/src/config/variable.ts` and
+`core/src/mcp/{client,stdio}.ts`. The complete MIT notice above remains retained;
+this is a native translation, not an upstream JS host or general v1 migration.

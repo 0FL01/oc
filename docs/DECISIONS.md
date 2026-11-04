@@ -127,6 +127,9 @@ current request/effect/PTY/resource/workspace/live evidence is required before c
 
 ### D21 — service config/startup/error isolation (owner-approved 2026-09-27)
 
+W5 below supersedes this decision's credential-domain admission requirement, not
+source/cwd/resource admission, lifecycle masking or unknown-effect safety.
+
 After RECON the owner approved [T46 R6/R7](goals/2026-09-22-mcp-attach-parity.md),
 [T51 R1–R3](goals/2026-09-27-startup-fault-isolation.md) and T44 VIS19/VIS40/VIS42.
 Optional MCP config/connect/catalog, plugin admission/setup and selected-provider
@@ -275,6 +278,9 @@ Supersedes earlier "pinned OC2 normalizer/migration as oracle" wording for v1 sh
 (T43/T45 R6/T46 MCP09/T53 GO02 legacy-equivalence). Owner converts their config. T62.
 
 ### D28 — OC2 key allowlist, no OpenCode 1 vocabulary (owner 2026-10-16)
+
+Superseded for unknown-key refusal and minimal legacy policy by W5 below; this
+paragraph records the prior decision, not the current loader contract.
 
 Owner: «выкинуть из код базы поддержку легаси пути и оставить только oc2»; chosen
 form «V1-детектор → V2-allowlist». The OpenCode 1 key tables, replacement hints,
@@ -433,6 +439,28 @@ HTTPS proxy TLS requires two already-locked dependency edges (tokio-rustls promo
 from dev-only, rustls-native-certs direct), explicitly allowed by the owner; no new
 package/version, proxy worker/cache or storage migration is introduced. OAuth's
 separate proxy policy stays unchanged; NODE_EXTRA_CA_CERTS/MCP OAuth are out of scope.
+
+## Config/trust TS parity — owner-approved W5, 2026-11-04
+
+Unknown keys warn and are ignored at the owning config/definition/request parser,
+not startup/reload-fatal and not a reason to drop recognized siblings. Safe warnings
+reach chrome.service_diagnostics, headless stderr and TUI Services. Policy-bearing
+legacy tools/permission (root, agent and frontmatter) normalize first in TS order,
+with native rules last; malformed known policy, source trust, mandatory profiles and
+independent child/Plan ceilings remain. Singular provider/direct MCP are only
+warning+ignore: no general v1 migration, JS host or instructions feature is added.
+
+All admitted local MCP entries inherit the full captured parent environment plus
+configured overlay, including project entries/disabled activation and credentials.
+Credential-domain refusal/collection/filter fields are deleted, not inert options.
+Cwd/resource admission and live source/entry/stderr secret collection remain.
+Trusted file references permit absolute/~/../symlink paths, trim and no64KiB cap;
+unreadable/nonregular references become empty plus a payload-free warning. Native
+decoded-string interpolation avoids double escaping; admitted source/root authority
+remains pinned. Skills/count/aggregate4MiB omissions stay bounded but warn on both
+startup and reload; valid siblings survive while incomplete agent catalogs and
+selected-profile validation still refuse. These clauses supersede the contradictory
+parts of D21/D27/D28, not provider credential binding, effect/retry/cleanup policy.
 
 ## Остаточные prerequisites, не новые Q
 

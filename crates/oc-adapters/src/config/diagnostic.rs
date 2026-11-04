@@ -181,6 +181,25 @@ pub(crate) fn from_error(source: &str, error: &ConfigError) -> ServiceDiagnostic
     diagnostic
 }
 
+pub(crate) fn from_note(note: &oc_core::queries::ConfigDiagnostic) -> ServiceDiagnostic {
+    use oc_core::queries::ConfigDiagnosticKind;
+    let code = match note.kind {
+        ConfigDiagnosticKind::Invalid => ServiceCode::InvalidConfig,
+        ConfigDiagnosticKind::FileUnavailable => ServiceCode::SourceUnavailable,
+        _ => ServiceCode::IgnoredSetting,
+    };
+    let mut diagnostic = failure(
+        "native configuration",
+        &[],
+        ServiceStage::Config,
+        code,
+        ServiceAction::ReviewConfiguration,
+    );
+    diagnostic.source = note.source.clone();
+    diagnostic.field = note.field.clone();
+    diagnostic
+}
+
 pub(super) struct LocatedError {
     pub(super) error: Box<ConfigError>,
     pub(crate) diagnostic: ServiceDiagnostic,

@@ -83,7 +83,6 @@ async fn duplicate_binding_redactions_keep_protected_set_and_allow_silent_shell_
                 ("ONLY".into(), "mcp-only".into()),
                 ("SECRET".into(), key.clone()),
             ]),
-            blocked_inherited_values: vec!["blocked-only".into(), key.clone()],
             url: Some(url.clone()),
             headers: BTreeMap::from([
                 ("Authorization".into(), bearer.clone()),

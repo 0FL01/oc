@@ -108,6 +108,8 @@ enum Command {
 
 struct Node {
     suspended: bool,
+    /// Nonfatal substitution warning for this explicit activation attempt.
+    warning: Option<oc_core::queries::ServiceDiagnostic>,
     /// Retained by every worker for this exact physical connection attempt.
     /// An old result keeps its allocation alive, so an address cannot be reused
     /// as a later incarnation while that result can still be delivered.
@@ -992,7 +994,7 @@ impl Scope {
                 node.suspended = false;
                 node.row.status = McpStatus::Connected;
                 node.row.pending_action = None;
-                node.row.diagnostic = None;
+                node.row.diagnostic = node.warning.clone();
                 clear_degradation(&mut self.generation.degraded, &server);
                 self.generation.servers.push(client);
                 self.generation
@@ -1013,7 +1015,7 @@ impl Scope {
                 {
                     client.registry = registry;
                     clear_degradation(&mut self.generation.degraded, &server);
-                    node.row.diagnostic = None;
+                    node.row.diagnostic = node.warning.clone();
                 }
             }
             Ok(WorkResult::Closed) => {
@@ -1302,14 +1304,21 @@ impl Scope {
                     .activation
                     .as_ref()
                     .ok_or("MCP activation admission unavailable")?;
-                let (entry, protected) =
+                let (entry, protected, warning) =
                     activation.activate(&self.config, &self.project, &self.env, server);
                 self.protect_labels(&protected);
                 let entry = entry.map_err(|_| "MCP activation admission refused")?;
                 let node = self.nodes.get_mut(server).expect("MCP node");
+                node.warning = warning;
                 if let Some(failure) = &entry.failure {
                     node.row.status = McpStatus::Failed;
-                    node.row.diagnostic = Some(failure.clone());
+                    let mut diagnostic = failure.clone();
+                    // A missing reference can be repaired without changing the
+                    // captured template. Retry still revalidates before effects.
+                    if node.warning.is_some() {
+                        diagnostic.action = ServiceAction::RetryConnection;
+                    }
+                    node.row.diagnostic = Some(diagnostic);
                     node.row.pending_action = None;
                     return Ok(());
                 }

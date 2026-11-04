@@ -256,13 +256,22 @@ fn entry_mapping_keeps_exact_argv_and_refuses_risky_shapes() {
         .collect();
     assert_eq!(
         names,
-        ["HOME", "IGNORED", "LANG", "LC_ALL", "PATH", "TMPDIR"]
+        [
+            "HOME",
+            "IGNORED",
+            "LANG",
+            "LC_ALL",
+            "LC_TOKEN",
+            "LUDKA_API_KEY",
+            "PATH",
+            "TMPDIR"
+        ]
     );
     assert!(
         config
             .extra_env
             .iter()
-            .all(|(_, value)| !value.contains("secret-value"))
+            .any(|(name, value)| name == "LUDKA_API_KEY" && value == &parent_env["LUDKA_API_KEY"])
     );
     let debug = format!("{config:?}");
     for secret in ["parent-secret-value", "locale-secret-value", "pkg@latest"] {
@@ -321,7 +330,7 @@ fn entry_mapping_keeps_exact_argv_and_refuses_risky_shapes() {
 }
 
 #[tokio::test]
-async fn from_entry_uses_trusted_cwd_and_admitted_parent_env() {
+async fn from_entry_uses_trusted_cwd_and_full_captured_parent_env() {
     use oc_adapters::config::McpEntry;
 
     let temp = tempfile::tempdir().expect("cwd fixture");
@@ -337,7 +346,8 @@ async fn from_entry_uses_trusted_cwd_and_admitted_parent_env() {
 [ "$LANG" = C ] && printf 'lang\n'
 [ "$LC_ALL" = C ] && printf 'locale\n'
 [ "$PARENT_POISON" = poison ] && printf 'inherited\n'
-[ -z "${OPENPROXY_TOKEN+x}" ] && printf 'credential_absent\n'
+[ "$OPENPROXY_TOKEN" = captured-token ] && printf 'credential_inherited\n'
+[ "$OVERLAY" = configured ] && printf 'overlay_wins\n'
 } > "$1/checks.tmp" && mv "$1/checks.tmp" "$1/checks"
 while :; do sleep 1; done"#;
     let entry = McpEntry {
@@ -357,6 +367,7 @@ while :; do sleep 1; done"#;
         ],
         timeout: Some(2_000),
         codemode: None,
+        environment: BTreeMap::from([("OVERLAY".into(), "configured".into())]),
         ..Default::default()
     };
     let parent_env = BTreeMap::from([
@@ -369,7 +380,8 @@ while :; do sleep 1; done"#;
         ("LANG".to_string(), "C".to_string()),
         ("LC_ALL".to_string(), "C".to_string()),
         ("PARENT_POISON".to_string(), "poison".to_string()),
-        ("OPENPROXY_TOKEN".to_string(), "never-in-child".to_string()),
+        ("OPENPROXY_TOKEN".to_string(), "captured-token".to_string()),
+        ("OVERLAY".to_string(), "parent".to_string()),
     ]);
     fs::create_dir_all(&parent_env["TMPDIR"]).expect("tmpdir");
     let config = StdioConfig::from_entry("cwd-env", &entry, &project, &parent_env).expect("config");
@@ -378,6 +390,7 @@ while :; do sleep 1; done"#;
     let mut child = spawn_child(&config).expect("spawn cwd/env fixture");
     wait_for_path(&output.join("checks")).await;
     let checks = fs::read_to_string(output.join("checks")).expect("boolean checks");
+    child.kill_reap().await.expect("cwd/env cleanup");
     for expected in [
         "cwd",
         "tmpdir",
@@ -386,14 +399,14 @@ while :; do sleep 1; done"#;
         "lang",
         "locale",
         "inherited",
-        "credential_absent",
+        "credential_inherited",
+        "overlay_wins",
     ] {
         assert!(
             checks.lines().any(|line| line == expected),
             "missing {expected} boolean proof"
         );
     }
-    child.kill_reap().await.expect("cwd/env cleanup");
 }
 
 #[tokio::test]

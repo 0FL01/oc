@@ -200,6 +200,42 @@ async fn vis42_submission_refusal_is_brief_but_captured_details_and_draft_surviv
 }
 
 #[tokio::test]
+async fn w5_connected_mcp_file_warning_is_visible_without_changing_disconnect() {
+    let mut state = fresh_state("w5-mcp-file-warning").await;
+    state.chrome.location = Some("/fixture".into());
+    state.handle_paste("preserve the unsent draft");
+    let mut warning = diagnostic(ServiceKind::Configuration);
+    warning.code = ServiceCode::SourceUnavailable;
+    warning.field = vec!["file".into()];
+    let mut connected = mcp(McpStatus::Connected, Some(warning), 1);
+    connected.servers[0].actions = vec![McpAction::Disconnect];
+    state.apply_mcp_snapshot(connected.clone());
+    let issues = state.service_issue_count();
+    state.panel = TuiPanel::Mcps;
+    assert_eq!(state.mcp_footer_action().title, "disconnect");
+    assert!(state.handle_panel_key(KeyAction::Enter).intent.is_none());
+    assert_eq!((issues, state.mcp_detail_server().is_some()), (1, true));
+    let painted = crate::views::render_test(&state, 120, 40).join("\n");
+    assert!(painted.contains("source_unavailable"));
+    assert_eq!(state.input(), "preserve the unsent draft");
+    assert!(state.window.rows().is_empty());
+    assert!(!state.has_pending_submission());
+    assert!(state.handle_panel_key(KeyAction::Cancel).intent.is_none());
+    assert_eq!(
+        state.mcp_footer_action().hint,
+        Some("enter to view warning")
+    );
+    assert_eq!(
+        state.mcp_toggle().intent,
+        Some(PanelIntent::McpControl(oc_core::queries::McpControl {
+            binding: connected.binding,
+            server: "control-fixture".into(),
+            action: McpAction::Disconnect,
+        }))
+    );
+}
+
+#[tokio::test]
 async fn vis42_mcp_failure_is_status_not_dialogue_and_pending_is_not_an_alert() {
     let mut state = fresh_state("vis42-mcp").await;
     state.chrome.location = Some("/fixture".into());

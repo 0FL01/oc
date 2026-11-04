@@ -188,6 +188,13 @@ async fn load_catalog_inner(
         .entries
         .into_iter()
         .filter_map(|entry| entry.diagnostic)
+        .chain((!admitted.unknown.is_empty()).then(|| admitted.unknown.diagnostic()))
+        .chain(
+            generation
+                .config_diagnostics
+                .iter()
+                .map(config::diagnostic::from_note),
+        )
         .collect();
     let mut complete = true;
     if let Some(entry) = generation.providers.get(discovery::PROVIDER_ID) {

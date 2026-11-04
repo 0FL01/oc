@@ -310,6 +310,7 @@ struct AdmittedSources {
     admitted_roots: Vec<Option<AdmittedRoot>>,
     sources: Vec<config::Source>,
     source_authority: BTreeMap<String, (usize, PathBuf)>,
+    unknown: config::admission::Report,
 }
 
 fn source_roots<'a>(
@@ -449,7 +450,7 @@ fn admit_sources(
             }
         }
     }
-    admission_gate(unknown, &admitted_roots, global.is_some())?;
+    let unknown = admission_warnings(unknown, &admitted_roots, global.is_some());
     Ok(AdmittedSources {
         project,
         global,
@@ -457,6 +458,7 @@ fn admit_sources(
         admitted_roots,
         sources,
         source_authority,
+        unknown,
     })
 }
 
@@ -469,15 +471,13 @@ fn admission_scope(index: usize, has_global: bool) -> &'static str {
     }
 }
 
-/// T66 fail-closed gate: any key outside the OpenCode 2 allowlist in an admitted
-/// document or cli.json refuses admission with one complete report, including
-/// Markdown definitions. Clean documents leave definitions to the ordinary loader
-/// (`LoadedDefs::unknown_keys`).
-fn admission_gate(
+/// Collect schema-only warnings; definition warnings join this report after the
+/// ordinary loader has retained their recognized fields and normalized policy.
+fn admission_warnings(
     mut report: config::admission::Report,
     admitted_roots: &[Option<AdmittedRoot>],
     has_global: bool,
-) -> Result<(), LoadFailure> {
+) -> config::admission::Report {
     for (index, admitted) in admitted_roots.iter().enumerate() {
         let Some(admitted) = admitted else { continue };
         for name in ["cli.json", "cli.jsonc"] {
@@ -492,37 +492,7 @@ fn admission_gate(
             }
         }
     }
-    if report.is_empty() {
-        return Ok(());
-    }
-    let definition_roots = [has_global.then_some(0), admitted_roots.len().checked_sub(1)];
-    for index in definition_roots.into_iter().flatten() {
-        let Some(admitted) = admitted_roots[index].as_ref() else {
-            continue;
-        };
-        let mut scanned = defs::LoadedDefs::default();
-        defs::merge_definition_root_admitted(
-            &mut scanned,
-            &defs::DefRoot {
-                dir: admitted.path.clone(),
-                origin: String::new(),
-            },
-            &admitted.dir,
-            None,
-        );
-        add_definition_findings(&mut report, admission_scope(index, has_global), &scanned);
-    }
-    Err(LoadFailure::Configuration(report.diagnostic()))
-}
-
-fn add_definition_findings(
-    report: &mut config::admission::Report,
-    scope: &str,
-    loaded: &defs::LoadedDefs,
-) {
-    for (_, kind, findings) in &loaded.unknown_keys {
-        report.add(&format!("{scope} {kind}"), findings);
-    }
+    report
 }
 
 struct DcpAdmission {
@@ -896,6 +866,7 @@ async fn load_stages(
         admitted_roots,
         sources,
         source_authority,
+        mut unknown,
     } = admit_sources(project, &parent_env)?;
     let watch_inputs =
         std::cell::RefCell::new(watch_inputs::WatchInputs::admitted(&roots, &admitted_roots));
@@ -982,7 +953,6 @@ async fn load_stages(
         );
     }
     if !loaded_defs.unknown_keys.is_empty() {
-        let mut report = config::admission::Report::default();
         let global_origin = global
             .as_ref()
             .and(admitted_roots[0].as_ref())
@@ -993,9 +963,8 @@ async fn load_stages(
             } else {
                 "location .opencode"
             };
-            report.add(&format!("{scope} {kind}"), findings);
+            unknown.add(&format!("{scope} {kind}"), findings);
         }
-        return Err(LoadFailure::Configuration(report.diagnostic()));
     }
 
     let mut instruction_roots = Vec::new();
@@ -1059,19 +1028,19 @@ async fn load_stages(
         && let Some(diagnostic) = loaded_defs
             .diagnostics
             .iter()
+            .filter(|diagnostic| diagnostic.failure.code != ServiceCode::CapacityExceeded)
             .chain(&instruction_diagnostics)
             .next()
     {
         return Err(LoadFailure::Configuration(diagnostic.failure.clone()));
     }
 
-    // Resource truncation cannot establish absence or a complete profile's
-    // overrides/policy. Refuse admission before any default fallback/selection.
-    if let Some(diagnostic) = loaded_defs
-        .diagnostics
-        .iter()
-        .find(|diagnostic| diagnostic.failure.code == ServiceCode::CapacityExceeded)
-    {
+    // Skills/commands omitted at capacity remain visible warnings. An incomplete
+    // agent catalog still cannot establish a selected profile's overrides/policy.
+    if let Some(diagnostic) = loaded_defs.diagnostics.iter().find(|diagnostic| {
+        diagnostic.failure.code == ServiceCode::CapacityExceeded
+            && diagnostic.field.starts_with("agent")
+    }) {
         return Err(LoadFailure::Configuration(diagnostic.failure.clone()));
     }
 
@@ -1234,13 +1203,7 @@ async fn load_stages(
         .retain(|id, _| provider_policy.allows(id));
     generation.public_go_enabled = provider_policy.allows(crate::models_dev::PROVIDER);
     generation.public_openai_enabled = provider_policy.allows(crate::models_dev::OPENAI);
-    admit_local_mcp(
-        &mut generation,
-        &project,
-        global.as_deref(),
-        &parent_env,
-        &sources,
-    )?;
+    admit_local_mcp(&mut generation, &project)?;
     // Keep central authority independent of the startup primary selection.
     // `execute` only scripts calls that are each admitted under their own rules.
     for tool in [
@@ -1410,7 +1373,11 @@ async fn load_stages(
         );
     }
     let mut startup_notices = Vec::new();
-    if !generation.config_diagnostics.is_empty() {
+    if generation
+        .config_diagnostics
+        .iter()
+        .any(|note| note.kind != oc_core::queries::ConfigDiagnosticKind::FileUnavailable)
+    {
         startup_notices.push(StartupNotice::CompactionConfig);
     }
     if generation.mcp.values().any(|entry| entry.failure.is_some()) {
@@ -1458,23 +1425,7 @@ async fn load_stages(
         .config_diagnostics
         .iter()
         .take(64)
-        .map(|note| {
-            let code = if note.kind == oc_core::queries::ConfigDiagnosticKind::Invalid {
-                ServiceCode::InvalidConfig
-            } else {
-                ServiceCode::IgnoredSetting
-            };
-            let mut diagnostic = config::diagnostic::failure(
-                "native compaction",
-                &[],
-                ServiceStage::Config,
-                code,
-                ServiceAction::ReviewConfiguration,
-            );
-            diagnostic.source = note.source.clone();
-            diagnostic.field = note.field.clone();
-            diagnostic
-        })
+        .map(config::diagnostic::from_note)
         .collect();
     let mut diagnostics: Vec<String> = loaded_defs
         .diagnostics
@@ -1603,6 +1554,7 @@ async fn load_stages(
             )
             .chain(dcp_notes)
             .chain(config_notes)
+            .chain((!unknown.is_empty()).then(|| unknown.diagnostic()))
             .collect(),
         service_diagnostics_omitted,
         plugins,
@@ -1754,7 +1706,6 @@ async fn load_stages(
         custom_revisions: BTreeMap::new(),
         mcp_activation: std::sync::Arc::new(McpActivation {
             sources: sources.clone(),
-            global: global.as_ref().and_then(|root| root.canonicalize().ok()),
             roots: source_roots
                 .iter()
                 .map(|(source, (root, directory))| {
@@ -1808,89 +1759,13 @@ async fn load_stages(
     })
 }
 
-/// Admit process resources and credential authority before inheriting any env.
-/// A Location source does not gain global credential authority through precedence.
-fn admit_local_mcp(
-    generation: &mut config::Generation,
-    project: &Path,
-    global: Option<&Path>,
-    env: &BTreeMap<String, String>,
-    sources: &[config::Source],
-) -> Result<(), LoadFailure> {
-    let global = global.and_then(|root| root.canonicalize().ok());
-    let global_source = |source: &str| {
-        global
-            .as_deref()
-            .is_some_and(|root| Path::new(source).parent() == Some(root))
-    };
-    let mut global_credentials = Vec::new();
-    for source in sources.iter().filter(|source| global_source(&source.path)) {
-        global_credentials.extend(
-            config::mcp::source_credential_values(source, env)
-                .map_err(|error| config_error(&source.path, &error))?,
-        );
-    }
-    for (id, provider) in &generation.providers {
-        if generation
-            .provenance
-            .get(&format!("provider.{id}"))
-            .is_some_and(|source| global_source(source))
-        {
-            global_credentials.push(provider.options.api_key.clone());
-            global_credentials.extend(provider.options.headers.values().cloned());
-        }
-    }
-    for (id, entry) in &generation.mcp {
-        if entry.enabled
-            && entry.failure.is_none()
-            && generation
-                .provenance
-                .get(&format!("mcp.{id}"))
-                .is_some_and(|source| global_source(source))
-        {
-            global_credentials.extend(entry.headers.values().cloned());
-            global_credentials.extend(
-                entry
-                    .headers
-                    .values()
-                    .filter_map(|v| v.strip_prefix("Bearer ").map(str::to_string)),
-            );
-            global_credentials.extend(entry.environment.values().cloned());
-        }
-    }
+/// Admit the exact process cwd independently of environment inheritance.
+fn admit_local_mcp(generation: &mut config::Generation, project: &Path) -> Result<(), LoadFailure> {
     for (id, entry) in &mut generation.mcp {
         if entry.kind != "local" || !entry.enabled || entry.failure.is_some() {
             continue;
         }
         let source = &generation.provenance[&format!("mcp.{id}")];
-        entry.inherit_credentials = global_source(source);
-        if !entry.inherit_credentials {
-            entry.blocked_inherited_values = global_credentials.clone();
-            entry.blocked_inherited_values.extend(
-                env.iter()
-                    .filter(|(name, _)| crate::mcp_stdio::is_credential_name(name))
-                    .map(|(_, value)| value.clone()),
-            );
-            if entry
-                .command
-                .iter()
-                .chain(entry.environment.values())
-                .chain(entry.cwd.iter())
-                .any(|value| {
-                    entry
-                        .blocked_inherited_values
-                        .iter()
-                        .any(|secret| !secret.is_empty() && value.contains(secret))
-                })
-            {
-                return Err(failure(
-                    source,
-                    &["mcp", "entry", "command"],
-                    ServiceStage::Admission,
-                    ServiceCode::TrustRefused,
-                ));
-            }
-        }
         let configured = entry.cwd.as_deref().unwrap_or(".");
         // No implicit escape or fallback. External cwd requires the same explicit
         // external_directory authority as other resources, not merely a global source.
@@ -1933,7 +1808,6 @@ fn admit_local_mcp(
 /// Root descriptors and original bytes, not a fresh config read on an action.
 pub(crate) struct McpActivation {
     sources: Vec<config::Source>,
-    global: Option<PathBuf>,
     roots: BTreeMap<String, (File, PathBuf)>,
 }
 
@@ -1958,9 +1832,14 @@ impl McpActivation {
         project: &Path,
         env: &BTreeMap<String, String>,
         id: &str,
-    ) -> (Result<config::McpEntry, String>, Vec<String>) {
+    ) -> (
+        Result<config::McpEntry, String>,
+        Vec<String>,
+        Option<oc_core::queries::ServiceDiagnostic>,
+    ) {
         let mut generation = generation.clone();
         let resolved = std::cell::RefCell::new(Vec::new());
+        let notes = std::cell::RefCell::new(Vec::new());
         let result = (|| {
             let entry = generation.mcp.get_mut(id).ok_or("unknown MCP server")?;
             // Malformed/unsupported input never becomes executable by toggling it.
@@ -1981,22 +1860,17 @@ impl McpActivation {
                                 origin: source.into(),
                                 reason: "MCP source authority unavailable".into(),
                             })?;
-                    let value = config::read_trusted_file_rooted(path, source, root, directory)?;
+                    let value = config::read_trusted_file_rooted(
+                        path, source, root, directory, env, &notes, None,
+                    )?;
                     resolved.borrow_mut().push(value.clone());
                     Ok(value)
                 })
                 .map_err(|_| "MCP activation admission refused")?;
             }
-            // Revalidate resources/credential domains on every new connection,
+            // Revalidate resources on every new connection,
             // including retries; the immutable source/provenance is unchanged.
-            admit_local_mcp(
-                &mut generation,
-                project,
-                self.global.as_deref(),
-                env,
-                &self.sources,
-            )
-            .map_err(|error| error.to_string())?;
+            admit_local_mcp(&mut generation, project).map_err(|error| error.to_string())?;
             Ok(generation.mcp[id].clone())
         })();
         // Includes partially resolved values on refusal and validation failure.
@@ -2008,7 +1882,11 @@ impl McpActivation {
         for entry in generation.mcp.values() {
             protected.extend(config::mcp::entry_credential_values(entry, env));
         }
-        (result, protected)
+        let note = notes
+            .into_inner()
+            .first()
+            .map(config::diagnostic::from_note);
+        (result, protected, note)
     }
 }
 
@@ -2678,6 +2556,68 @@ mod tests {
             .expect("admitted composition");
         assert_eq!(loaded.model_id, "alternate");
         assert_eq!(loaded.provider.api_key, "global-key");
+    }
+
+    #[tokio::test]
+    async fn w5_admitted_file_references_trim_and_warn_on_startup_and_reload() {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+        let fixture = tempfile::tempdir().unwrap();
+        let project = fixture.path().join("project");
+        std::fs::create_dir(&project).unwrap();
+        let payload = "decoded \"quote\" \\ slash\nsecond line";
+        let key = fixture.path().join("key");
+        std::fs::write(&key, format!(" \t{payload}\n")).unwrap();
+        symlink(&key, project.join("link")).unwrap();
+        let long = "x".repeat(65_537);
+        std::fs::write(project.join("large"), format!("{long}\n")).unwrap();
+        std::fs::write(project.join("denied"), "unreadable fixture value").unwrap();
+        std::fs::set_permissions(
+            project.join("denied"),
+            std::fs::Permissions::from_mode(0o000),
+        )
+        .unwrap();
+        let fifo =
+            std::ffi::CString::new(project.join("fifo").as_os_str().as_encoded_bytes()).unwrap();
+        // SAFETY: create only this owned fixture FIFO; no writer or blocking read is used.
+        assert_eq!(unsafe { libc::mkfifo(fifo.as_ptr(), 0o600) }, 0);
+        let config = serde_json::json!({
+            "model":"fixture/m", "providers":{"fixture":{"package":"@ai-sdk/openai",
+                "settings":{"baseURL":"https://example.invalid/v1","apiKey":"fixture"},"models":{"m":{}}}},
+            "mcp":{"servers":{"files":{"type":"local","command":["/bin/true"],"environment":{
+                "PARENT":"{file:../key}", "ABSOLUTE":format!("{{file:{}}}",key.display()),
+                "HOME":"{file:~/key}", "LINK":"{file:link}", "LARGE":"{file:large}",
+                "MISSING":"{file:missing}", "DIRECTORY":"{file:.}",
+                "FIFO":"{file:fifo}", "DENIED":"{file:denied}"
+            }}}}
+        });
+        std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+        let environment = BTreeMap::from([("HOME".into(), fixture.path().display().to_string())]);
+        for reload in [false, true] {
+            let loaded = if reload {
+                super::load_reload_local_with_env(&project, environment.clone()).await
+            } else {
+                super::load_local_with_env(&project, environment.clone()).await
+            }
+            .expect("unreadable references are ordinary warnings");
+            let values = &loaded.generation.mcp["files"].environment;
+            for name in ["PARENT", "ABSOLUTE", "HOME", "LINK"] {
+                assert!(values[name] == payload, "decoded reference differs");
+            }
+            assert!(values["LARGE"] == long, "large reference differs");
+            for name in ["MISSING", "DIRECTORY", "FIFO", "DENIED"] {
+                assert!(
+                    values[name].is_empty(),
+                    "unreadable reference was not empty"
+                );
+            }
+            assert!(loaded.tui_chrome.service_diagnostics.iter().any(|note| {
+                note.code == oc_core::queries::ServiceCode::SourceUnavailable
+                    && note.field == ["file"]
+            }));
+            let notes = format!("{:?}", loaded.tui_chrome.service_diagnostics);
+            assert!(!notes.contains(payload));
+            assert!(!notes.contains("unreadable fixture value"));
+        }
     }
 
     #[test]

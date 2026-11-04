@@ -395,7 +395,7 @@ observed bytes/limit и не закрывает healthy siblings. Неизвес
 Startup/catalog defaults —60000/120000ms с существующими overrides; отдельного
 нового короткого execution deadline нет.
 
-Local `chrome-devtools`: argv точно из admitted config, без shell splitting/rewrite. `enabled:false` (или canonical disabled:true) означает: не launch npx, не probe browser, не требовать Node, не делать install, включая environment/cwd/timeout. При true — stdio JSON-RPC, stdout только protocol, stderr в ограниченный redacted log, process group lifecycle. T46/R6 pending target заменяет прежний минимальный MCP env на inherited product-process environment + configured overlay после command/resource/credential-domain admission; shell отдельно наследует captured owner env. Нужны runtime и уже доступный browser-url; `oc` не запускает Chrome с произвольным профилем пользователя.
+Local `chrome-devtools`: argv точно из admitted config, без shell splitting/rewrite. Canonical `disabled:true` означает: не launch npx, не probe browser, не требовать Node, не делать install, включая environment/cwd/timeout; legacy `enabled` теперь warning+ignore, не способ отключить сервер. При enabled effective entry — stdio JSON-RPC, stdout только protocol, stderr в ограниченный redacted log, process group lifecycle. Local project/global MCP наследуют полный captured parent env + configured overlay после source/cwd/resource admission; credential-domain refusal/filter удалены (W5), shell отдельно наследует captured owner env. Нужны runtime и уже доступный browser-url; `oc2` не запускает Chrome с произвольным профилем пользователя.
 
 `chrome-devtools-mcp@latest` — явная пользовательская команда; её не подменять pinned silently. Core adapter acceptance — pinned fake stdio server. Optional real-browser smoke записывает фактически разрешённую версию/digest в evidence; это не воспроизводимость `@latest` навсегда.
 
@@ -432,8 +432,10 @@ Owned stdio child лидирует отдельную process group (`setpgid` �
 T37 implementation uses project cwd/minimal env; approved T46/R6 target resolves
 configured cwd от effective Location workspace (absolute only if admitted) и
 inherits admitted product-process env plus overlay, including executable PATH.
-Source/command/resource/credential-domain admission precedes inheritance; lower-trust
-command cannot capture higher-trust credentials. No external runner-auth extraction;
+Source/cwd/resource admission precedes inheritance. W5 removes credential-domain
+refusal and filtering: project and global entries receive the full captured parent
+map, with configured overlay winning, including credential values. No fresh env read
+at spawn/reload and no external runner-auth extraction;
 no env dumps. MCP results/instructions/lookups/media are verbatim, including server
 echoes of credentials; stderr/status labels keep their existing protection.
 TERM→grace→KILL адресуется только собственной group, а
@@ -511,10 +513,16 @@ their real identities/schemas and can search without inventing a built-in alias.
 
 `opencode.json`/`opencode.jsonc` sources are admitted per root (global config dir, Location
 root, `.opencode`) only when the canonical file stays inside that root's canonical path; a
-symlinked config resolving outside is refused with the resolved path in the diagnostic, so a
+symlinked config resolving outside is refused with a safe source diagnostic, so a
 source can never be canonicalised outside and then marked trusted. The `.opencode` definition
 root must stay inside the Location root, and `AGENTS.md` files must stay inside their own
 root. In-root symlinks are still admitted (containment policy, not a blanket symlink ban), and
-`{file:...}` substitution keeps its no-follow, relative-only, 64 KiB-bounded reader rooted at
-the admitted source directory. The Location switch itself re-runs this admission for the
+the admitted source directory itself remains pinned/no-follow. W5 `{file:...}`
+references may instead be absolute, `~/` from captured HOME, parent-relative or
+symlinks; content is trimmed without double escaping and without the old64KiB cap.
+Unreadable/nonregular references become empty plus a payload-free warning, including
+explicit disabled-MCP activation. A connected server's warning remains visible in
+the Services indicator and `/mcps` Enter-details without changing Connected/Disconnect.
+This does not widen config/discovery/instruction
+source roots. The Location switch itself re-runs source admission for the
 target root, so a switch cannot smuggle in an outside source.

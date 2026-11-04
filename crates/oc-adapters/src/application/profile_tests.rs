@@ -9,6 +9,60 @@ fn config() -> serde_json::Value {
 }
 
 #[tokio::test]
+async fn w5_skill_capacity_omissions_warn_on_startup_and_reload() {
+    for (count, body_bytes) in [(260, 32), (90, 48 * 1024)] {
+        for preload in [true, false] {
+            let temp = tempfile::tempdir().unwrap();
+            let project = temp.path().join("project");
+            let data = temp.path().join("data");
+            std::fs::create_dir_all(&project).unwrap();
+            let mut source = config();
+            source["commands"] = serde_json::json!({"usable":{"template":"Kept sibling"}});
+            std::fs::write(project.join("opencode.json"), source.to_string()).unwrap();
+            let write_skills = || {
+                for index in 0..count {
+                    let dir = project.join(format!(".opencode/skills/slot-{index:03}"));
+                    std::fs::create_dir_all(&dir).unwrap();
+                    std::fs::write(
+                        dir.join("SKILL.md"),
+                        format!(
+                            "---\ndescription: Kept skill\n---\n{}",
+                            "x".repeat(body_bytes)
+                        ),
+                    )
+                    .unwrap();
+                }
+            };
+            if preload {
+                write_skills();
+            }
+            let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+                .await
+                .unwrap();
+            let catalog = if preload {
+                app.catalog().await.unwrap()
+            } else {
+                write_skills();
+                app.reload_location().await.unwrap().catalog
+            };
+            let skills = app.skills().await.unwrap();
+            assert!(!skills.is_empty() && skills.len() < count);
+            assert!(catalog.commands.iter().any(|id| id == "usable"));
+            assert_eq!(catalog.agent_id.as_deref(), Some("build"));
+            assert!(
+                catalog
+                    .chrome
+                    .service_diagnostics
+                    .iter()
+                    .any(|d| d.code == oc_core::queries::ServiceCode::CapacityExceeded)
+            );
+            app.shutdown().await.unwrap();
+            guard.join().await.unwrap();
+        }
+    }
+}
+
+#[tokio::test]
 async fn r6_primary_catalog_source_order_default_fallback_and_explicit_hidden() {
     let temp = tempfile::tempdir().unwrap();
     let mut config = config();

@@ -99,6 +99,15 @@ fn overlays(raw: &mut Map<String, Value>, field: &str) -> Result<(), ConfigError
 
 fn model(value: &Value, field: &str) -> Result<Value, ConfigError> {
     let mut raw = object(value, field)?;
+    raw.retain(|key, _| super::admission::MODEL.contains(&key.as_str()));
+    for (key, allowed) in [
+        ("capabilities", super::admission::CAPABILITIES),
+        ("limit", super::admission::LIMIT),
+    ] {
+        if let Some(value) = raw.get_mut(key).and_then(Value::as_object_mut) {
+            value.retain(|key, _| allowed.contains(&key.as_str()));
+        }
+    }
     overlays(&mut raw, field)?;
     if let Some(variants) = raw.remove("variants") {
         let variants = variants.as_array().cloned().ok_or_else(|| invalid(field))?;
@@ -106,6 +115,7 @@ fn model(value: &Value, field: &str) -> Result<Value, ConfigError> {
         let mut out = Vec::new();
         for variant in variants {
             let mut variant = object(&variant, field)?;
+            variant.retain(|key, _| super::admission::VARIANT.contains(&key.as_str()));
             let id = variant
                 .get("id")
                 .and_then(Value::as_str)
@@ -139,6 +149,7 @@ fn model(value: &Value, field: &str) -> Result<Value, ConfigError> {
 
 fn provider(value: &Value, field: &str) -> Result<Value, ConfigError> {
     let mut raw = object(value, field)?;
+    raw.retain(|key, _| super::admission::PROVIDER.contains(&key.as_str()));
     overlays(&mut raw, field)?;
     if let Some(models) = raw.get_mut("models") {
         let mut out = Map::new();
@@ -152,6 +163,12 @@ fn provider(value: &Value, field: &str) -> Result<Value, ConfigError> {
         raw.insert("npm".into(), package);
     }
     let mut settings = raw.remove("settings").unwrap_or_else(|| json!({}));
+    if let Some(limits) = settings
+        .get_mut("nativeFallbackLimits")
+        .and_then(Value::as_object_mut)
+    {
+        limits.retain(|key, _| matches!(key.as_str(), "context" | "output"));
+    }
     for key in ["headers", "body"] {
         if let Some(value) = raw.remove(key) {
             settings[key] = value;
@@ -163,7 +180,7 @@ fn provider(value: &Value, field: &str) -> Result<Value, ConfigError> {
     Ok(Value::Object(raw))
 }
 
-/// Canonical `providers` only; other root keys are refused by the T66 allowlist.
+/// Canonical `providers` only; the singular legacy domain is warning + ignore.
 pub(super) fn document(obj: &Map<String, Value>) -> Result<BTreeMap<String, Value>, ConfigError> {
     let mut out = BTreeMap::new();
     if let Some(value) = obj.get("providers") {

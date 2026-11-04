@@ -6,15 +6,15 @@ YOLO в официальной CLI reference отключает approvals и san
 
 Credentials принадлежат provider/MCP adapters; config explain, auth/accounts, credential Debug и discovery diagnostics сохраняют свои masking/typed-error boundaries. По решению владельца tool output следует TS parity: без secret-dictionary/field-name masking в model/history/cards/artifacts, включая shell, read, questions, webfetch, model lookup, subagents и Code Mode. MCP server text (включая `isError`), media, instructions и lookup также verbatim. Provider-supplied generation diagnostics сохраняют текст без keyword/header-value suppression, с прежними normalization/bounds. Эти данные могут содержать secrets; tool output не является secret boundary. MCP lifecycle stderr/status и logs сохраняют отдельные защиты. Не логировать полный env/URL/body/raw exception в discovery. Live tests используют маленький искусственный repo без приватного кода.
 
-Workspace discovery проходит явный Location trust decision до substitutions, no-follow/root-relative resource reads и native marker resolution. Lower-trust project source не может соединить свой endpoint/command с higher-trust credential; untrusted candidate не запускает network/process. Bound source count/depth/path/frontmatter/body/total generation/prompt bytes. Skill body snapshot-ится до publication и после не перечитывается. T51 approved target: unknown/lookalike plugin invalidates только свою capability с failed/UnsupportedPlugin до package resolution, import, process spawn или network, не исправную локальную часть приложения. Даже recognized `.js` marker не выполняется и не читается как code; Node/Bun/npm fallback отсутствует.
+Workspace discovery проходит явный Location/source trust decision до substitutions и native marker resolution; admitted source/root authority остаётся pinned. Неизвестные config/frontmatter keys игнорируются с payload-free service warning; policy-bearing legacy `permission`/`tools` нормализуются прежде omission, native rules имеют приоритет. Malformed known policy/selected-profile, provider endpoint/credential binding и child/Plan ceilings остаются gates. `{file:...}` доверенного источника допускает absolute/`~/`/`../`/symlink reference, trim и чтение без прежнего64KiB cap; unreadable/nonregular reference даёт empty + warning, не expanded path/content. Это не разрешает external config/definition discovery или изменение instructions consumer. Bound source count/depth/path/frontmatter/body/total definition/prompt bytes сохраняются; skills/count/aggregate-byte omissions предупреждают на startup/reload, не уничтожая usable siblings, а incomplete agent catalog по-прежнему отказывает. Skill body snapshot-ится до publication и после не перечитывается. T51 approved target: unknown/lookalike plugin invalidates только свою capability с failed/UnsupportedPlugin до package resolution, import, process spawn или network, не исправную локальную часть приложения. Даже recognized `.js` marker не выполняется и не читается как code; Node/Bun/npm fallback отсутствует.
 
-T46/R6 approved local-MCP target (pending) inherits product-process environment plus
-configured overlay **after** source/command/resource/credential-domain admission.
-This explicitly supersedes the blanket minimal credential-free MCP child env;
-ordinary shell inheritance is described below. Trusting a source alone cannot grant a lower-trust
-command higher-trust env credentials; refuse unsafe admission rather than silently
-sanitize and claim donor parity. Do not read external runner auth/config; expanded env
-is not dumped by config/status. MCP server output is verbatim, not a secret boundary.
+Local MCP, including project entries and explicit disabled-server activation,
+inherits the full captured parent environment plus configured overlay (overlay wins),
+after source/cwd/resource admission. W5 supersedes credential-domain refusal and
+name/value filtering: project MCP can receive owner credentials through this environment.
+Reload/spawn use the captured map, not a fresh process-env read. Do not extract external
+runner auth/config; expanded env is not dumped by config/status. MCP server output is
+verbatim, not a secret boundary.
 Stderr and status labels retain their existing redaction. Optional-service
 degradation cannot swallow fatal trust/policy/storage/recovery/cleanup failures or
 clear unknown-effect quarantine. MCP `tools/call` deadline/result-cap/shape failures

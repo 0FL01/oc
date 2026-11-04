@@ -478,7 +478,8 @@ fn mcp08_disabled_activation_controls_held_request_snapshots_reopen_and_restart(
     wait_row(&tui, "dormant", "Disabled");
     assert_eq!(counters(&fixture, "dormant"), Value::Null);
     tui.raw(b" ");
-    tui.wait_screen("MCP activation admission refused", TIMEOUT);
+    // Missing file content becomes empty; the empty executable is still invalid.
+    wait_row(&tui, "dormant", "Failed");
     assert_eq!(
         counters(&fixture, "dormant"),
         Value::Null,

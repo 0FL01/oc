@@ -74,9 +74,8 @@ fn pending_edit_screen_accepts_fragmented_cursor_updates_not_raw_substrings() {
 }
 
 #[test]
-fn vis34_compaction_prune_is_refused_fail_closed_as_unknown_config_key() {
-    // `compaction.prune` is outside the OC2 schema (T66/D28): the whole
-    // configuration is refused before any session or provider effect.
+fn vis34_compaction_prune_warns_and_is_ignored_without_blocking_the_run() {
+    // `compaction.prune` is excess: warn and retain the known auto setting.
     for prune in [true, false] {
         let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
         let fixture = Fixture::new();
@@ -87,13 +86,24 @@ fn vis34_compaction_prune_is_refused_fail_closed_as_unknown_config_key() {
         )
         .unwrap();
         let mut headless = fixture.spawn_run("vis34-prune-headless");
-        assert!(!headless.wait().success(), "{}", headless.diagnostics());
+        assert!(headless.wait().success(), "{}", headless.diagnostics());
         let stderr = fs::read_to_string(&headless.stderr).unwrap();
         assert!(stderr.contains("unknown_config_key"), "{stderr}");
         assert!(stderr.contains("compaction.prune"), "{stderr}");
         assert!(!stderr.contains("ignored_setting"), "{stderr}");
-        assert!(fs::read_to_string(&headless.stdout).unwrap().is_empty());
-        assert!(responses.requests().is_empty(), "no provider request");
+        assert!(
+            fs::read_to_string(&headless.stdout)
+                .unwrap()
+                .contains("answer:exercise configured MCP")
+        );
+        assert_eq!(
+            responses
+                .requests()
+                .iter()
+                .filter(|request| !title::is_title(request))
+                .count(),
+            1
+        );
     }
 }
 

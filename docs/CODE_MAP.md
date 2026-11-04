@@ -49,7 +49,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 
 ## Config/provider/auth/MCP — `crates/oc-adapters/src/`
 
-- Allowlist/diagnostics/overlays: `config.rs`, `config/admission.rs`, `config/diagnostic.rs`, `config/providers.rs`, `config/request_bindings.rs`, `composition.rs`. Tests: unit `config::`, `application::effective_wire_tests`, `cfg10_`.
+- Known-field normalization/excess-key warnings, trusted file references and overlays: `config.rs`, `config/admission.rs`, `config/diagnostic.rs`, `config/providers.rs`, `config/request_bindings.rs`, `composition.rs`. Legacy policy order: `permissions.rs`, `defs.rs`. Tests: unit `config::`, `permissions::`, `w5_`, `cfg13_unknown_keys_warn`, `application::effective_wire_tests`, `cfg10_`.
 - Profiles/definitions/models/variants: `defs.rs`, `models.rs`, `models/lookup.rs`, `composition.rs`. Tests: unit `r6_`, `models::`, `defs::`; target `runtime`, filter `model_session_tools`.
 - Process memory: `memory.rs` (owner allocator policy, post-turn/idle heap release), `shared.rs` (`Shared<T>` copy-on-write for captured bindings/catalogs). Tests: unit `models::tests::captured_catalog_clones_share_entries_and_mutate_copy_on_write`; target `memory_soak` (crate `oc2`).
 - Compiled plugin admission: `config.rs::classify_plugin`, `composition.rs`, `application.rs`. Tests: unit `cfg09_`; `oc2` targets `pty_t39`, `configured_workspace`.
@@ -58,7 +58,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 - Responses/Chat/Messages/settings/errors: `provider.rs`, `provider/{chat,messages,protocol,settings,context,failure}.rs`. Tests: unit `provider::`; target `runtime`, filter `reconciliation`.
 - Credentials/browser/device/WS: `auth.rs`, `auth/openai.rs`, `auth/attempts.rs`, `storage_credentials.rs`, `provider/websocket.rs`. Tests: unit `auth01_`, `auth03_`, `auth04_`, `auth05_`; `oc2` targets `auth_cli`, `auth_tui`, `auth_oauth`.
 - MCP source/config admission: `config/mcp.rs`, `composition.rs::admit_local_mcp`; request leases/supervisor: `runtime/mcp.rs`, `runtime/mcp/lifecycle.rs`, `runtime/mcp/lifecycle/reconcile.rs`. Tests: unit `config::mcp`, `runtime::mcp`; targets `mcp_stdio`, `mcp_remote`; `oc2` target `mcp_application`.
-- MCP transports: `mcp_stdio.rs`, `mcp_remote.rs`, `mcp_http_lifecycle.rs`; prompt/resource lookup: `application/mcp_lookup.rs`, `runtime/mcp/lifecycle/lookups.rs`, `mcp_lookup.rs`; media/logs: `mcp_result/media.rs`, `tools/mcp_log.rs`. Tests: unit `application::mcp`, `mcp_result::media`, `tools::mcp_log`; targets `mcp_stdio`, `mcp_remote`.
+- MCP transports/full captured local env + overlay: `mcp_stdio.rs`, `mcp_remote.rs`, `mcp_http_lifecycle.rs`; disabled-entry substitution/resource admission: `composition.rs::McpActivation`; prompt/resource lookup: `application/mcp_lookup.rs`, `runtime/mcp/lifecycle/lookups.rs`, `mcp_lookup.rs`; media/logs: `mcp_result/media.rs`, `tools/mcp_log.rs`. Tests: unit `application::mcp`, `mcp_result::media`, `tools::mcp_log`; targets `mcp_stdio`, `mcp_remote`.
 
 ## Storage/tools — `crates/oc-adapters/src/`
 

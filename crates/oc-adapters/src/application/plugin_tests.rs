@@ -149,7 +149,7 @@ async fn cfg09_plugin_requests_are_safe_independent_and_generation_pinned() {
     );
     assert_eq!(failed_request.catalog.model_id, initial.model_id);
 
-    // Invalid mandatory policy/keybindings cannot publish even healthy aliases.
+    // Invalid mandatory policy cannot publish even healthy aliases.
     config["plugins"] = json!(["@tarquinen/opencode-dcp"]);
     config["permissions"] = json!([{"action":"read","resource":"*","effect":"not-a-policy"}]);
     std::fs::write(&source, config.to_string()).unwrap();
@@ -166,20 +166,30 @@ async fn cfg09_plugin_requests_are_safe_independent_and_generation_pinned() {
     config.as_object_mut().unwrap().remove("permissions");
     config["keybinds"] = json!({"session.undo":12});
     std::fs::write(&source, config.to_string()).unwrap();
-    let Err(CoreError::LocationSwitch {
-        diagnostic: Some(issue),
-        ..
-    }) = app.reload_location().await
-    else {
-        panic!("typed keybinding refusal");
-    };
-    let mut failed = app.catalog().await.unwrap();
-    assert_eq!(failed.chrome.service_diagnostics.pop(), Some(issue));
-    assert_eq!(failed, failed_request.catalog);
+    // keybinds belongs to cli.json, not this config document: warn and ignore.
+    let ignored = app.reload_location().await.unwrap();
+    assert!(ignored.generation > failed_request.generation);
+    assert!(
+        ignored
+            .catalog
+            .chrome
+            .service_diagnostics
+            .iter()
+            .any(|issue| {
+                issue.code == ServiceCode::UnknownConfigKey
+                    && issue.details.as_ref().is_some_and(|details| {
+                        details.iter().any(|detail| detail.contains("keybinds"))
+                    })
+            })
+    );
+    assert_eq!(
+        ignored.catalog.chrome.plugins.entries[0],
+        initial.chrome.plugins.entries[0]
+    );
     config.as_object_mut().unwrap().remove("keybinds");
     std::fs::write(&source, config.to_string()).unwrap();
     let healthy = app.reload_location().await.unwrap();
-    assert!(healthy.generation > failed_request.generation);
+    assert!(healthy.generation > ignored.generation);
     assert_eq!(
         healthy.catalog.chrome.plugins.entries[0],
         initial.chrome.plugins.entries[0]

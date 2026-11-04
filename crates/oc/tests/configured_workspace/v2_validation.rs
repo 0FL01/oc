@@ -1,4 +1,4 @@
-//! Canonical package JSON versus unknown-key rejection before actual effects.
+//! Canonical settings and ignored excess keys preserve usable configuration.
 use super::*;
 
 fn active_probe() -> Value {
@@ -11,7 +11,7 @@ fn active_probe() -> Value {
 }
 
 #[test]
-fn cfg11_canonical_opaque_settings_work_but_unknown_keys_stop_before_mcp_and_provider() {
+fn cfg11_canonical_settings_and_unknown_warnings_keep_mcp_and_provider() {
     let fixture = Fixture::new();
     let mut additions = fixture.base_config();
     merge_object(&mut additions, active_probe());
@@ -60,16 +60,24 @@ fn cfg11_canonical_opaque_settings_work_but_unknown_keys_stop_before_mcp_and_pro
             .unwrap()
             .insert(id.into(), unknown);
         fixture.write_base_config(additions);
-        let mut process =
-            fixture.spawn(&fixture.project_a, "s-unknown-refused", "must not run", id);
-        assert!(!fixture.wait_for_preflight_failure(&mut process).success());
+        let mut process = fixture.spawn(&fixture.project_a, "s-excess", "continue", id);
+        let (mut socket, request) = fixture.accept(&mut process);
+        assert_eq!(request["model"], MODEL);
+        assert!(!request.to_string().contains("SCHEMA_VALUE_CANARY"));
+        respond_text(&mut socket, "KNOWN_SIBLINGS_KEPT");
+        fixture.respond_title(&mut process);
+        assert!(process.wait().success(), "{}", process.diagnostics());
         let diagnostic = process.diagnostics();
-        assert!(
+        assert_eq!(
             diagnostic.contains("unknown_config_key"),
-            "{id}: {diagnostic}"
+            id != "permission"
         );
         assert!(!diagnostic.contains("SCHEMA_VALUE_CANARY"));
-        assert!(!fixture.project_a.join("r1-mcp-started").exists(), "{id}");
+        assert_eq!(process.output().trim(), "KNOWN_SIBLINGS_KEPT");
+        assert_eq!(
+            fs::read_to_string(fixture.project_a.join("r1-mcp-started")).unwrap(),
+            "started"
+        );
         fixture.assert_no_request();
         fixture.assert_no_loader_execution();
     }

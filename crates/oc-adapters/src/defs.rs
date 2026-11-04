@@ -281,8 +281,7 @@ pub struct LoadedDefs {
     pub shadowed: Vec<String>,
     /// Per-file diagnostics.
     pub diagnostics: Vec<Diagnostic>,
-    /// Frontmatter keys outside the OC2 allowlist per root origin and kind; such
-    /// files are not loaded and the configuration is refused.
+    /// Ignored frontmatter keys per root origin/kind, published as warnings.
     pub(crate) unknown_keys: Vec<(String, &'static str, Vec<crate::config::admission::Finding>)>,
 }
 
@@ -677,12 +676,6 @@ pub(crate) fn command_model(
     let object = value
         .as_object()
         .ok_or("model must be a string or object")?;
-    if object
-        .keys()
-        .any(|key| !matches!(key.as_str(), "providerID" | "modelID" | "variant"))
-    {
-        return Err("unsupported model field".into());
-    }
     let provider = optional_string(object, "providerID")?.ok_or("model.providerID is required")?;
     let model = optional_string(object, "modelID")?.ok_or("model.modelID is required")?;
     Ok((
@@ -711,12 +704,6 @@ fn agent_model(
     let object = value
         .as_object()
         .ok_or("model must be a string or object")?;
-    if object
-        .keys()
-        .any(|key| !matches!(key.as_str(), "providerID" | "model" | "modelID" | "variant"))
-    {
-        return Err("unsupported model field".into());
-    }
     let provider = optional_string(object, "providerID")?.ok_or("model.providerID is required")?;
     if object.contains_key("model") && object.contains_key("modelID") {
         return Err("model.model and model.modelID are mutually exclusive".into());
@@ -766,12 +753,6 @@ fn agent_request<'a>(
     match get("request") {
         None | Some(serde_json::Value::Null) => {}
         Some(serde_json::Value::Object(request)) => {
-            if let Some(field) = request
-                .keys()
-                .find(|key| !matches!(key.as_str(), "headers" | "body"))
-            {
-                return Err(format!("request.{field}: unsupported field"));
-            }
             match request.get("headers") {
                 None | Some(serde_json::Value::Null) => {}
                 Some(serde_json::Value::Object(headers)) => {
@@ -820,7 +801,7 @@ fn agent_color(value: Option<&serde_json::Value>) -> Result<Option<String>, Stri
 }
 
 /// Canonical `ConfigAgent.Info` keys (Markdown frontmatter also admits `variant`).
-const CANONICAL_AGENT_KEYS: [&str; 10] = [
+const CANONICAL_AGENT_KEYS: [&str; 12] = [
     "model",
     "request",
     "system",
@@ -831,6 +812,8 @@ const CANONICAL_AGENT_KEYS: [&str; 10] = [
     "steps",
     "disabled",
     "permissions",
+    "permission",
+    "tools",
 ];
 
 fn metadata_bool(value: Option<&serde_json::Value>) -> Result<bool, String> {
@@ -863,18 +846,27 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
         origin: source.to_string(),
     };
 
-    // Canonical `agents` only (T62); `steps` is the explicit Long Horizon divergence.
+    // Only the policy-bearing legacy agent domain is normalized; unsupported
+    // legacy metadata is ignored, not a general v1 migration.
     // Diagnostic fields keep the `agent.<id>` definition identity used by consumers.
-    if let Some(agents) = config.get("agents").and_then(serde_json::Value::as_object) {
-        for (id, raw) in agents {
-            if let Some(object) = raw.as_object() {
-                diagnose_step_constraints(&mut out.defs, source_path, "agent", id, object.keys());
+    for domain in ["agent", "agents"] {
+        if let Some(agents) = config.get(domain).and_then(serde_json::Value::as_object) {
+            for (id, raw) in agents {
+                if let Some(object) = raw.as_object() {
+                    diagnose_step_constraints(
+                        &mut out.defs,
+                        source_path,
+                        "agent",
+                        id,
+                        object.keys(),
+                    );
+                }
             }
         }
     }
 
-    {
-        if let Some(raw_agents) = config.get("agents") {
+    for domain in ["agent", "agents"] {
+        if let Some(raw_agents) = config.get(domain) {
             if let Some(agents) = raw_agents.as_object() {
                 for (id, raw) in agents {
                     if !valid_agent_id(id) {
@@ -893,18 +885,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                         ));
                         continue;
                     };
-                    if object.contains_key("steps") {
-                        continue;
-                    }
-                    if let Some(field) = object
-                        .keys()
-                        .find(|key| !CANONICAL_AGENT_KEYS.contains(&key.as_str()))
-                    {
-                        out.defs.diagnostics.push(diag(
-                            source_path,
-                            &format!("agent.{id}.{field}"),
-                            "unsupported field",
-                        ));
+                    if object.contains_key("steps") || object.contains_key("maxSteps") {
                         continue;
                     }
                     let parsed = (|| {
@@ -921,7 +902,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                         let mode = agent_mode(optional_string(object, "mode")?)?;
                         let permissions = BTreeMap::new();
                         let permission_rules =
-                            crate::permissions::PermissionRules::from_document(raw)
+                            crate::permissions::PermissionRules::from_agent_document(raw)
                                 .map_err(|error| error.to_string())?;
                         let hidden = metadata_bool(raw.get("hidden"))?;
                         let disabled = metadata_bool(raw.get("disabled"))?;
@@ -970,7 +951,11 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                                 disabled,
                                 request,
                                 color,
-                                supplied: object.keys().cloned().collect(),
+                                supplied: object
+                                    .keys()
+                                    .filter(|key| CANONICAL_AGENT_KEYS.contains(&key.as_str()))
+                                    .cloned()
+                                    .collect(),
                             },
                             source_path,
                         ),
@@ -1008,22 +993,6 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                     ));
                     continue;
                 };
-                let allowed = [
-                    "template",
-                    "description",
-                    "agent",
-                    "model",
-                    "subagent",
-                    "subtask",
-                ];
-                if let Some(field) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
-                    out.defs.diagnostics.push(diag(
-                        source_path,
-                        &format!("commands.{id}.{field}"),
-                        "unsupported field",
-                    ));
-                    continue;
-                }
                 let parsed = (|| {
                     let body = optional_string(object, "template")?.unwrap_or_default();
                     let description = optional_string(object, "description")?
@@ -1560,16 +1529,6 @@ fn diagnose_step_constraints<'a>(
 #[cfg(test)]
 mod step_tests;
 
-fn unsupported_field(
-    fields: &BTreeMap<String, serde_json::Value>,
-    allowed: &[&str],
-) -> Option<String> {
-    fields
-        .keys()
-        .find(|key| !allowed.contains(&key.as_str()))
-        .cloned()
-}
-
 fn agent_mode(mode: Option<String>) -> Result<Option<String>, String> {
     match mode.as_deref() {
         None | Some("") => Ok(None),
@@ -1707,17 +1666,24 @@ fn load_entry(
                     return;
                 }
             };
-            // T66: only canonical OpenCode 2 frontmatter keys are admitted.
+            // Excess keys warn without discarding recognized metadata/policy.
             let fields: serde_json::Map<_, _> = frontmatter.fields.clone().into_iter().collect();
-            if kind == "agent" {
-                let findings = crate::config::admission::scan_agent_frontmatter(&fields);
+            {
+                let findings = if kind == "agent" {
+                    crate::config::admission::scan_agent_frontmatter(&fields)
+                } else {
+                    crate::config::admission::scan_command_frontmatter(&fields)
+                };
                 if !findings.is_empty() {
                     out.defs.unknown_keys.push((
                         root.origin.clone(),
-                        "agent definitions",
+                        if kind == "agent" {
+                            "agent definitions"
+                        } else {
+                            "command definitions"
+                        },
                         findings,
                     ));
-                    return;
                 }
             }
             if kind == "agent" {
@@ -1728,27 +1694,6 @@ fn load_entry(
                     &id,
                     frontmatter.fields.keys(),
                 ) {
-                    return;
-                }
-                if let Some(field) = unsupported_field(
-                    &frontmatter.fields,
-                    &[
-                        "description",
-                        "model",
-                        "variant",
-                        "mode",
-                        "permissions",
-                        "hidden",
-                        "disabled",
-                        "request",
-                        "color",
-                    ],
-                ) {
-                    out.defs.diagnostics.push(diag(
-                        &path,
-                        &format!("agent.{field}"),
-                        "unsupported field",
-                    ));
                     return;
                 }
                 let parsed = (|| -> Result<AgentInput, String> {
@@ -1773,7 +1718,7 @@ fn load_entry(
                         variant,
                         body: body.trim().to_string(),
                         permissions: BTreeMap::new(),
-                        permission_rules: crate::permissions::PermissionRules::from_document(
+                        permission_rules: crate::permissions::PermissionRules::from_agent_document(
                             &serde_json::Value::Object(
                                 frontmatter.fields.clone().into_iter().collect(),
                             ),
@@ -1791,6 +1736,10 @@ fn load_entry(
                         supplied: frontmatter
                             .fields
                             .keys()
+                            .filter(|key| {
+                                CANONICAL_AGENT_KEYS.contains(&key.as_str())
+                                    || key.as_str() == "variant"
+                            })
                             .cloned()
                             .chain(std::iter::once("body".into()))
                             .chain(compatibility.then(|| "mode".into()))
@@ -1802,29 +1751,6 @@ fn load_entry(
                     Err(reason) => out.defs.diagnostics.push(diag(&path, "agent", &reason)),
                 }
             } else {
-                if let Some(field) = unsupported_field(
-                    &frontmatter.fields,
-                    &["description", "agent", "model", "subagent", "subtask"],
-                ) {
-                    out.defs.diagnostics.push(diag(
-                        &path,
-                        &format!("command.{field}"),
-                        "unsupported field",
-                    ));
-                    return;
-                }
-                match frontmatter.fields.get("permission") {
-                    None | Some(serde_json::Value::Null) => {}
-                    Some(serde_json::Value::Object(map)) if map.is_empty() => {}
-                    Some(_) => {
-                        out.defs.diagnostics.push(diag(
-                            &path,
-                            "command.permission",
-                            "unsupported field",
-                        ));
-                        return;
-                    }
-                }
                 let parsed = (|| -> Result<CommandInput, String> {
                     Ok(CommandInput {
                         id: id.clone(),
@@ -2136,12 +2062,12 @@ mod tests {
                 .iter()
                 .any(|d| d.reason.contains("reserved"))
         );
-        // `tools` is outside the OC2 frontmatter allowlist: reported, never loaded.
+        // Legacy tools is recognized policy; its malformed scalar remains invalid.
         assert!(
             loaded
-                .unknown_keys
+                .diagnostics
                 .iter()
-                .any(|(_, _, findings)| findings.iter().any(|finding| finding.path == "tools"))
+                .any(|diagnostic| diagnostic.reason.contains("tools"))
         );
         // Execution fields are parsed and stored; the commands stay loadable.
         assert_eq!(loaded.commands["delegate"].subtask, Some(true));
@@ -2439,10 +2365,10 @@ mod tests {
         );
         assert_eq!(delegate.subtask, Some(false));
         assert_eq!(delegate.subagent, None);
-        assert!(!loaded.agents.contains_key("bad"));
-        assert!(!loaded.commands.contains_key("bad"));
+        assert_eq!(loaded.agents["bad"].body, "bad");
+        assert_eq!(loaded.commands["bad"].body, "delegate");
         assert!(
-            loaded
+            !loaded
                 .diagnostics
                 .iter()
                 .any(|d| d.field.ends_with("hooks"))

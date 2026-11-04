@@ -438,10 +438,18 @@ impl TuiState {
                 && !self.chrome.dialog_shortcuts.mcp_toggle.is_empty(),
             hint: server
                 .filter(|server| {
-                    matches!(server.status, McpStatus::Failed | McpStatus::NeedsAuth)
-                        && server.diagnostic.is_some()
+                    matches!(
+                        server.status,
+                        McpStatus::Connected | McpStatus::Failed | McpStatus::NeedsAuth
+                    ) && server.diagnostic.is_some()
                 })
-                .map(|_| "enter to view error"),
+                .map(|server| {
+                    if server.status == McpStatus::Connected {
+                        "enter to view warning"
+                    } else {
+                        "enter to view error"
+                    }
+                }),
         }
     }
 
@@ -458,11 +466,12 @@ impl TuiState {
         }) else {
             return KeyOutcome::default();
         };
-        // Enter is not a connection action, nor a dismissal for healthy,
-        // disabled or pending rows. Native unsupported-auth diagnostics remain
-        // honest safe details, never a pretend OAuth flow.
-        if matches!(server.status, McpStatus::Failed | McpStatus::NeedsAuth)
-            && server.diagnostic.is_some()
+        // Enter only opens diagnostics, including nonfatal connected warnings;
+        // it never changes the connection or dismisses a row without details.
+        if matches!(
+            server.status,
+            McpStatus::Connected | McpStatus::Failed | McpStatus::NeedsAuth
+        ) && server.diagnostic.is_some()
         {
             self.mcp_detail = Some(McpDetail {
                 binding: snapshot.binding.clone(),

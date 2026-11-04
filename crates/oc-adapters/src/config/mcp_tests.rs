@@ -122,16 +122,21 @@ fn mcp09_server_names_are_free_and_donor_timeout_defaults_apply() {
         ),
         (60_000, 120_000, 43_200_000)
     );
-    // Direct `mcp.<id>` entries are unknown keys and never load (T66).
+    // Direct legacy entries warn and remain inert; W5 adds no MCP migration.
+    let ignored = assemble(
+        &[source(
+            serde_json::json!({"mcp":{"direct":{"type":"local","command":["x"]}}}),
+        )],
+        &BTreeMap::new(),
+        None,
+    )
+    .unwrap();
+    assert!(ignored.mcp.is_empty());
     assert!(
-        assemble(
-            &[source(
-                serde_json::json!({"mcp":{"direct":{"type":"local","command":["x"]}}})
-            )],
-            &BTreeMap::new(),
-            None
-        )
-        .is_err()
+        ignored
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("mcp.direct"))
     );
 }
 
@@ -290,7 +295,7 @@ fn mcp09_failed_recognized_matrix_keeps_healthy_and_disabled_entries() {
 }
 
 #[test]
-fn mcp09_substitution_and_no_follow_trust_are_not_optional_failure_catches() {
+fn mcp09_substitution_preserves_source_trust_but_unreadable_files_warn() {
     let temp = tempfile::tempdir().unwrap();
     std::fs::write(temp.path().join("overlay"), "OVERLAY-CANARY").unwrap();
     let mut src = source(serde_json::json!({"mcp":{
@@ -332,10 +337,11 @@ fn mcp09_substitution_and_no_follow_trust_are_not_optional_failure_catches() {
     src.trusted = true;
     std::fs::remove_file(temp.path().join("overlay")).unwrap();
     std::os::unix::fs::symlink(temp.path().join("outside"), temp.path().join("overlay")).unwrap();
-    assert!(matches!(
-        assemble(&[src], &env, None),
-        Err(ConfigError::Untrusted { .. })
-    ));
+    let generation = assemble(&[src], &env, None).unwrap();
+    assert!(generation.mcp["local"].environment["OVERLAY"].is_empty());
+    assert!(generation.config_diagnostics.iter().any(|diagnostic| {
+        diagnostic.kind == oc_core::queries::ConfigDiagnosticKind::FileUnavailable
+    }));
 }
 
 #[test]
@@ -377,8 +383,6 @@ fn mcp08_source_protection_observes_inactive_and_failed_fields_without_file_read
             .iter()
             .any(|value| value.contains("missing") || value == "ordinary-not-protected")
     );
-    let authority = mcp::source_credential_values(&src, &env).unwrap();
-    assert_eq!(authority, ["provider-protected"]);
 }
 
 #[test]

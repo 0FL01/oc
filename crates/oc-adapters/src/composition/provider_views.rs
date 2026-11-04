@@ -243,10 +243,23 @@ impl Composition {
                 Some(&|path| observed.borrow_mut().file(path)),
             );
             let entry = match admitted {
-                Ok((generation, _)) => match generation.providers.get(&id) {
-                    Some(entry) => entry.clone(),
-                    None => continue,
-                },
+                Ok((generation, _)) => {
+                    for note in &generation.config_diagnostics {
+                        let diagnostic = config::diagnostic::from_note(note);
+                        if self.tui_chrome.service_diagnostics.contains(&diagnostic) {
+                            continue;
+                        }
+                        if self.tui_chrome.service_diagnostics.len() < 64 {
+                            self.tui_chrome.service_diagnostics.push(diagnostic);
+                        } else {
+                            self.tui_chrome.service_diagnostics_omitted += 1;
+                        }
+                    }
+                    match generation.providers.get(&id) {
+                        Some(entry) => entry.clone(),
+                        None => continue,
+                    }
+                }
                 Err(diagnostic) => {
                     if self.tui_chrome.service_diagnostics.len() < 64 {
                         self.tui_chrome.service_diagnostics.push(diagnostic);

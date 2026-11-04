@@ -22,8 +22,11 @@ file or network documentation fetch is needed. Load it explicitly with
   replacement from a template. Do not run a formatter over unrelated user data.
 - Never print expanded configuration, keys, auth headers or environment dumps.
   Prefer `{env:YOUR_KEY}` references. Missing env substitution becomes empty, not
-  a valid key. `{file:...}` reads require source trust and no-follow admission;
-  even a disabled entry is not a license to include an untrusted credential file.
+  a valid key. Trusted `{file:...}` references may be absolute, `~/` (captured HOME),
+  parent-relative or symlinks; content is trimmed without a64KiB cap or double escaping.
+  Unreadable/nonregular references become empty plus a safe warning. Config/source
+  discovery authority remains pinned; disabled MCP references resolve at activation,
+  not an automatic process launch. Never include another user's credential file.
 - Disabled providers/MCP do not start their network/process effects. Enabling MCP
   can start a real process or connection; obtain approval for that dependency.
   Catalog presence is not proof of authentication, generation or tool support.
@@ -41,7 +44,8 @@ JSONC comments and trailing commas work. The published `https://opencode.ai/conf
 is not a complete native schema and cannot prove that a setting is implemented.
 Do not assume upstream's unrestricted
 ancestor walk, an arbitrary external include, or an unimplemented CLI flag.
-Source trust and credential/endpoint ownership are checked before publication.
+Source trust and provider credential/endpoint ownership are checked before publication;
+MCP inheritance follows the captured-environment contract below.
 
 | Domain | Native input and purpose |
 | --- | --- |
@@ -95,10 +99,13 @@ Do not initiate a paid model request or OAuth flow merely to validate syntax.
 ## Provider and model example
 
 This is an illustrative **canonical OpenCode 2 shape**, not credentials or a
-promise that the placeholder model exists. Only keys of the OpenCode 2 schema are
-accepted: any other key (for example `provider`, `npm`, `options`, `permission`,
-`tools`, `agent`, `plugin`, `mcp.<name>`) is refused with one `unknown_config_key`
-report listing every path; use the canonical OpenCode 2 field instead. Replace endpoint/ID with the user's
+promise that the placeholder model exists. Unknown root/provider/definition/request
+keys warn and are ignored without dropping known siblings. Root/agent/frontmatter
+legacy `permission` and boolean `tools` normalize before omission, with source order
+and native-rule precedence; a deny must not disappear under Build defaults.
+Singular `provider` and direct `mcp.<name>` are warning+ignore, not migration support;
+use canonical fields. Malformed known policy/types/mandatory profiles still refuse.
+Warnings appear in headless stderr and TUI Services without values. Replace endpoint/ID with the user's
 actual admitted values and verified model metadata (the limits below illustrate
 the shape, not a claim about an existing model); merge into the existing file.
 
@@ -197,6 +204,11 @@ Entries live under `mcp.servers` and use `disabled`; timeouts are
 `{startup, catalog, execution}` in ms. Local MCP uses an explicit `command`
 argv array (plus admitted cwd/env); external `npx` is only a user-approved installed
 dependency, never an internal JS host or automatic package installation.
+Project and global local MCP inherit the full captured parent environment, including
+credentials, then configured overlay wins. There is no credential-name/value filter
+or credential-domain refusal. Cwd/resource admission and status/stderr protection
+remain; spawn/reload do not reread the live process env. Prefer synthetic boolean
+proofs when testing inheritance; never print the expanded environment.
 
 Since Code Mode, omitted/true `codemode` puts the server's tools in `execute`'s
 catalog (`tools.<server>.<tool>`); false keeps direct tools. These are different
@@ -293,7 +305,9 @@ user actually wants an override. A valid global definition replaces the builtin,
 and a later project definition replaces that winner with normal provenance.
 A malformed replacement leaves the last valid body callable and emits a safe
 diagnostic. Caps stay in force: at 256 skills an existing ID can be replaced,
-but a new 257th ID cannot. Generation snapshots pin bodies; changing a file after
+but a new 257th ID cannot. Count and aggregate4MiB omissions warn on startup and
+reload while usable siblings remain; selected-profile/incomplete-agent-catalog and
+instruction validation still gate publication. Generation snapshots pin bodies; changing a file after
 request preparation does not retroactively change the skill served to that request.
 Only metadata enters automatic context; explicit `skill` loading still obeys
 per-ID Allow/Ask/Deny and ordinary user output limits.

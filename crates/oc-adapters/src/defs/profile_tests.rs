@@ -1,6 +1,50 @@
 use super::*;
 
 #[test]
+fn w5_legacy_agent_and_frontmatter_keep_policy_with_unknown_siblings() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("agents/build.md");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, "---\ndescription: Markdown Build\npermission:\n  bash: deny\ntools:\n  write: false\nrequest:\n  extra: ignored\n  headers:\n    X-Known: kept\nunknown: ignored\n---\nKept body").unwrap();
+    let mut defs = LoadedDefs::default();
+    register_builtins(&mut defs);
+    merge_config_definitions(
+        &mut defs,
+        &serde_json::json!({"agent":{"build":{
+        "permission":{"read":"deny"},"unknown":"ignored"
+    }},"commands":{"known":{"template":"Kept command","unknown":"ignored"}}}),
+        "project",
+    );
+    merge_definition_root(
+        &mut defs,
+        &DefRoot {
+            dir: temp.path().into(),
+            origin: "markdown".into(),
+        },
+    );
+    assert!(defs.diagnostics.is_empty(), "{:?}", defs.diagnostics);
+    let build = &defs.agents["build"];
+    assert_eq!(build.body, "Kept body");
+    assert_eq!(build.request.headers["x-known"], "kept");
+    assert_eq!(defs.commands["known"].body, "Kept command");
+    let mut rules =
+        crate::permissions::PermissionRules::from_document(&serde_json::json!({})).unwrap();
+    rules.configure_agent(
+        &BTreeMap::new(),
+        &build.permissions,
+        &build.permission_rules,
+    );
+    for action in ["bash", "read", "apply_patch"] {
+        assert_eq!(
+            rules.evaluate(&BTreeMap::new(), action, "fixture"),
+            crate::config::Permission::Deny,
+            "{action}"
+        );
+    }
+    assert!(!defs.unknown_keys.is_empty());
+}
+
+#[test]
 fn r6_disabled_then_readmitted_profile_gets_new_registration_order() {
     let mut defs = LoadedDefs::default();
     merge_config_definitions(
@@ -206,10 +250,6 @@ fn r6_request_overlays_merge_by_key_and_explicit_refusals() {
 
     for (request, reason) in [
         (
-            serde_json::json!({"settings":{}}),
-            "request.settings: unsupported field",
-        ),
-        (
             serde_json::json!({"headers":{"Authorization":"x"}}),
             "reserved header",
         ),
@@ -247,10 +287,12 @@ fn r6_request_overlays_merge_by_key_and_explicit_refusals() {
     let mut defs = LoadedDefs::default();
     merge_config_definitions(
         &mut defs,
-        &serde_json::json!({"agents":{"bad":{"temperature":"hot"}}}),
+        &serde_json::json!({"agents":{"kept":{"temperature":"hot","system":"Kept","request":{"settings":{},"body":{"seed":3}}}}}),
         "global",
     );
-    assert!(!defs.agents.contains_key("bad"));
+    assert_eq!(defs.agents["kept"].body, "Kept");
+    assert_eq!(defs.agents["kept"].request.body["seed"], 3);
+    assert!(defs.diagnostics.is_empty());
 }
 
 #[test]
@@ -274,7 +316,7 @@ fn r6_color_native_pattern_refuses_theme_names_and_supplied_merge() {
         origin: "global".into(),
     }]);
     assert_eq!(defs.agents["native"].color.as_deref(), Some("#A1b2C3"));
-    // T66: frontmatter keys outside the OC2 allowlist are reported, never loaded.
+    // Ignoring temperature does not hide the independently invalid known color.
     assert!(!defs.agents.contains_key("legacy"));
     assert_eq!(defs.unknown_keys.len(), 1);
     for refused in ["theme", "short"] {
@@ -285,7 +327,7 @@ fn r6_color_native_pattern_refuses_theme_names_and_supplied_merge() {
             .iter()
             .filter(|d| d.reason.contains("color must be #RRGGBB"))
             .count(),
-        2,
+        3,
         "{:?}",
         defs.diagnostics
     );

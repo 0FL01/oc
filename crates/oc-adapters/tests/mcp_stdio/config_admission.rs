@@ -24,7 +24,7 @@ impl Peer {
         let report = root.path().join("effects.json");
         let source = Source { path: root.path().join("opencode.json").to_string_lossy().into_owned(), trusted:true, text:json!({"mcp":{
             "servers": {"probe": {
-            "type":"local","command":["mcp09-server",report,root.path(),"project",stage,"two words",""],
+            "type":"local","command":["mcp09-server",report,root.path(),stage,"two words",""],
             "environment":{"PATH":bin,"MCP09_OVERLAY":"mcp09-configured-canary"},"timeout":timeout
         }}
         }}).to_string() };
@@ -139,10 +139,7 @@ async fn mcp09_numeric_timeout_does_not_bound_startup_and_stderr_stays_redacted(
     );
     assert!(result.contains("mcp09-configured-canary"));
     assert!(result.contains("mcp09-inherited-canary"));
-    assert!(
-        !result.contains("mcp09-domain-canary"),
-        "project admission still withholds credentials"
-    );
+    assert!(result.contains("mcp09-domain-canary"));
     for canary in [
         "mcp09-configured-canary",
         "mcp09-inherited-canary",

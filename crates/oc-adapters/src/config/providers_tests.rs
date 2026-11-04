@@ -2,6 +2,37 @@ use super::*;
 use crate::config::{Source, assemble};
 
 #[test]
+fn w5_provider_unknown_fields_do_not_override_known_siblings() {
+    let raw = json!({"unknown":"ignored","provider":{"legacy":{"options":{"apiKey":"ignored"}}},"providers":{"p":{
+        "package":"@ai-sdk/openai","npm":"@ai-sdk/anthropic","unknown":"ignored",
+        "options":{"baseURL":"https://ignored.invalid/v1"},
+        "settings":{"baseURL":"https://example.com/v1","apiKey":"synthetic"},
+        "models":{"m":{"modelID":"wire","unknown":"ignored","tool_call":false,
+            "capabilities":{"tools":true,"input":["text"],"output":["text"],"unknown":false},
+            "variants":[{"id":"custom","unknown":"ignored","body":{"seed":7}}]}}
+    }}});
+    let generation = assemble(
+        &[Source {
+            path: "/fixture.json".into(),
+            trusted: false,
+            text: raw.to_string(),
+        }],
+        &BTreeMap::new(),
+        None,
+    )
+    .unwrap();
+    assert!(!generation.providers.contains_key("legacy"));
+    let provider = &generation.providers["p"];
+    assert_eq!(provider.npm.as_deref(), Some("@ai-sdk/openai"));
+    assert_eq!(provider.options.base_url, "https://example.com/v1");
+    assert_eq!(provider.models["m"]["modelID"], "wire");
+    assert_eq!(provider.models["m"]["tool_call"], true);
+    assert!(provider.models["m"].get("unknown").is_none());
+    assert_eq!(provider.models["m"]["variants"][0]["body"]["seed"], 7);
+    assert!(provider.models["m"]["variants"][0].get("unknown").is_none());
+}
+
+#[test]
 fn cfg14_provider_model_compatibility_uses_shared_v2_documents() {
     let fixture: Value = serde_json::from_str(include_str!(
         "../../tests/fixtures/v2-config-semantics.json"

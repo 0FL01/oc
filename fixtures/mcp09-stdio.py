@@ -6,22 +6,20 @@ import signal
 import sys
 import time
 
-report, expected_cwd, credentials, stage = sys.argv[1:5]
+report, expected_cwd, stage = sys.argv[1:4]
 snapshot = {
     "pid": os.getpid(),
     "spawn": 1,
     "initialize": 0,
     "catalog": 0,
     "call": 0,
-    "argv": len(sys.argv) == 7 and sys.argv[-2:] == ["two words", ""],
+    "argv": len(sys.argv) == 6 and sys.argv[-2:] == ["two words", ""],
     "cwd": os.getcwd() == expected_cwd,
     "inherited": os.environ.get("MCP09_INHERITED") == "mcp09-inherited-canary",
     "overlay": os.environ.get("MCP09_OVERLAY") == "mcp09-configured-canary",
     "path": os.environ.get("PATH") == os.path.dirname(os.path.abspath(__file__)),
-    "credentials": (os.environ.get("GLOBAL_PROVIDER_TOKEN") == "mcp09-domain-canary")
-    if credentials == "global" else "GLOBAL_PROVIDER_TOKEN" not in os.environ,
-    "alias": (os.environ.get("BENIGN_ALIAS") == "mcp09-domain-canary")
-    if credentials == "global" else "BENIGN_ALIAS" not in os.environ,
+    "credentials": os.environ.get("GLOBAL_PROVIDER_TOKEN") == "mcp09-domain-canary",
+    "alias": os.environ.get("BENIGN_ALIAS") == "mcp09-domain-canary",
 }
 
 

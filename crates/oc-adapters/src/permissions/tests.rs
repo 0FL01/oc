@@ -32,6 +32,61 @@ fn cfg17_ordinary_rule_evaluator_asks_without_a_match() {
 }
 
 #[test]
+fn w5_legacy_policy_order_survives_selected_build_defaults() {
+    let mut defs = crate::defs::LoadedDefs::default();
+    crate::defs::register_builtins(&mut defs);
+    let build = &defs.agents["build"];
+    let mut rules = PermissionRules::from_document(&json!({
+        "tools":{"bash":false,"read":true},
+        "permission":{"read":{"*":"deny","README.md":"allow"},"patch":"deny"},
+        "permissions":[{"action":"shell","resource":"printf safe","effect":"allow"}]
+    }))
+    .unwrap();
+    rules.append_configuration(
+        PermissionRules::from_config(&json!({"permission":{"bash":{"printf later":"allow"}}}))
+            .unwrap(),
+    );
+    rules.configure_agent(
+        &BTreeMap::new(),
+        &build.permissions,
+        &build.permission_rules,
+    );
+    for (action, resource, expected) in [
+        ("bash", "touch denied", Permission::Deny),
+        ("bash", "printf safe", Permission::Allow),
+        ("bash", "printf later", Permission::Allow),
+        ("apply_patch", "src/lib.rs", Permission::Deny),
+        ("read", "other.rs", Permission::Deny),
+        ("read", "README.md", Permission::Allow),
+    ] {
+        assert_eq!(
+            rules.evaluate(&BTreeMap::new(), action, resource),
+            expected,
+            "{action} {resource}"
+        );
+    }
+    let agent = PermissionRules::from_agent_document(&json!({
+        "tools":{"bash":false,"write":false},
+        "permission":{"*":"allow","bash":"deny"},
+        "permissions":[{"action":"shell","resource":"printf denied","effect":"deny"}]
+    }))
+    .unwrap();
+    let mut selected = PermissionRules::from_document(&json!({})).unwrap();
+    selected.configure_agent(&BTreeMap::new(), &BTreeMap::new(), &agent);
+    assert_eq!(
+        selected.evaluate(&BTreeMap::new(), "bash", "printf allowed"),
+        Permission::Allow,
+        "agent permission replacement retains the tools key's first position before wildcard allow"
+    );
+    assert_eq!(
+        selected.evaluate(&BTreeMap::new(), "bash", "printf denied"),
+        Permission::Deny,
+        "native rules remain last"
+    );
+    assert!(PermissionRules::from_document(&json!({"permission":{"bash":"invalid"}})).is_err());
+}
+
+#[test]
 fn cfg17_shared_document_and_agent_permission_order() {
     let fixture = fixture();
     for case in fixture["permission_cases"].as_array().unwrap() {

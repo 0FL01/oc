@@ -108,7 +108,7 @@ async fn cfg10_optional_definition_failure_is_safe_but_policy_document_is_fatal_
     let commands = fixture.global.join("commands");
     std::fs::create_dir_all(&commands).unwrap();
     std::fs::write(commands.join(format!("{CANARY}.md")),
-        format!("---\n{CANARY}: [unterminated\n---\nhttps://user:{CANARY}@private.invalid/{CANARY}\u{1b}[31m")).unwrap();
+        format!("---\nsubtask: not-a-bool\n---\nhttps://user:{CANARY}@private.invalid/{CANARY}\u{1b}[31m")).unwrap();
     std::fs::write(
         commands.join("healthy.md"),
         "---\ndescription: Healthy command\n---\nhello $1",

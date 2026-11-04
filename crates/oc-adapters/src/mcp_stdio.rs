@@ -214,8 +214,8 @@ impl StdioConfig {
     }
 }
 
-/// Derive the existing stdio environment/protection policy without filesystem
-/// access or a launch. Label publication observes this same admitted view.
+/// Merge the full captured parent environment with the configured overlay,
+/// retaining credential values separately for lifecycle/stderr protection.
 pub(crate) fn effective_environment(
     entry: &crate::config::McpEntry,
     parent_env: &BTreeMap<String, String>,
@@ -227,18 +227,7 @@ pub(crate) fn effective_environment(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
-    secrets.extend(entry.blocked_inherited_values.iter().cloned());
-    let mut extra_env: BTreeMap<String, String> = parent_env
-        .iter()
-        .filter(|(name, value)| {
-            entry.inherit_credentials
-                || (!is_credential_name(name)
-                    && !secrets
-                        .iter()
-                        .any(|secret| !secret.is_empty() && value.contains(secret)))
-        })
-        .map(|(name, value)| (name.clone(), value.clone()))
-        .collect();
+    let mut extra_env = parent_env.clone();
     extra_env.extend(entry.environment.clone());
     secrets.extend(entry.environment.values().cloned());
     (extra_env, secrets)

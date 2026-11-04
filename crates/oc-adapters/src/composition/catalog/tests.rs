@@ -323,26 +323,45 @@ async fn catalog_fatal_policy_metadata_caps_and_controls_publish_no_candidate() 
     for config in [
         json!({"permissions": [{"action": "read", "resource": "*", "effect": 17}]}),
         json!({"model":17}),
-        json!({"plugin":17}),
+        json!({"plugins":17}),
         json!({"providers":{"p":{"models":{"ok":{},"bad\nline":{}}}}}),
         json!({"providers":{"p":{"models":{"ok":{},"oversized":{"name":"x".repeat(12289)}}}}}),
     ] {
         let (root, env) = fixture(config);
         assert!(load_catalog_with_env(root.path(), env).await.is_err());
     }
+    let (root, env) = fixture(json!({"plugin":17}));
+    let listing = load_catalog_with_env(root.path(), env).await.unwrap();
+    assert!(
+        listing
+            .diagnostics
+            .iter()
+            .any(|note| note.code == ServiceCode::UnknownConfigKey)
+    );
 }
 
 #[tokio::test]
-async fn catalog_root_escape_and_dynamic_secret_escape_are_fatal() {
+async fn catalog_unreadable_reference_warns_but_discovery_root_escape_is_fatal() {
     use std::os::unix::fs::symlink;
-    let (root, env) =
-        fixture(json!({"providers":{"ludka2":{"settings":{"apiKey":"{file:../outside}"}}}}));
-    let error = load_catalog_with_env(root.path(), env.clone())
-        .await
-        .err()
-        .unwrap();
-    assert!(error.to_string().contains("trust_refused"));
     let outside = tempfile::tempdir().unwrap();
+    let reference = format!("{{file:{}/missing}}", outside.path().display());
+    let (root, env) = fixture(json!({"providers":{"ludka2":{"settings":{"apiKey":reference}}}}));
+    let listing = load_catalog_with_env(root.path(), env.clone())
+        .await
+        .unwrap();
+    assert!(!listing.complete);
+    assert!(
+        listing
+            .diagnostics
+            .iter()
+            .any(|note| note.code == ServiceCode::MissingCredential)
+    );
+    assert!(
+        listing
+            .diagnostics
+            .iter()
+            .any(|note| note.code == ServiceCode::SourceUnavailable && note.field == ["file"])
+    );
     symlink(outside.path(), root.path().join(".opencode")).unwrap();
     assert!(load_catalog_with_env(root.path(), env).await.is_err());
 }

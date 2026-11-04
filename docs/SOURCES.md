@@ -56,6 +56,13 @@ HTTP proxy matching uses the installed hyper-util0.1.20/reqwest0.13.5 system mat
 not a new env parser; HTTPS proxy tunnelling uses already-locked tokio-rustls0.26.5
 and rustls-native-certs0.8.4, without disabling certificate verification.
 
+W5 source read 2026-11-04 uses the same MIT checkout: `core/src/config/normalize.ts`,
+`core/src/v1/config/agent.ts` and `migrate.ts` for ordered legacy policy; `core/src/config/variable.ts`
+for reference paths/trim/error fallback; `core/src/mcp/client.ts` and `stdio.ts` for
+captured environment plus overlay. Native decoded strings are not JSON-escaped again.
+Config tests were inspected, not executed; only policy-bearing legacy forms are
+normalized, not v1 provider/MCP migration. The retained full MIT notice is unchanged.
+
 ## DCP
 
 [D1] https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/README.md

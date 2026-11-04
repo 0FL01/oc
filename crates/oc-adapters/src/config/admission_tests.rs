@@ -54,8 +54,6 @@ fn cfg11_document_reports_every_unknown_key_once_without_values() {
         "mcp.servers.<id>.enabled",
         "mcp.servers.<id>.metadata",
         "mcp.servers.<id>.oauth.clientId",
-        "permission",
-        "tools",
         "agents.<id>.prompt",
         "agents.<id>.variant",
         "agents.<id>.request.query",
@@ -81,6 +79,11 @@ fn cfg11_document_reports_every_unknown_key_once_without_values() {
         1
     );
     let all = findings.join("\n");
+    assert!(
+        !findings
+            .iter()
+            .any(|path| path == "permission" || path == "tools")
+    );
     assert!(!all.contains("SECRET-VALUE") && !all.contains("@ai-sdk") && !all.contains("\"a\""));
 }
 
@@ -197,7 +200,7 @@ fn cfg11_markdown_and_cli_findings() {
                        "permission": {"edit": "deny"}, "maxSteps": 3, "anything": 1});
     assert_eq!(
         paths(&scan_agent_frontmatter(agent.as_object().unwrap())),
-        ["permission", "maxSteps", "anything"]
+        ["maxSteps", "anything"]
     );
     let cli = json!({"$schema": "https://opencode.ai/v2/cli.json",
                      "theme": {"name": "opencode", "accent": 1}, "leader_timeout": 1,

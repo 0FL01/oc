@@ -2275,44 +2275,56 @@ mod reload_tests {
     }
 
     #[tokio::test]
-    async fn cfg13_unknown_key_on_reload_keeps_last_good_and_reports_every_key() {
+    async fn cfg13_unknown_keys_warn_on_startup_and_reload() {
         let root = tempfile::tempdir().unwrap();
         let project = root.path().join("project");
         let data = root.path().join("data");
         std::fs::create_dir_all(&project).unwrap();
         std::fs::create_dir_all(&data).unwrap();
         let path = project.join("opencode.json");
-        let canonical = config("old", "https://example.invalid/v1", true);
-        std::fs::write(&path, &canonical).unwrap();
+        let mut source: serde_json::Value =
+            serde_json::from_str(&config("old", "https://example.invalid/v1", true)).unwrap();
+        source["permission"] = serde_json::json!({"read":"deny"});
+        source["harmless"] = serde_json::json!("VALUE_NOT_FOR_DIAGNOSTICS");
+        source["providers"]["fixture"]["npm"] = serde_json::json!("ignored-package");
+        source["agents"]["build"] =
+            serde_json::json!({"description":"Startup known","unknown":true});
+        std::fs::write(&path, source.to_string()).unwrap();
         let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
         let before = app.catalog().await.unwrap();
-        let mut unknown: serde_json::Value = serde_json::from_str(&canonical).unwrap();
-        unknown["permission"] = serde_json::json!({"read": "deny"});
-        unknown["providers"]["other"] = serde_json::json!({"npm": "@ai-sdk/openai"});
-        std::fs::write(&path, unknown.to_string()).unwrap();
-        let Err(CoreError::LocationSwitch {
-            diagnostic: Some(diagnostic),
-            ..
-        }) = app.reload_location().await
-        else {
-            panic!("unknown keys must refuse the reload");
-        };
-        assert_eq!(
-            diagnostic.code,
-            oc_core::queries::ServiceCode::UnknownConfigKey
-        );
-        let details = diagnostic.details.as_deref().unwrap();
-        for expected in [
-            "location opencode.json: permission",
-            "location opencode.json: providers.<id>.npm",
-        ] {
-            assert!(details.iter().any(|line| line == expected), "{details:?}");
+        source["agents"]["build"]["description"] = serde_json::json!("Reload known");
+        std::fs::write(&path, source.to_string()).unwrap();
+        let reloaded = app.reload_location().await.unwrap();
+        assert!(reloaded.generation > before.chrome.selection_generation);
+        for catalog in [&before, &reloaded.catalog] {
+            assert_eq!(catalog.agent_id.as_deref(), Some("build"));
+            assert_eq!(catalog.provider, "fixture");
+            let diagnostic = catalog
+                .chrome
+                .service_diagnostics
+                .iter()
+                .find(|d| d.code == oc_core::queries::ServiceCode::UnknownConfigKey)
+                .unwrap();
+            let details = diagnostic.details.as_deref().unwrap();
+            for expected in [
+                "location opencode.json: harmless",
+                "location opencode.json: providers.<id>.npm",
+                "location opencode.json: agents.<id>.unknown",
+            ] {
+                assert!(details.iter().any(|line| line == expected), "{details:?}");
+            }
+            assert!(!format!("{diagnostic:?}").contains("VALUE_NOT_FOR_DIAGNOSTICS"));
         }
-        let mut failed = app.catalog().await.unwrap();
-        assert_eq!(failed.chrome.service_diagnostics.pop(), Some(diagnostic));
-        assert_eq!(failed, before, "last-good retained apart from reload issue");
-        std::fs::write(&path, &canonical).unwrap();
-        assert!(app.reload_location().await.is_ok());
+        assert_eq!(
+            reloaded
+                .catalog
+                .agents
+                .iter()
+                .find(|a| a.id == "build")
+                .unwrap()
+                .description,
+            "Reload known"
+        );
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
     }

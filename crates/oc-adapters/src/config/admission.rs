@@ -1,10 +1,10 @@
-//! Fail-closed OpenCode 2 key allowlist (T66, D28).
+//! Payload-free warnings for keys outside the native OpenCode 2 schema.
 //!
 //! Only keys of the canonical OpenCode 2 schema are admitted: config `Info` of
 //! `packages/schema` (plus the T65-oracle provider `compatibility`), the
 //! cli.json `Config.Info` of `packages/tui` and its keybind names, and declared
-//! native extensions. Any other key is reported and the configuration refused; it
-//! is never migrated, ignored or mapped to a replacement. Open records (`settings`,
+//! native extensions and the explicitly supported legacy policy forms. Other
+//! keys are reported and ignored by their owning parser. Open records (`settings`,
 //! `headers`, `body`, `env`, `environment`, plugin `options`) and value shapes are
 //! validated by their owners. Paths are schema-only: map keys become `<id>`, array
 //! items `[]`, unsafe key spellings `<key>`, and no values are printed.
@@ -27,6 +27,9 @@ const ROOT: &[&str] = &[
     "enterprise",
     "username",
     "permissions",
+    "permission",
+    "tools",
+    "agent",
     "agents",
     "snapshots",
     "watcher",
@@ -54,7 +57,7 @@ const ROOT: &[&str] = &[
 const EXPERIMENTAL: &[&str] = &["portable_shell_scanner", "subagent_depth", "policies"];
 const COMPACTION: &[&str] = &["auto", "keep", "buffer"];
 
-const PROVIDER: &[&str] = &[
+pub(super) const PROVIDER: &[&str] = &[
     "canonical",
     "name",
     "env",
@@ -66,7 +69,7 @@ const PROVIDER: &[&str] = &[
     "models",
 ];
 
-const MODEL: &[&str] = &[
+pub(super) const MODEL: &[&str] = &[
     "modelID",
     "family",
     "name",
@@ -83,9 +86,9 @@ const MODEL: &[&str] = &[
 ];
 
 /// Native extension: `disabled` hides a configured or discovered variant.
-const VARIANT: &[&str] = &["id", "settings", "headers", "body", "disabled"];
-const CAPABILITIES: &[&str] = &["tools", "input", "output"];
-const LIMIT: &[&str] = &["context", "input", "output"];
+pub(super) const VARIANT: &[&str] = &["id", "settings", "headers", "body", "disabled"];
+pub(super) const CAPABILITIES: &[&str] = &["tools", "input", "output"];
+pub(super) const LIMIT: &[&str] = &["context", "input", "output"];
 
 const MCP: &[&str] = &["timeout", "servers"];
 const TIMEOUT: &[&str] = &["startup", "catalog", "execution"];
@@ -125,6 +128,8 @@ const AGENT: &[&str] = &[
     "steps",
     "disabled",
     "permissions",
+    "permission",
+    "tools",
 ];
 const REQUEST: &[&str] = &["headers", "body"];
 const COMMAND: &[&str] = &[
@@ -493,11 +498,21 @@ pub(crate) fn scan_document(document: &Value) -> Vec<Finding> {
         let Some(provider) = check(&mut out, Some(provider), "providers.<id>.", PROVIDER) else {
             continue;
         };
+        scan_settings(
+            &mut out,
+            "providers.<id>.settings.",
+            provider.get("settings"),
+        );
         for model in entries(provider.get("models")) {
             let prefix = "providers.<id>.models.<id>.";
             let Some(model) = check(&mut out, Some(model), prefix, MODEL) else {
                 continue;
             };
+            scan_settings(
+                &mut out,
+                &format!("{prefix}settings."),
+                model.get("settings"),
+            );
             check(
                 &mut out,
                 model.get("capabilities"),
@@ -517,6 +532,11 @@ pub(crate) fn scan_document(document: &Value) -> Vec<Finding> {
                     &format!("{prefix}variants[]."),
                     VARIANT,
                 );
+                scan_settings(
+                    &mut out,
+                    &format!("{prefix}variants[].settings."),
+                    variant.get("settings"),
+                );
             }
         }
     }
@@ -529,13 +549,76 @@ pub(crate) fn scan_document(document: &Value) -> Vec<Finding> {
     for agent in entries(root.get("agents")) {
         scan_agent(&mut out, "agents.<id>.", agent, false);
     }
+    for agent in entries(root.get("agent")) {
+        scan_agent(&mut out, "agent.<id>.", agent, false);
+    }
+    for permission in items(root.get("permissions")) {
+        check(
+            &mut out,
+            Some(permission),
+            "permissions[].",
+            &["action", "resource", "effect"],
+        );
+    }
     for command in entries(root.get("commands")) {
         check(&mut out, Some(command), "commands.<id>.", COMMAND);
+        check(
+            &mut out,
+            command.get("model"),
+            "commands.<id>.model.",
+            &["providerID", "modelID", "variant"],
+        );
     }
     for plugin in items(root.get("plugins")) {
         check(&mut out, Some(plugin), "plugins[].", PLUGIN);
     }
     dedup(out)
+}
+
+fn scan_settings(out: &mut Vec<Finding>, prefix: &str, settings: Option<&Value>) {
+    let Some(settings) = settings.and_then(Value::as_object) else {
+        return;
+    };
+    check(
+        out,
+        settings.get("nativeFallbackLimits"),
+        &format!("{prefix}nativeFallbackLimits."),
+        &["context", "output"],
+    );
+    if let Some(thinking) = check(
+        out,
+        settings.get("thinking"),
+        &format!("{prefix}thinking."),
+        &[
+            "type",
+            "budget_tokens",
+            "budgetTokens",
+            "display",
+            "block_binding",
+        ],
+    ) {
+        check(
+            out,
+            thinking.get("block_binding"),
+            &format!("{prefix}thinking.block_binding."),
+            &["prefix_mismatch_behavior"],
+        );
+    }
+    for key in ["outputConfig", "output_config"] {
+        if let Some(output) = check(
+            out,
+            settings.get(key),
+            &format!("{prefix}{key}."),
+            &["effort", "format"],
+        ) {
+            check(
+                out,
+                output.get("format"),
+                &format!("{prefix}{key}.format."),
+                &["type", "schema"],
+            );
+        }
+    }
 }
 
 fn scan_server(out: &mut Vec<Finding>, server: &Value) {
@@ -567,16 +650,45 @@ fn scan_agent(out: &mut Vec<Finding>, prefix: &str, agent: &Value, markdown: boo
             &format!("{prefix}request."),
             REQUEST,
         );
+        check(
+            out,
+            agent.get("model"),
+            &format!("{prefix}model."),
+            &["providerID", "model", "modelID", "variant"],
+        );
+        for permission in items(agent.get("permissions")) {
+            check(
+                out,
+                Some(permission),
+                &format!("{prefix}permissions[]."),
+                &["action", "resource", "effect"],
+            );
+        }
     }
 }
 
 /// Markdown agent frontmatter (`agent/`, `agents/`, `mode/`, `modes/`). An
-/// excluded agent override would leave a wider built-in profile, so unknown keys
-/// refuse the configuration. Markdown commands keep their isolated per-file
-/// `unsupported field` diagnostic: they cannot widen authority.
+/// agent retains its recognized fields and normalized policy despite excess keys.
 pub(crate) fn scan_agent_frontmatter(fields: &Map<String, Value>) -> Vec<Finding> {
     let mut out = Vec::new();
     scan_agent(&mut out, "", &Value::Object(fields.clone()), true);
+    dedup(out)
+}
+
+pub(crate) fn scan_command_frontmatter(fields: &Map<String, Value>) -> Vec<Finding> {
+    let mut out = Vec::new();
+    check(
+        &mut out,
+        Some(&Value::Object(fields.clone())),
+        "",
+        &["description", "agent", "model", "subagent", "subtask"],
+    );
+    check(
+        &mut out,
+        fields.get("model"),
+        "model.",
+        &["providerID", "modelID", "variant"],
+    );
     dedup(out)
 }
 
@@ -671,7 +783,7 @@ impl Report {
             field: vec!["unknown".into()],
             stage: ServiceStage::Config,
             code: ServiceCode::UnknownConfigKey,
-            action: ServiceAction::RemoveUnknownConfigKeys,
+            action: ServiceAction::ReviewConfiguration,
             details: Some(Box::new(details)),
         }
     }

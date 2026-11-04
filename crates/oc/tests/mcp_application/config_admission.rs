@@ -38,12 +38,12 @@ fn mcp09_disabled_chrome_environment_timeout_opens_first_tui_zero_spawn() {
 }
 
 #[test]
-fn mcp09_withheld_credential_path_cannot_reenter_executable_resolution() {
+fn mcp09_captured_credential_path_is_used_for_executable_resolution() {
     let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
     let fixture = Fixture::new();
     let bin = fixture.project.join("credential-path-canary");
     fs::create_dir(&bin).unwrap();
-    let counter = fixture.project.join("must-stay-zero");
+    let counter = fixture.project.join("spawned");
     let trap = bin.join("mcp09-denied-executable");
     fs::write(
         &trap,
@@ -74,8 +74,8 @@ fn mcp09_withheld_credential_path_cannot_reenter_executable_resolution() {
         .args([
             "run",
             "--session",
-            "mcp09-withheld-path",
-            "safe despite rejected executable",
+            "mcp09-captured-path",
+            "continue after the fixture executable exits",
         ])
         .stdin(Stdio::null())
         .stdout(fs::File::create(&stdout).unwrap())
@@ -88,14 +88,13 @@ fn mcp09_withheld_credential_path_cannot_reenter_executable_resolution() {
         stderr,
     };
     assert!(process.wait().success());
-    assert!(process.diagnostics().contains(&format!(
-        "mcp {} spawn: spawn_failed",
-        diagnostic_name("trap")
-    )));
     assert!(
-        !counter.exists(),
-        "withheld PATH was re-read for executable resolution"
+        process
+            .diagnostics()
+            .contains(&format!("mcp {} ", diagnostic_name("trap")))
     );
+    assert!(!process.diagnostics().contains("spawn: spawn_failed"));
+    assert_eq!(fs::read_to_string(&counter).unwrap(), "spawn\n");
     assert!(!process.diagnostics().contains("credential-path-canary"));
     for (path, bytes) in before {
         assert_eq!(fs::read(path).unwrap(), bytes);
@@ -103,7 +102,7 @@ fn mcp09_withheld_credential_path_cannot_reenter_executable_resolution() {
 }
 
 #[test]
-fn mcp09_actual_argv_cwd_inherited_overlay_path_and_credential_domain() {
+fn mcp09_actual_argv_cwd_inherited_overlay_path_and_captured_credentials() {
     for (label, cwd, global) in [
         ("default", None, true),
         ("relative", Some("nested"), true),
@@ -129,7 +128,7 @@ fn mcp09_actual_argv_cwd_inherited_overlay_path_and_credential_domain() {
             &fixture.project
         };
         let mut entry = json!({
-            "type":"local", "codemode": false, "command":["mcp09-server",report,expected_cwd,if global {"global"} else {"project"},"steady","two words",""],
+            "type":"local", "codemode": false, "command":["mcp09-server",report,expected_cwd,"steady","two words",""],
             "disabled":false,"codemode":false,
             "environment":{"PATH":bin,"MCP09_OVERLAY":"{env:OVERLAY_SOURCE}"},
             "timeout":{"startup":3000,"catalog":1000,"execution":1000}
@@ -218,17 +217,16 @@ fn mcp09_actual_argv_cwd_inherited_overlay_path_and_credential_domain() {
             serde_json::to_string(&responses.requests()).unwrap(),
             messages.join("\n")
         );
-        for canary in ["mcp09-inherited-canary", "mcp09-configured-canary"] {
+        for canary in [
+            "mcp09-inherited-canary",
+            "mcp09-configured-canary",
+            "mcp09-domain-canary",
+        ] {
             assert!(
                 output.contains(canary),
                 "{label}: server echo was not verbatim"
             );
         }
-        assert_eq!(
-            output.contains("mcp09-domain-canary"),
-            global,
-            "credential-domain admission is unchanged"
-        );
         assert!(!output.contains("mcp09-old-overlay-canary"));
         assert!(
             output.contains("probe complete"),

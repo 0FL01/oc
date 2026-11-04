@@ -13,15 +13,13 @@ Upstream-compatible inputs: global/Location `opencode.json`/`opencode.jsonc`, `.
 
 Discovery native enabled для ludka2; static ludka можно включить и явно задать models. `experimental.policies` в стартовом примере разрешает только ludka2 (`provider.use`: `*` deny, затем `ludka2` allow), чтобы отсутствие LUDKA_* не ломало его работу. Это явно выбранный ready-to-start default, не удаление поддержки ludka.
 
-## Только канонический OpenCode 2 config — T62/T66 (owner 2026-10-15, D28 2026-10-16)
+## Config excess keys и legacy policy — W5 (2026-11-04)
 
-`oc2` знает только канонический schema актуального OpenCode 2 (`packages/schema` config
-`Info` и `cli.json` `Config.Info`). Словаря OpenCode 1 в коде нет ([D28](DECISIONS.md),
-[T66](goals/2026-10-16-v2-allowlist.md)): каждый admitted `opencode.json(c)`, `cli.json(c)`
-и frontmatter Markdown-агента проверяется по OC2 allowlist
-(`crates/oc-adapters/src/config/admission.rs`). Любой другой ключ — включая прежние
-ключи OpenCode 1 — не мигрируется и не игнорируется: startup, `/reload` (сохраняет
-last-good) и `oc2 models` отказывают одним `unknown_config_key` отчётом со строками
+Канонические OpenCode 2 поля остаются основным форматом. W5 supersedes blanket
+unknown-key refusal T66/D28: admitted `opencode.json(c)`, `cli.json(c)` и Markdown
+frontmatter сканируются `config/admission.rs`, затем лишние ключи игнорируются у
+owning parser без потери известных siblings/definitions. Startup, `/reload` и
+`oc2 models` продолжают с безопасным `unknown_config_key` warning со строками
 `scope: path` (`global`/`location`/`location .opencode` + файл; ID — `<id>`, элементы
 массивов — `[]`). Значения и подсказки замены не печатаются; имя ключа выводится, только
 если это простой идентификатор (иначе `<key>`).
@@ -34,12 +32,16 @@ T65-оракула), `models.<id>`, `variants[]` (+ native `disabled`), `capabil
 frontmatter агента (+ `variant`), секции `cli.json` и donor keybind names. Открытые
 записи (`settings`, `headers`, `body`, `env`, `environment`, plugin `options`) и формы
 значений проверяют их владельцы. Неизвестный ключ во frontmatter Markdown-команды
-остаётся изолированной per-file диагностикой (команда не расширяет права). В правилах
+также предупреждает, не удаляя исправную команду. В native правилах
 `permissions` внутренние имена `write`/`patch`/`apply_patch`/`bash`/`task` — не
 OC2-действия и отказывают (`edit`/`shell`/`subagent`).
 
-Allowlist строже TS (`onExcessProperty: "ignore"`): ключ будущей версии, который `oc2`
-не знает, отказывает явно — осознанная fail-closed дивергенция. Package
+До omission нормализуются policy-bearing legacy root/agent/frontmatter `permission`
+и `tools` (см. порядок ниже): deny не теряется под default Build Allow. Singular
+`provider` и direct `mcp.<name>` только warning+ignore, без новой v1 migration.
+Известные неверные типы, malformed policy, reserved request fields и обязательные
+profile/source checks остаются ошибками. Warnings доступны в `chrome.service_diagnostics`,
+headless stderr и TUI Services, без values. Package
 `@ai-sdk/{openai,anthropic,openai-compatible}` и `@opencode/ai/providers/*` одинаково
 выбирают нативный адаптер и в `oc2`, и в TS V2 (`AISDKNative.rewrite`).
 
@@ -50,9 +52,23 @@ Allowlist строже TS (`onExcessProperty: "ignore"`): ключ будуще�
 
 Baseline discovery/precedence получить из pinned OpenCode config tests и сохранить source-derived fixture в T02. `G` — `$OPENCODE_CONFIG_DIR`, если задан, иначе platform XDG OpenCode config root; env override заменяет default, а не добавляет второй global layer. Для admitted sources low→high: `G/opencode.json`, `G/opencode.jsonc`, optional explicit `--config`, direct `opencode.json` затем `opencode.jsonc` от Location root к working directory, затем `.opencode` roots от Location root к working directory с JSON перед JSONC. Более широкий upstream walk за trusted Location boundary — documented difference, не скрытое чтение parent/home filesystem.
 
-Pipeline: source discovery/provenance → explicit trust decision для canonical Location/source boundary → text substitutions/no-follow resource reads → JSONC parse → normalize supported shapes → domain-specific merge → typed capability validation → fully built candidate generation → atomic publication. До trust нельзя читать `{file:...}`, разрешать lower-trust endpoint/command с higher-trust credential или запускать network/process. Fatal candidate/reload failure сохраняет прежнюю generation; mixed old/new config, instructions, catalogs, plugins или clients не публикуются. T46/T51 target допускает fully admitted candidate с isolated optional-service failures и typed diagnostic inventory, не half-valid policy. Подстановки выполняются ДО parsing согласно pinned recon, не переносить старую ошибку плана v1.
+Pipeline: source discovery/provenance → explicit trust decision для canonical Location/source boundary → JSONC parse → policy/known-shape normalization и excess-key warnings → decoded-string substitutions в активных полях → domain-specific merge/typed validation → fully built candidate generation → atomic publication. До trust нельзя читать `{file:...}` или запускать network/process; provider endpoint/credential binding сохраняется, а project MCP наследует captured env по отдельному контракту ниже. Fatal candidate/reload failure сохраняет прежнюю generation; mixed old/new config, instructions, catalogs, plugins или clients не публикуются. Optional-service failures имеют отдельный typed inventory. В отличие от TS raw-JSONC interpolation native подставляет уже decoded strings: file content не JSON-экранируется повторно.
 
-Missing required selected-provider key даёт typed `MissingCredential`: локальные TUI/history/model picker работают, но запрос выбранной недоступной модели fails до generation/tool effects; headless nonzero. Нет fallback provider/model. Отсутствующие env references обрабатываются по pinned substitution contract (пустое значение); публичный strict config assembler сохраняет MissingCredential contract, application допускает valid-shaped empty credential только с central pre-request refusal. Disabled provider/MCP не запускает network/process и не требует своих credentials. Это НЕ обещает lazy file substitution: доверенный config с {file:...} может читать ссылку до entry filtering; trust gate применяется ко всему источнику. Пустая подстановка не является действительным ключом и не выводится как secret в effective config. Не вводить второй противоречащий parsing pipeline ради пропуска неиспользуемых env keys.
+Доверенный `{file:path}` разрешает source-relative пути (включая `../`), absolute,
+`~/` по captured HOME и symlinks; lexical parent normalization предшествует I/O.
+Результат trim-ится;64KiB cap снят. Missing/unreadable/directory/FIFO/invalid-UTF8
+дают `""` + value-free SourceUnavailable warning, не raw OS error/path/content.
+Missing captured HOME также даёт empty+warning. Admitted source-directory authority
+остаётся pinned/no-follow; это не blanket no-follow для самого reference. Active
+reference dependencies наблюдаются для reload; disabled MCP templates остаются inert
+до explicit activation, которая использует тот же reader и сохраняет safe warning
+в status. Warning подключённого MCP виден в Services indicator и по Enter в `/mcps`;
+сервер остаётся Connected с действием Disconnect. Если empty fallback делает effective command/header невалидным, процесс
+не запускается; explicit retry повторяет чтение и validation после исправления файла.
+Это не автоматический retry или обход source/resource admission. Instructions consumer
+и config/discovery roots этим не расширяются.
+
+Missing required selected-provider key даёт typed `MissingCredential`: локальные TUI/history/model picker работают, но запрос выбранной недоступной модели fails до generation/tool effects; headless nonzero. Нет fallback provider/model. Отсутствующие env references становятся empty; публичный strict assembler сохраняет MissingCredential, application допускает valid-shaped empty credential только с central pre-request refusal. Disabled provider/MCP не запускает network/process и не требует credentials; disabled MCP substitutions выполняются при activation. Пустая подстановка не является действительным ключом и не выводится как secret в effective config. Trust gate применяется до любого active file read.
 
 Cold TUI discovery выполняется асинхронно существующим application owner. `TuiChrome.provider` и read-only Settings показывают отдельно request availability (`ready/pending/unavailable/failed`) и catalog attempt. Первый native attempt остаётся `pending` для requests даже с configured metadata: известная строка не обходит ещё не завершившийся auth check. `ready` означает admitted credential + metadata выбранного model ID после этого attempt, не проверенную connection и не обход остальных admission/caps. Configured/persisted ID сохраняется явно; unavailable model в UI имеет owner-derived opaque identity, не raw URL/path/control string. Native discovery 401/403 блокирует requests текущего effective wire binding; timeout/connect/catalog failure сохраняет configured metadata, а явный выбор известной модели может использовать исправный Responses endpoint.
 
@@ -65,20 +81,20 @@ DCP domains, provider model metadata/variants, MCP entries, skills, agents, comm
 ## Service config/startup — native diagnostic contract
 
 [T46 R6 matrix](goals/2026-09-22-mcp-attach-parity.md#r6-fieldcapability-matrix--approved-target-not-supported-claim)
-defines canonical `mcp.servers.<name>` (other `mcp` keys fail closed, T66),
+defines canonical `mcp.servers.<name>` (other `mcp` keys warn and are ignored, W5),
 global/server stage timeouts, `disabled`/precedence, actual argv/cwd/environment and explicit
 OAuth/CodeMode/protocol differences. Admission is per server after source trust;
 malformed/unsupported entry stays in bounded failed diagnostic inventory while valid
-siblings survive. A server key outside the OC2 local/remote fields refuses the
-configuration (T66 allowlist, superseding the T46 omission of unknown metadata); a
+siblings survive. A server key outside the OC2 local/remote fields warns and is ignored; a
 field of the other transport stays an isolated server failure. Valid disabled entries remain disabled and
 zero-spawn even with environment/cwd/timeout; loader support is not proven by Serde alone.
 
 Admitted local MCP inherits product-process env plus configured string-map overlay;
 relative cwd resolves from effective Location workspace directory, not source file.
-Full environment/credential authority requires command/resource/credential-domain
-admission before launch; untrusted/lower-trust commands do not inherit higher-trust
-secrets. Ordinary shell inherits the captured owner env; remote MCP gets no arbitrary local env.
+All admitted project/global local servers receive the full captured parent env,
+including credentials, then configured overlay. Credential-domain collection/refusal
+and name/value filtering are removed; canonical cwd/resource admission remains.
+Ordinary shell also inherits captured owner env; remote MCP gets no arbitrary local env.
 Never dump expanded effective config. Tool output is verbatim within existing
 normalization/bounds (TS parity), including echoes of env/argv/credentials in shell,
 read, questions, fetch, model lookup, subagent and Code Mode results/cards/artifacts.
@@ -98,7 +114,10 @@ optional authority: invalid siblings have bounded failed inventory while healthy
 definitions and completely admitted policy survive. Whole malformed/unreadable JSONC
 cannot prove that it contains no policy and stays fatal, even above healthy global
 policy. Selected mandatory definitions, trust/security, storage/recovery, cleanup and
-resource caps remain non-success; cancellation remains cancelled. Failed reload keeps
+mandatory resource guards remain non-success; cancellation remains cancelled. Skills/count
+and aggregate-definition-byte omissions are warning-only on startup and reload:
+256skills/4MiB caps stay in force, retained siblings remain usable. Incomplete agent
+catalog/selected-profile validation and instruction diagnostics are not relaxed. Failed reload keeps
 the previous complete generation, not mixed catalogs/instructions/clients/policy.
 Corrupt active stored selections do not fall back to defaults; a broken inactive tab
 preference may only be projected read-only with a visible safe diagnostic.
@@ -205,9 +224,9 @@ catalog. Нет periodic /models polling, environment mutation живого пр
 
 ## MCP/permissions compatibility — approved 2026-10-02
 
-Only canonical OC2 MCP config is admitted (T66): direct `mcp.<name>`
-entries, `enabled` and camelCase OAuth keys are unknown keys and fail closed with the
-`unknown_config_key` report; numeric timeouts are malformed values. Canonical root `mcp.servers` uses `disabled`; timeout is
+Canonical OC2 MCP fields are consumed; direct `mcp.<name>` entries, `enabled` and
+camelCase OAuth keys warn and are ignored (no v1 MCP migration). Numeric canonical
+timeouts remain malformed values. Canonical root `mcp.servers` uses `disabled`; timeout is
 `{startup, catalog, execution}` in positive ms with defaults 60,000/120,000/43,200,000.
 Global supplied timeout leaves merge, per-server leaves override; later same-ID server
 replaces the whole entry.
@@ -233,8 +252,13 @@ agents start with the pinned defaults (Allow, with Ask for `*.env`/`*.env.*` and
 Allow for `*.env.example`). Saved grants never bypass a final configured Deny.
 Independent native/programmatic, Plan/Explore and captured parent/delegation
 ceilings still intersect; this is not complete built-in-agent permission parity.
-Root `permission`/`tools` are unknown keys and object-form `permissions` is malformed;
-both fail closed (T66). Malformed
+Within a root document, legacy `tools` booleans precede legacy `permission`
+(effect string, action→effect or ordered action→resource→effect), then native
+`permissions` rules win. Legacy action aliases map write/patch/apply_patch→edit,
+bash→shell, task→subagent. Agent `tools`/`permission` merge preserves the first
+key position before native rules; JSON `agent.<id>` and Markdown policy normalize
+before unknown-field omission. This is policy compatibility, not general v1 migration.
+Object-form native `permissions` is still malformed. Malformed
 security policy is fatal, not skipped into Allow. MCP aliases come from actual tools/list:
 server crw + scrape → crw_scrape, crw + crw_scrape → crw_crw_scrape. `codex_web` matches
 that exact action, not all codex_web tools; explicitly use codex_web_* if that is the
@@ -483,7 +507,7 @@ equivalence, API-ID/overlay precedence, real tool roundtrips/variants, private-r
 admission, errors/cancel and protocol-switch/reopen. GO01–GO06 only T53; PRM01 consumes
 chronological system/effort and T50's next-request switch, without new tasks/frameworks.
 `snapshots: false` remains T44 conversation-only target; compaction.auto works.
-Non-OC2 `snapshot` and compaction `prune` are unknown keys and fail closed (T66).
+Non-OC2 `snapshot` and compaction `prune` are unknown keys: warn and ignore (W5).
 
 ## Custom /connect onboarding — T59 (approved 2026-10-12; pending)
 
@@ -736,7 +760,7 @@ Existing global `--data-dir` принимается; catalog-only команда
 
 Целевой путь пользователя: скопировать ID из `oc2 models`, затем вручную указать его
 в global `model`, canonical `agents.<id>.model` либо Markdown profile
-`.opencode/agents/<id>.md`. JSON `agent` — не ключ OC2 и отказывает fail-closed (T66).
+`.opencode/agents/<id>.md`. Legacy JSON `agent` также сохраняет распознанные profile/policy поля; лишние warn+ignore (W5), без general v1 migration.
 Пример **target profile**, не claim текущего полного R6 parity (значения placeholders):
 
 ```yaml
@@ -796,8 +820,8 @@ by the 2026-10-01 [T50/R1/R9 file-tools contract](goals/2026-09-27-native-tool-p
 Selected-model predicate changes schemas/managed guidance, not configured model IDs,
 reasoning/discovery/provider routes. Canonical `edit`/`shell` rules apply to the native
 apply_patch/write/edit and shell tools and preserve explicit Deny, grants and profile
-ceilings; internal names `write`/`patch`/`apply_patch`/`bash`/`task` in config rules
-fail closed (T66).
+ceilings; internal names `write`/`patch`/`apply_patch`/`bash`/`task` in native
+`permissions` arrays remain invalid, while legacy `permission`/`tools` names normalize first.
 No new file-tool override setting or executable sample is added in this plan delivery;
 supported implementation/compatibility claims require TOOL12/TOOL20 qualification.
 

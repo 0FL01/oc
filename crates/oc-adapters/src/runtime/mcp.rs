@@ -52,8 +52,6 @@ impl McpGeneration {
                 && old.cwd == new.cwd
                 && old.environment == new.environment
                 && old.protocol == new.protocol
-                && old.inherit_credentials == new.inherit_credentials
-                && old.blocked_inherited_values == new.blocked_inherited_values
                 && old.resource_admitted == new.resource_admitted
         };
         let mut view = self.clone();

@@ -55,6 +55,15 @@ to a loopback TLS provider, proxy-only hostname, fixture CA, trusted/untrusted
 bindings, NO_PROXY direct bypass, nested HTTPS-proxy/WSS TLS, plain WS, and terminal
 proxy-certificate refusal without HTTP fallback. No process-global set_var, external
 provider or system trust change; existing direct endpoint/delivery guards stay tested.
+W5 covers legacy policy source order/native precedence under selected Build,
+unknown fields preserving provider/definition/request siblings with safe startup/reload
+warnings, and malformed known policy/selected-profile refusal. Fixed260skills and
+90×48KiB definitions prove warning-only capacity omissions on startup/reload without
+relaxing agent-catalog completeness. Trusted public/admitted file-reference fixtures
+cover ~/absolute/../links, trim/decoded quotes, >64KiB and unreadable regular/FIFO
+fallbacks, including disabled-MCP activation and protected status/stderr. Real
+project/global stdio fixtures prove captured credential inheritance plus overlay
+precedence using booleans, exact argv/cwd and reaping; never dump referenced values.
 При работе с capture/comparator: `python3 tui-recovery/scripts/test_compare_frames.py`.
 При наличии Node в dev-среде: `node --test scripts/test_discovery_reference.mjs` — offline oracle, не production зависимость.
 

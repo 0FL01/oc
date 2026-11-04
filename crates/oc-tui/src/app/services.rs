@@ -123,7 +123,8 @@ impl TuiState {
         if let Some(snapshot) = &self.mcp_snapshot {
             for server in &snapshot.servers {
                 if server.pending_action.is_none()
-                    && matches!(server.status, McpStatus::Failed | McpStatus::NeedsAuth)
+                    && (matches!(server.status, McpStatus::Failed | McpStatus::NeedsAuth)
+                        || server.status == McpStatus::Connected && server.diagnostic.is_some())
                 {
                     add(match &server.diagnostic {
                         Some(diagnostic) => ServiceIssue::McpDiagnostic {

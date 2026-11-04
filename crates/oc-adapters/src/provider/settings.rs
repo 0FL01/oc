@@ -24,7 +24,7 @@ impl std::fmt::Debug for WireSettings {
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
+#[serde(tag = "type", rename_all = "lowercase")]
 enum Thinking {
     Enabled {
         #[serde(alias = "budgetTokens")]
@@ -40,7 +40,6 @@ enum Thinking {
 }
 
 #[derive(Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct ThinkingFields {
     #[serde(skip_serializing_if = "Option::is_none")]
     display: Option<Display>,
@@ -56,7 +55,6 @@ enum Display {
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct BlockBinding {
     prefix_mismatch_behavior: Mismatch,
 }
@@ -69,7 +67,6 @@ enum Mismatch {
 }
 
 #[derive(Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct OutputConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     effort: Option<String>,
@@ -78,7 +75,7 @@ struct OutputConfig {
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+#[serde(tag = "type", rename_all = "snake_case")]
 enum JsonFormat {
     JsonSchema { schema: Map<String, Value> },
 }
@@ -158,6 +155,13 @@ impl WireSettings {
         }
         if let Some(value) = raw.get("thinking") {
             if protocol != Protocol::Messages {
+                return Err(invalid());
+            }
+            if value.get("type").and_then(Value::as_str) != Some("enabled")
+                && (value.get("budget_tokens").is_some() || value.get("budgetTokens").is_some())
+                || value.get("type").and_then(Value::as_str) == Some("disabled")
+                    && (value.get("display").is_some() || value.get("block_binding").is_some())
+            {
                 return Err(invalid());
             }
             let thinking: Thinking =

@@ -5,9 +5,11 @@
 //! generation. Unknown/unsupported fails before side effects; commands and
 //! plugin code are never executed here; future modules are not activated.
 
+use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::fs::{File, OpenOptions};
 use std::io::Read;
+use std::os::fd::AsRawFd;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Component, Path, PathBuf};
 
@@ -178,7 +180,6 @@ impl ProviderTimeout {
 
 /// Single provider entry.
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct ProviderEntry {
     /// Package alias; native family uses `@ai-sdk/openai`.
     #[serde(default)]
@@ -251,12 +252,6 @@ pub struct McpEntry {
     /// Typed payload-free failed inventory; no fallback to a previous entry.
     #[serde(skip)]
     pub failure: Option<oc_core::queries::ServiceDiagnostic>,
-    /// Composition's source/credential-domain decision, never configurable.
-    #[serde(skip)]
-    pub inherit_credentials: bool,
-    /// Values withheld from a lower-trust process even under innocuous env names.
-    #[serde(skip)]
-    pub blocked_inherited_values: Vec<String>,
     /// Existing resource authority admitted the exact canonical cwd.
     #[serde(skip)]
     pub resource_admitted: bool,
@@ -710,8 +705,6 @@ impl Default for McpEntry {
             timeouts: McpTimeouts::default(),
             protocol: mcp::legacy_protocol(),
             failure: None,
-            inherit_credentials: false,
-            blocked_inherited_values: Vec::new(),
             resource_admitted: false,
         }
     }
@@ -820,8 +813,9 @@ pub fn parse_jsonc(text: &str, field: &str) -> Result<serde_json::Value, ConfigE
 
 /// Substitute `{env:VAR}` and `{file:path}` templates.
 ///
-/// `trusted` gates `{file:}` reads (no-follow, bounded 64 KiB); untrusted
-/// sources get `Untrusted`. Missing env expands to empty (credential
+/// `trusted` gates `{file:}` reads; untrusted sources get `Untrusted`.
+/// References follow links and are trimmed; unreadable files warn and expand
+/// to empty. Missing env expands to empty (credential
 /// requirement is checked later, only for selected/enabled integrations).
 pub fn substitute(
     template: &str,
@@ -829,7 +823,14 @@ pub fn substitute(
     trusted: bool,
     env: &BTreeMap<String, String>,
 ) -> Result<String, ConfigError> {
-    substitute_with(template, source, trusted, env, &read_trusted_file)
+    let notes = RefCell::new(Vec::new());
+    let result = substitute_with(template, source, trusted, env, &|path, source| {
+        Ok(read_trusted_file(path, source, env, &notes))
+    });
+    for note in notes.into_inner() {
+        eprintln!("warning: {note}");
+    }
+    result
 }
 
 fn substitute_with(
@@ -874,43 +875,31 @@ fn substitute_with(
     Ok(out)
 }
 
-fn read_trusted_file(path: &str, source: &str) -> Result<String, ConfigError> {
-    // Public callers supply their own trust decision, without an admitted root.
-    // Independently verify every source-directory ancestor (no symlinks), then
-    // pin that exact directory for the entire reference read. Never fall back
-    // from an admitted-root failure to this path-based consumer.
+fn read_trusted_file(
+    path: &str,
+    source: &str,
+    env: &BTreeMap<String, String>,
+    notes: &RefCell<Vec<oc_core::queries::ConfigDiagnostic>>,
+) -> String {
     let source_dir = Path::new(source)
         .parent()
         .filter(|path| !path.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
-    let (anchor, relative) = if source_dir.is_absolute() {
-        (
-            Path::new("/"),
-            source_dir.strip_prefix("/").expect("absolute"),
-        )
-    } else {
-        (Path::new("."), source_dir)
-    };
-    let refused = || file_refused(source);
-    let anchor = OpenOptions::new()
-        .read(true)
-        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW)
-        .open(anchor)
-        .map_err(|_| refused())?;
-    let source_dir = crate::admitted_fs::open_beneath_no_symlinks(
-        &anchor,
-        relative,
-        libc::O_RDONLY | libc::O_DIRECTORY,
-    )
-    .map_err(|_| refused())?;
-    read_trusted_file_rooted(path, source, &source_dir, Path::new(""))
+    let result = file_reference_path(path, source_dir, env)
+        .and_then(|path| {
+            OpenOptions::new()
+                .read(true)
+                .custom_flags(libc::O_NONBLOCK)
+                .open(path)
+        })
+        .and_then(read_reference_contents);
+    reference_value(result, source, notes)
 }
 
 fn file_refused(source: &str) -> ConfigError {
     ConfigError::Untrusted {
         origin: source.to_string(),
-        reason: "file reference must be a regular no-follow path inside the config directory"
-            .to_string(),
+        reason: "file reference source authority unavailable".to_string(),
     }
 }
 
@@ -919,64 +908,115 @@ pub(crate) fn read_trusted_file_rooted(
     source: &str,
     root: &File,
     source_directory: &Path,
+    env: &BTreeMap<String, String>,
+    notes: &RefCell<Vec<oc_core::queries::ConfigDiagnostic>>,
+    observe: Option<&dyn Fn(&Path)>,
 ) -> Result<String, ConfigError> {
-    const FILE_CAP: usize = 64 * 1024;
-
-    let refused = || file_refused(source);
-    let relative = file_relative(path, source, source_directory)?;
-    let mut file = crate::admitted_fs::open_beneath_no_symlinks(root, &relative, libc::O_RDONLY)
-        .map_err(|_| refused())?;
-    let meta = file.metadata().map_err(|_| refused())?;
-    if !meta.is_file() {
-        return Err(refused());
+    // Pin the admitted source directory without following a replaced ancestor.
+    // The explicitly requested reference itself then has ordinary path semantics.
+    let directory = if source_directory.as_os_str().is_empty() {
+        root.try_clone()
+    } else {
+        crate::admitted_fs::open_beneath_no_symlinks(
+            root,
+            source_directory,
+            libc::O_RDONLY | libc::O_DIRECTORY,
+        )
     }
-    if meta.len() > FILE_CAP as u64 {
-        return Err(ConfigError::Invalid {
-            field: "file".to_string(),
-            reason: "file reference too large".to_string(),
+    .map_err(|_| file_refused(source))?;
+    if let Some(observe) = observe
+        && let Ok(path) = file_reference_path(
+            path,
+            Path::new(source).parent().unwrap_or(Path::new(".")),
+            env,
+        )
+    {
+        observe(&path);
+    }
+    let result = file_reference_path(path, Path::new(""), env)
+        .and_then(|path| {
+            OpenOptions::new()
+                .read(true)
+                .custom_flags(libc::O_NONBLOCK)
+                .open(PathBuf::from(format!("/proc/self/fd/{}", directory.as_raw_fd())).join(path))
+        })
+        .and_then(|file| {
+            if let Some(observe) = observe
+                && let Ok(path) = std::fs::read_link(format!("/proc/self/fd/{}", file.as_raw_fd()))
+            {
+                observe(&path);
+            }
+            read_reference_contents(file)
         });
-    }
-    let mut bytes = Vec::new();
-    Read::by_ref(&mut file)
-        .take(FILE_CAP as u64 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|_| refused())?;
-    if bytes.len() > FILE_CAP {
-        return Err(ConfigError::Invalid {
-            field: "file".to_string(),
-            reason: "file reference too large".to_string(),
-        });
-    }
-    String::from_utf8(bytes).map_err(|_| ConfigError::Invalid {
-        field: "file".to_string(),
-        reason: "file reference is not UTF-8".to_string(),
-    })
+    Ok(reference_value(result, source, notes))
 }
 
-fn file_relative(
+fn file_reference_path(
     path: &str,
-    source: &str,
     source_directory: &Path,
-) -> Result<PathBuf, ConfigError> {
-    let refused = || file_refused(source);
-    let mut relative = PathBuf::from(source_directory);
-    let mut has_name = false;
-    for part in Path::new(path).components() {
+    env: &BTreeMap<String, String>,
+) -> std::io::Result<PathBuf> {
+    let expanded = if let Some(relative) = path.strip_prefix("~/") {
+        PathBuf::from(
+            env.get("HOME")
+                .filter(|home| !home.is_empty())
+                .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::NotFound))?,
+        )
+        .join(relative)
+    } else {
+        PathBuf::from(path)
+    };
+    let joined = source_directory.join(expanded);
+    let mut normalized = PathBuf::new();
+    for part in joined.components() {
         match part {
-            Component::Normal(part) => {
-                relative.push(part);
-                has_name = true;
-            }
             Component::CurDir => {}
-            Component::Prefix(_) | Component::RootDir | Component::ParentDir => {
-                return Err(refused());
+            Component::ParentDir => {
+                if matches!(
+                    normalized.components().next_back(),
+                    Some(Component::Normal(_))
+                ) {
+                    normalized.pop();
+                } else if !normalized.has_root() {
+                    normalized.push("..");
+                }
             }
+            _ => normalized.push(part.as_os_str()),
         }
     }
-    if !has_name {
-        return Err(refused());
+    Ok(normalized)
+}
+
+fn read_reference_contents(mut file: File) -> std::io::Result<String> {
+    if !file.metadata()?.is_file() {
+        return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
     }
-    Ok(relative)
+    let mut value = String::new();
+    file.read_to_string(&mut value)?;
+    Ok(value.trim().to_owned())
+}
+
+fn reference_value(
+    result: std::io::Result<String>,
+    source: &str,
+    notes: &RefCell<Vec<oc_core::queries::ConfigDiagnostic>>,
+) -> String {
+    match result {
+        Ok(value) => value,
+        Err(_) => {
+            let note = oc_core::queries::ConfigDiagnostic {
+                source: mcp::safe_source_id(source),
+                field: vec!["file".into()],
+                kind: oc_core::queries::ConfigDiagnosticKind::FileUnavailable,
+                action: oc_core::queries::ConfigDiagnosticAction::Skip,
+            };
+            let mut notes = notes.borrow_mut();
+            if !notes.contains(&note) {
+                notes.push(note);
+            }
+            String::new()
+        }
+    }
 }
 
 /// One source fragment in low→high precedence order.
@@ -1001,8 +1041,13 @@ pub fn assemble(
     env: &BTreeMap<String, String>,
     enabled_providers: Option<&HashSet<String>>,
 ) -> Result<Generation, ConfigError> {
-    assemble_with_reader(sources, env, enabled_providers, &read_trusted_file)
-        .map(|(generation, _)| generation)
+    let notes = RefCell::new(Vec::new());
+    let (mut generation, _) =
+        assemble_with_reader(sources, env, enabled_providers, &|path, source| {
+            Ok(read_trusted_file(path, source, env, &notes))
+        })?;
+    generation.config_diagnostics.extend(notes.into_inner());
+    Ok(generation)
 }
 
 /// Application-only substitution authority. Every admitted source is paired
@@ -1020,29 +1065,21 @@ pub(crate) fn assemble_admitted_with_terminal_copy(
     (Generation, Option<oc_core::queries::TerminalCopyMode>),
     oc_core::queries::ServiceDiagnostic,
 > {
-    assemble_with_admission(
+    let notes = RefCell::new(Vec::new());
+    let (mut generation, terminal_copy) = assemble_with_admission(
         sources,
         env,
         enabled_providers,
         &|path, source| {
             let (root, directory) = roots.get(source).ok_or_else(|| file_refused(source))?;
-            // Observe only the actual admitted reader, never inert templates. A
-            // valid missing dependency still needs creation/recovery observation.
-            let relative = file_relative(path, source, Path::new(""))?;
-            if let Some(observe) = observe {
-                observe(
-                    &Path::new(source)
-                        .parent()
-                        .unwrap_or(Path::new(""))
-                        .join(relative),
-                );
-            }
-            read_trusted_file_rooted(path, source, root, directory)
+            read_trusted_file_rooted(path, source, root, directory, env, &notes, observe)
         },
         false,
         false,
     )
-    .map_err(|error| error.diagnostic)
+    .map_err(|error| error.diagnostic)?;
+    generation.config_diagnostics.extend(notes.into_inner());
+    Ok((generation, terminal_copy))
 }
 
 fn assemble_with_reader(
@@ -1063,19 +1100,21 @@ pub(crate) fn assemble_catalog_admitted(
     dynamic: &HashSet<String>,
     roots: &BTreeMap<String, (&File, PathBuf)>,
 ) -> Result<Generation, oc_core::queries::ServiceDiagnostic> {
-    assemble_with_admission(
+    let notes = RefCell::new(Vec::new());
+    let (mut generation, _) = assemble_with_admission(
         sources,
         env,
         Some(dynamic),
         &|path, source| {
             let (root, directory) = roots.get(source).ok_or_else(|| file_refused(source))?;
-            read_trusted_file_rooted(path, source, root, directory)
+            read_trusted_file_rooted(path, source, root, directory, env, &notes, None)
         },
         false,
         true,
     )
-    .map(|(generation, _)| generation)
-    .map_err(|error| error.diagnostic)
+    .map_err(|error| error.diagnostic)?;
+    generation.config_diagnostics.extend(notes.into_inner());
+    Ok(generation)
 }
 
 fn assemble_with_admission(
@@ -1150,13 +1189,10 @@ fn assemble_with_admission(
             field: source.path.clone(),
             reason: "root must be an object".to_string(),
         })?;
-        // T66 defense in depth: composition reports every key first; a direct
-        // assembler caller still cannot admit a key outside the OpenCode 2 schema.
-        if let Some(finding) = admission::scan_document(&value).into_iter().next() {
-            return Err(ConfigError::Invalid {
-                field: finding.path,
-                reason: "not in the OpenCode 2 schema".into(),
-            });
+        // Owning parsers ignore excess fields; direct callers still receive
+        // payload-free warnings, while composition publishes structured notes.
+        for finding in admission::scan_document(&value) {
+            unknown_options.push(format!("ignored unknown configuration key: {}", finding.path));
         }
 
         {
@@ -1257,7 +1293,7 @@ fn assemble_with_admission(
             source_rules.expand_home(home);
         }
         permission_rules.append_configuration(source_rules);
-        if obj.get("permissions").is_some() {
+        if ["permissions", "permission", "tools"].iter().any(|key| obj.contains_key(*key)) {
             permissions_source = Some(source.path.clone());
         }
 
@@ -2787,10 +2823,35 @@ mod tests {
             serde_json::json!({"context":"32768"}),
             serde_json::json!({"context":1024, "output":512}),
             serde_json::json!({"context":u64::MAX, "output":u64::MAX}),
-            serde_json::json!({"typo":100}),
         ] {
             assert!(assemble_caps(caps).is_err());
         }
+        let extra = assemble_caps(serde_json::json!({
+            "context":16_384,"output":512,"typo":"fallback-value-canary"
+        }));
+        assert!(
+            extra.is_ok(),
+            "excess fallback option must not reject known limits"
+        );
+        let extra = extra.unwrap();
+        assert_eq!(
+            extra.providers["fixture"].options.native_fallback_limits,
+            generation.providers["fixture"]
+                .options
+                .native_fallback_limits
+        );
+        assert!(
+            extra
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("nativeFallbackLimits.typo"))
+        );
+        assert!(
+            extra
+                .warnings
+                .iter()
+                .all(|warning| !warning.contains("fallback-value-canary"))
+        );
         let defaults = assemble_caps(serde_json::json!({})).unwrap();
         assert_eq!(
             defaults.providers["fixture"].options.native_fallback_limits,
@@ -3014,16 +3075,63 @@ mod tests {
     }
 
     #[test]
+    fn w5_public_file_references_follow_paths_trim_and_preserve_decoded_text() {
+        let temp = tempfile::tempdir().unwrap();
+        let directory = temp.path().join("config");
+        std::fs::create_dir(&directory).unwrap();
+        let source = directory.join("opencode.json");
+        let text = "fixture \"quoted\" \\ path\nsecond line";
+        std::fs::write(temp.path().join("key"), format!(" \t{text}\n")).unwrap();
+        std::os::unix::fs::symlink(temp.path().join("key"), directory.join("link")).unwrap();
+        let long = "x".repeat(65_537);
+        std::fs::write(directory.join("large"), format!("{long}\n")).unwrap();
+        let environment = env(&[("HOME", temp.path().to_str().unwrap())]);
+        let cases = [
+            ("../key".to_string(), text),
+            (temp.path().join("key").display().to_string(), text),
+            ("~/key".to_string(), text),
+            ("link".to_string(), text),
+            ("large".to_string(), long.as_str()),
+        ];
+        let failed: Vec<_> = cases
+            .iter()
+            .enumerate()
+            .filter_map(|(index, (path, expected))| {
+                let value = substitute(
+                    &format!("prefix:{{file:{path}}}"),
+                    source.to_str().unwrap(),
+                    true,
+                    &environment,
+                );
+                (!value.is_ok_and(|value| value == format!("prefix:{expected}"))).then_some(index)
+            })
+            .collect();
+        assert!(failed.is_empty(), "file-reference cases failed: {failed:?}");
+        assert!(
+            substitute(
+                "{file:missing}",
+                source.to_str().unwrap(),
+                true,
+                &environment
+            )
+            .is_ok_and(|value| value.is_empty())
+        );
+    }
+
+    #[test]
     fn cfg04_trust_secrets_disabled() {
-        // Untrusted file read refused before any side effect.
-        let err = substitute("{file:/etc/hostname}", "P/opencode.json", false, &env(&[]))
-            .expect_err("untrusted");
-        assert!(matches!(err, ConfigError::Untrusted { .. }));
         let temp = tempfile::tempdir().expect("tempdir");
         let config_dir = temp.path().join("config");
         std::fs::create_dir_all(config_dir.join("secrets")).expect("dirs");
         let source = config_dir.join("opencode.json");
         std::fs::write(&source, "{}").expect("config");
+        let outside = temp.path().join("outside");
+        std::fs::write(&outside, "outside\n").expect("outside");
+        // Untrusted file read refused before any side effect.
+        let absolute = format!("{{file:{}}}", outside.display());
+        let err = substitute(&absolute, &source.to_string_lossy(), false, &env(&[]))
+            .expect_err("untrusted");
+        assert!(matches!(err, ConfigError::Untrusted { .. }));
         std::fs::write(config_dir.join("secrets/key"), "relative-secret").expect("secret");
         assert_eq!(
             substitute(
@@ -3035,7 +3143,6 @@ mod tests {
             .expect("relative file"),
             "Bearer relative-secret"
         );
-        std::fs::write(temp.path().join("outside"), "outside").expect("outside");
         assert!(
             substitute(
                 "{file:../outside}",
@@ -3043,16 +3150,11 @@ mod tests {
                 true,
                 &env(&[]),
             )
-            .is_err()
+            .is_ok_and(|value| value == "outside")
         );
         assert!(
-            substitute(
-                "{file:/etc/hostname}",
-                &source.to_string_lossy(),
-                true,
-                &env(&[]),
-            )
-            .is_err()
+            substitute(&absolute, &source.to_string_lossy(), true, &env(&[]),)
+                .is_ok_and(|value| value == "outside")
         );
         std::fs::write(config_dir.join("secrets/large"), vec![b'x'; 65_537])
             .expect("large fixture");
@@ -3063,7 +3165,7 @@ mod tests {
                 true,
                 &env(&[]),
             )
-            .is_err()
+            .is_ok_and(|value| value.len() == 65_537)
         );
         #[cfg(unix)]
         {
@@ -3079,7 +3181,7 @@ mod tests {
                     true,
                     &env(&[]),
                 )
-                .is_err()
+                .is_ok_and(|value| value == "outside")
             );
         }
         // Disabled MCP launches nothing and needs no credential.
@@ -3101,7 +3203,7 @@ mod tests {
     }
 
     #[test]
-    fn v07c_public_source_uses_verified_directory_not_replaced_ancestor() {
+    fn v07c_public_source_follows_trusted_reference_ancestor() {
         let temp = tempfile::tempdir().unwrap();
         let source_dir = temp.path().join("branch/source");
         let external = temp.path().join("external/source");
@@ -3121,10 +3223,11 @@ mod tests {
         std::fs::rename(temp.path().join("branch"), temp.path().join("old")).unwrap();
         std::os::unix::fs::symlink(temp.path().join("external"), temp.path().join("branch"))
             .unwrap();
-        let error = substitute("{file:key}", &source, true, &env(&[])).unwrap_err();
-        assert!(matches!(error, ConfigError::Untrusted { .. }));
-        assert!(!error.to_string().contains("EXTERNAL_V07C_SECRET_734a"));
-        let error = assemble(
+        assert!(
+            substitute("{file:key}", &source, true, &env(&[]))
+                .is_ok_and(|value| value == "EXTERNAL_V07C_SECRET_734a")
+        );
+        let generation = assemble(
             &[src(
                 &source,
                 r#"{"providers":{"fixture":{"settings":{"apiKey":"{file:key}"}}}}"#,
@@ -3133,8 +3236,13 @@ mod tests {
             &env(&[]),
             None,
         )
-        .expect_err("public assembler has the same explicit policy");
-        assert!(matches!(error, ConfigError::Untrusted { .. }));
+        .expect("public assembler follows explicitly trusted reference paths");
+        assert!(generation.providers["fixture"].options.api_key == "EXTERNAL_V07C_SECRET_734a");
+        assert!(
+            !explain_redacted(&generation)
+                .to_string()
+                .contains("EXTERNAL_V07C_SECRET_734a")
+        );
     }
 
     #[test]

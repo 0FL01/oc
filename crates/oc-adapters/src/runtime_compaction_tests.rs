@@ -1383,13 +1383,28 @@ fn compaction_config_canonical_layers_and_invalid_leaves() {
         (false, Some(456), 654)
     );
     assert_eq!(generation.provenance["compaction"], "project");
-    // Compaction keys outside the OC2 schema are refused, never folded in.
+    // Excess compaction keys warn without changing known defaults.
     let unknown = [crate::config::Source {
         path: "unknown".into(),
         trusted: true,
         text: serde_json::json!({"compaction":{"reserved":1}}).to_string(),
     }];
-    assert!(crate::config::assemble(&unknown, &BTreeMap::new(), None).is_err());
+    let generation = crate::config::assemble(&unknown, &BTreeMap::new(), None).unwrap();
+    assert!(
+        generation
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("compaction.reserved"))
+    );
+    let defaults = crate::compaction::CompactionConfig::default();
+    assert_eq!(
+        (
+            generation.compaction.auto,
+            generation.compaction.buffer,
+            generation.compaction.keep_tokens
+        ),
+        (defaults.auto, defaults.buffer, defaults.keep_tokens)
+    );
 }
 
 #[tokio::test]

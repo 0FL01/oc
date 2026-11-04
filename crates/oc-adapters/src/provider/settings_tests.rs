@@ -9,6 +9,23 @@ fn admitted(protocol: Protocol, raw: Value, body: Value) -> Result<WireSettings,
 }
 
 #[test]
+fn w5_nested_request_unknown_fields_preserve_typed_options() {
+    let settings = admitted(Protocol::Messages, json!({
+        "thinking":{"type":"adaptive","unknown":"ignored","display":"omitted","block_binding":{"prefix_mismatch_behavior":"drop_block","unknown":true}},
+        "outputConfig":{"effort":"high","unknown":"ignored","format":{"type":"json_schema","schema":{"type":"object"},"unknown":false}}
+    }), json!({})).unwrap();
+    let mut body = json!({});
+    settings.apply(Protocol::Messages, &mut body, None);
+    assert_eq!(
+        body,
+        json!({
+            "thinking":{"type":"adaptive","display":"omitted","block_binding":{"prefix_mismatch_behavior":"drop_block"}},
+            "output_config":{"effort":"high","format":{"type":"json_schema","schema":{"type":"object"}}}
+        })
+    );
+}
+
+#[test]
 fn go03_wire_options_are_typed_and_protocol_owned() {
     for thinking in [
         json!({"type":"enabled","budgetTokens":1024}),
@@ -38,7 +55,6 @@ fn go03_wire_options_are_typed_and_protocol_owned() {
         json!({"outputConfig":{"effort":1}}),
         json!({"outputConfig":{"effort":"high"},"output_config":{"effort":"low"}}),
         json!({"outputConfig":{"format":{"type":"json_schema","schema":[]}}}),
-        json!({"outputConfig":{"secretCanary":"DO_NOT_ECHO"}}),
     ] {
         let result = admitted(Protocol::Messages, bad.clone(), json!({}));
         assert!(result.is_err(), "accepted invalid synthetic case: {bad}");
@@ -48,6 +64,16 @@ fn go03_wire_options_are_typed_and_protocol_owned() {
         assert!(admitted(protocol, json!({"thinking":{"type":"adaptive"}}), json!({})).is_err());
         assert!(admitted(protocol, json!({"output_config":{}}), json!({})).is_err());
     }
+    let ignored = admitted(
+        Protocol::Messages,
+        json!({"outputConfig":{"secretCanary":"DO_NOT_ECHO"}}),
+        json!({}),
+    )
+    .unwrap();
+    assert!(!format!("{ignored:?}").contains("DO_NOT_ECHO"));
+    let mut body = json!({});
+    ignored.apply(Protocol::Messages, &mut body, None);
+    assert_eq!(body, json!({"output_config":{}}));
     assert!(
         admitted(
             Protocol::Messages,

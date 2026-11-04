@@ -646,7 +646,7 @@ fn v07a_bare_tui_pty_refuses_external_discovered_root_before_read() {
 }
 
 #[test]
-fn v07c_bare_tui_pty_redacts_refused_file_reference() {
+fn v07c_bare_tui_pty_admits_linked_file_reference_without_disclosure() {
     let fixture = Fixture::new(tempfile::tempdir().expect("fixture"));
     let outside = fixture.root.path().join("outside");
     std::fs::create_dir_all(&outside).expect("outside");
@@ -679,11 +679,11 @@ fn v07c_bare_tui_pty_redacts_refused_file_reference() {
     assert_eq!(result, 0);
     let mut output = Vec::new();
     let deadline = Instant::now() + Duration::from_secs(5);
-    while !contains(&visible_text(&output), b"Configuration load failed") {
+    while !contains(&visible_text(&output), b"Ask anything") {
         if Instant::now() > deadline {
             let _ = child.kill();
             let _ = child.wait();
-            panic!("bare TUI blocked before file-reference refusal");
+            panic!("bare TUI blocked before file-reference admission");
         }
         let mut buf = [0; 8192];
         match master.read(&mut buf) {
@@ -693,21 +693,21 @@ fn v07c_bare_tui_pty_redacts_refused_file_reference() {
         }
     }
     assert!(!contains(&output, b"EXTERNAL_V07C_SECRET_734a"));
-    master.write_all(b"q").expect("dismiss startup failure");
+    master.write_all(b"/quit\r").expect("quit admitted TUI");
     let exit_deadline = Instant::now() + Duration::from_secs(5);
     loop {
         if let Some(status) = child.try_wait().expect("poll child") {
-            assert!(!status.success());
+            assert!(status.success());
             break;
         }
         if Instant::now() > exit_deadline {
             let _ = child.kill();
             let _ = child.wait();
-            panic!("bare TUI did not exit after dismissal");
+            panic!("bare TUI did not exit after quit");
         }
         std::thread::sleep(POLL);
     }
-    assert!(!fixture.data_dir().exists());
+    assert!(fixture.data_dir().exists());
     assert!(fixture.requests.lock().expect("requests").is_empty());
 }
 

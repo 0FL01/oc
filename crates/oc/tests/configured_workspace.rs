@@ -790,7 +790,7 @@ fn v07a_binary_explicit_global_and_nested_local_jsonc_are_loaded() {
 }
 
 #[test]
-fn v07c_binary_nested_file_reference_no_follow_and_global_allowed() {
+fn v07c_binary_nested_file_reference_follows_links_without_disclosure() {
     let fixture = Fixture::new();
     let external = fixture.home.join("external-secret");
     write(&external.join("key"), "EXTERNAL_V07C_SECRET_734a");
@@ -813,9 +813,14 @@ fn v07c_binary_nested_file_reference_no_follow_and_global_allowed() {
     .unwrap();
     symlink(&external, fixture.global.join("nested")).unwrap();
     let mut process = fixture.spawn(&fixture.project_a, "v07c-link", "hello", "v07c-link");
-    assert!(!fixture.wait_for_preflight_failure(&mut process).success());
+    let (mut socket, request) = fixture.accept(&mut process);
+    assert_eq!(request["model"], MODEL);
+    respond_text(&mut socket, "linked");
+    fixture.respond_title(&mut process);
+    assert!(process.wait().success(), "{}", process.diagnostics());
     let error = process.diagnostics();
-    assert!(!error.contains("EXTERNAL_V07C_SECRET_734a"), "{error}");
+    assert!(!error.contains("EXTERNAL_V07C_SECRET_734a"));
+    assert_eq!(process.output().trim(), "linked");
     fixture.assert_no_request();
     fixture.assert_no_loader_execution();
 }

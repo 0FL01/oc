@@ -116,6 +116,7 @@ async fn hot02_watch_inputs_follow_actual_admission_and_keep_missing_roots_inert
         shared.join("other-key"),
         shared.join("later-key"),
         shared.join("mcp-key"),
+        project.join("NEVER_FOLLOW"),
         native.join("dcp.json"),
         global_real.join("AGENTS.md"),
         native.join("dcp-prompts/overrides/system.md"),
@@ -131,7 +132,6 @@ async fn hot02_watch_inputs_follow_actual_admission_and_keep_missing_roots_inert
     for never in [
         shared.join("NEVER_READ"),
         shared.join("NEVER_READ_DISABLED"),
-        project.join("NEVER_FOLLOW"),
         project.join(".env"),
         shared.join(".env"),
     ] {

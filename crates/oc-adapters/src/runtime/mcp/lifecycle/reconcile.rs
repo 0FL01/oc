@@ -239,6 +239,7 @@ pub(super) fn configured_node(
     use sha2::{Digest, Sha256};
     let digest = Sha256::digest(server.as_bytes());
     Node {
+        warning: None,
         suspended: false,
         incarnation: Arc::new(()),
         row: McpServerSnapshot {

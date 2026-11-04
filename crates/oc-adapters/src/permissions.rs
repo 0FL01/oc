@@ -100,6 +100,45 @@ impl PermissionRules {
         Ok(configured)
     }
 
+    /// V1 agent tools/permission use an ordered Map: replacing an action keeps
+    /// its first position. Native rules still come last, as in the TS normalizer.
+    pub(crate) fn from_agent_document(value: &serde_json::Value) -> Result<Self, ConfigError> {
+        let mut legacy = serde_json::Map::new();
+        if let Some(tools) = value.get("tools") {
+            for (action, enabled) in tools.as_object().ok_or_else(|| invalid("tools"))? {
+                let action = match action.as_str() {
+                    "write" | "patch" => "edit",
+                    action => action,
+                };
+                legacy.insert(
+                    action.into(),
+                    if enabled.as_bool().ok_or_else(|| invalid("tools"))? {
+                        "allow".into()
+                    } else {
+                        "deny".into()
+                    },
+                );
+            }
+        }
+        if let Some(permission) = value.get("permission") {
+            if permission.is_string() {
+                legacy.insert("*".into(), permission.clone());
+            } else {
+                for (action, effect) in permission
+                    .as_object()
+                    .ok_or_else(|| invalid("permission"))?
+                {
+                    legacy.insert(action.clone(), effect.clone());
+                }
+            }
+        }
+        let mut normalized = serde_json::json!({"permission":legacy});
+        if let Some(native) = value.get("permissions") {
+            normalized["permissions"] = native.clone();
+        }
+        Self::from_document(&normalized)
+    }
+
     /// Config source ordering is not an authority boundary. Do not use extend
     /// here: that API deliberately intersects independently captured policies.
     pub(crate) fn append_configuration(&mut self, mut other: Self) {
@@ -241,18 +280,67 @@ impl PermissionRules {
             }
         }
     }
-    /// Parse canonical ordered `permissions` rules without dropping order or
-    /// resources. Other rule sources are refused by the T66 key allowlist.
+    /// Normalize policy before unknown configuration fields are ignored. Within
+    /// one document TS orders tools, legacy permission, then native rules.
     pub fn from_config(value: &serde_json::Value) -> Result<Self, ConfigError> {
         let mut result = Self::default();
+        let mut rules = Vec::new();
+        if let Some(tools) = value.get("tools") {
+            for (action, enabled) in tools.as_object().ok_or_else(|| invalid("tools"))? {
+                rules.push(legacy_rule(
+                    action,
+                    "*",
+                    if enabled.as_bool().ok_or_else(|| invalid("tools"))? {
+                        Permission::Allow
+                    } else {
+                        Permission::Deny
+                    },
+                ));
+            }
+        }
+        if let Some(permission) = value.get("permission") {
+            if permission.is_string() {
+                rules.push(legacy_rule(
+                    "*",
+                    "*",
+                    serde_json::from_value(permission.clone())
+                        .map_err(|_| invalid("permission"))?,
+                ));
+            } else {
+                for (action, value) in permission
+                    .as_object()
+                    .ok_or_else(|| invalid("permission"))?
+                {
+                    if value.is_string() {
+                        rules.push(legacy_rule(
+                            action,
+                            "*",
+                            serde_json::from_value(value.clone())
+                                .map_err(|_| invalid("permission"))?,
+                        ));
+                    } else {
+                        for (resource, effect) in
+                            value.as_object().ok_or_else(|| invalid("permission"))?
+                        {
+                            rules.push(legacy_rule(
+                                action,
+                                resource,
+                                serde_json::from_value(effect.clone())
+                                    .map_err(|_| invalid("permission"))?,
+                            ));
+                        }
+                    }
+                }
+            }
+        }
         if let Some(raw) = value.get("permissions") {
             if !raw.is_array() {
                 return Err(invalid("permissions"));
             }
-            let rules = parse(raw, "permissions")?;
-            if !rules.is_empty() {
-                result.authorities.push(rules);
-            }
+            rules.extend(parse(raw, "permissions")?);
+        }
+        if !rules.is_empty() {
+            result.authorities.push(rules);
         }
         Ok(result)
     }
@@ -684,6 +772,16 @@ fn invalid(field: &str) -> ConfigError {
     }
 }
 
+fn legacy_rule(action: &str, resource: &str, effect: Permission) -> Rule {
+    let action = match action {
+        "write" | "patch" | "apply_patch" => "edit",
+        "bash" => "shell",
+        "task" => "subagent",
+        action => action,
+    };
+    rule(legacy_key(action), resource, effect)
+}
+
 /// Internal tool identities behind `edit`, `shell` and `subagent`.
 const RESERVED_ACTIONS: &[&str] = &["write", "patch", "apply_patch", "bash", "task"];
 
@@ -693,7 +791,10 @@ fn parse(value: &serde_json::Value, field: &str) -> Result<Vec<Rule>, ConfigErro
         .ok_or_else(|| invalid(field))?
         .iter()
         .map(|raw| {
-            let mut rule: Rule = serde_json::from_value(raw.clone()).map_err(|_| invalid(field))?;
+            let mut raw = raw.as_object().cloned().ok_or_else(|| invalid(field))?;
+            raw.retain(|key, _| matches!(key.as_str(), "action" | "resource" | "effect"));
+            let mut rule: Rule = serde_json::from_value(serde_json::Value::Object(raw))
+                .map_err(|_| invalid(field))?;
             // Native tool identities are not OC2 actions. TS ignores such a rule,
             // while the internal mapping would apply it: refuse instead of either.
             if RESERVED_ACTIONS.contains(&rule.action.as_str()) {

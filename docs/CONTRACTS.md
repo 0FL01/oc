@@ -572,15 +572,35 @@ AUTH01–AUTH06 belong only to T57; VIS45 only to T44 after explicit resume. Fun
 connect/auth actions do not require T44 completion; full auth-segment parity does.
 No backend/visual/live PASS is created by this plan, storage roundtrip or doc validator.
 
+## Config publication — W5
+
+Unknown config/frontmatter/request keys are omitted with payload-free service
+warnings, preserving recognized siblings and definitions on startup/reload. Legacy
+root/agent/frontmatter `permission` and `tools` normalize before omission in source
+order; native rules win within the document. Singular provider/direct MCP entries
+are warning+ignore, not new migration support. Known malformed policy/mandatory
+selected profiles, source authority and lower-trust/child/Plan ceilings stay gates.
+
+Local project/global MCP receives the full captured parent env plus configured
+overlay, not a credential-domain-filtered map or a fresh spawn-time env. Cwd/resource
+admission, live source/entry/stderr secret collection and no-unknown-effect replay
+remain. Trusted `{file:...}` references follow absolute/~/../links, trim, and have no
+64KiB file cap; unreadable/nonregular values become empty plus a safe warning.
+Admitted source authority remains pinned, disabled-MCP templates remain inert until
+activation, and decoded strings are not double escaped. Definition count/4MiB byte
+caps still omit excess skills with warnings on startup/reload; usable siblings and
+selected-profile/catalog completeness checks remain. See [CONFIG](CONFIG.md).
+
 ## Limits и context admission
 
 Резидентная память ограничивается отдельными byte/item caps, а не одним параметром «context tokens». Проверять event size, tool argument bytes, active context serialization, attachment encoding, queued bytes и outputs независимо.
 
 `output_budget = min(requested_or_default, model.output)`; допустимый input не больше `min(model.input если задан, model.context - output_budget) - safety_margin`. Если model limit отсутствует, не выдумывать модельную ёмкость по имени: UI указывает unknown; generation использует явно configured native fallback cap и предупреждение. В fallback caps нет утверждения о реальной upstream модели.
 
-Native policy (D14/T47): `provider.<id>.options.nativeFallbackLimits` accepts positive
+Native policy (D14/T47): canonical `providers.<id>.settings.nativeFallbackLimits` accepts positive
 `context`/`output`, defaults 32768/4096; context must exceed output + 1024 reserve.
-Missing fields use defaults; unknown option keys/types are rejected. These values
+Missing fields use defaults; excess option keys warn and are ignored, while wrong
+known types and invalid limits remain errors. These values
 are request policy, never discovery metadata or provider wire options. Each known
 positive model limit remains authoritative. With known positive context and output,
 the selected model's output is the default request; otherwise the fallback output

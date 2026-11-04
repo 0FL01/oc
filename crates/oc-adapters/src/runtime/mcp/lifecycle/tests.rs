@@ -1118,6 +1118,7 @@ fn pending_scope(owner: &McpOwner) -> Scope {
         nodes: BTreeMap::from([(
             "peer".into(),
             Node {
+                warning: None,
                 connect_started: None,
                 incarnation: Arc::new(()),
                 row: McpServerSnapshot {

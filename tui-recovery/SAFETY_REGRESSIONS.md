@@ -27,7 +27,9 @@ code `read_to_string` находится раньше final source check — э�
 Отдельные положительные cases: явно разрешённый global config dir вне project допустим;
 обычный nested local regular file работает; комментарии/JSONC сохраняются. Policy
 для symlink внутри разрешённого root должна быть явной, не blanket workaround.
-Внутренний безопасный openat для `{file:}` не спасает ошибочный выбор trusted root.
+Pinned authority источника не спасает ошибочный выбор discovery root. W5 отдельно
+разрешает доверенному `{file:}` absolute/~/../symlink references с trim и unreadable→
+empty+warning; это не разрешение canonicalize-and-trust внешнего `.opencode`.
 
 ## S03 — modifiers и key event kinds
 
