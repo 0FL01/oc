@@ -11,7 +11,7 @@ pub struct CatalogListing {
     pub complete: bool,
 }
 
-/// Canonical `experimental.policies` `provider.use` rules (donor `plugin/policy.ts`):
+/// Provider filters, with native experimental rules last within each source:
 /// documents in reverse precedence (user-global last), the last matching wildcard
 /// wins and `deny` removes the provider. No rule means allowed.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -53,33 +53,65 @@ pub(crate) fn provider_filters(sources: &[config::Source]) -> Result<ProviderPol
     for source in sources.iter().rev() {
         let value =
             config::parse_jsonc(&source.text, &source.path).map_err(|_| document(&source.path))?;
-        let Some(rules) = value.pointer("/experimental/policies") else {
-            continue;
-        };
-        let field = ["experimental", "policies"];
-        let rules = rules
-            .as_array()
-            .ok_or_else(|| invalid(&source.path, &field))?;
-        for rule in rules {
-            let text = |key: &str| rule.get(key).and_then(serde_json::Value::as_str);
-            let allow = match text("effect") {
-                Some("allow") => true,
-                Some("deny") => false,
-                _ => return Err(invalid(&source.path, &field)),
-            };
-            let resource = text("resource").ok_or_else(|| invalid(&source.path, &field))?;
-            match text("action") {
-                Some("provider.use") => policy.rules.push((resource.to_string(), allow)),
-                // Ignoring a permission deny would widen authority: refuse instead.
-                Some("permission") => {
-                    return Err(failure(
-                        &source.path,
-                        &field,
-                        ServiceStage::Capability,
-                        ServiceCode::UnsupportedCapability,
-                    ));
+        if let Some(enabled) = value.get("enabled_providers") {
+            let enabled = enabled
+                .as_array()
+                .ok_or_else(|| invalid(&source.path, &["enabled_providers"]))?;
+            policy.rules.push(("*".into(), false));
+            for id in enabled {
+                policy.rules.push((
+                    id.as_str()
+                        .ok_or_else(|| invalid(&source.path, &["enabled_providers"]))?
+                        .into(),
+                    true,
+                ));
+            }
+        }
+        if let Some(disabled) = value.get("disabled_providers") {
+            for id in disabled
+                .as_array()
+                .ok_or_else(|| invalid(&source.path, &["disabled_providers"]))?
+            {
+                policy.rules.push((
+                    id.as_str()
+                        .ok_or_else(|| invalid(&source.path, &["disabled_providers"]))?
+                        .into(),
+                    false,
+                ));
+            }
+        }
+        for (rules, field) in [
+            (value.get("policies"), &["policies"][..]),
+            (
+                value.pointer("/experimental/policies"),
+                &["experimental", "policies"][..],
+            ),
+        ] {
+            let Some(rules) = rules else { continue };
+            let rules = rules
+                .as_array()
+                .ok_or_else(|| invalid(&source.path, field))?;
+            for rule in rules {
+                let text = |key: &str| rule.get(key).and_then(serde_json::Value::as_str);
+                let allow = match text("effect") {
+                    Some("allow") => true,
+                    Some("deny") => false,
+                    _ => return Err(invalid(&source.path, field)),
+                };
+                let resource = text("resource").ok_or_else(|| invalid(&source.path, field))?;
+                match text("action") {
+                    Some("provider.use") => policy.rules.push((resource.to_string(), allow)),
+                    // Ignoring a permission deny would widen authority: refuse instead.
+                    Some("permission") => {
+                        return Err(failure(
+                            &source.path,
+                            field,
+                            ServiceStage::Capability,
+                            ServiceCode::UnsupportedCapability,
+                        ));
+                    }
+                    _ => return Err(invalid(&source.path, field)),
                 }
-                _ => return Err(invalid(&source.path, &field)),
             }
         }
     }

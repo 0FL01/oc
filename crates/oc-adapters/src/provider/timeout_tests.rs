@@ -69,6 +69,68 @@ async fn w3_http_certificate_failure_is_nonretryable() {
     assert_eq!(error.to_string(), "TLS certificate verification failed");
 }
 
+#[tokio::test]
+async fn w9_generation_redirect_cannot_forward_credentials_to_another_origin_or_path() {
+    for outside_origin in [false, true] {
+        let listener =
+            std::sync::Arc::new(tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap());
+        let trap = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/prefix/v1", listener.local_addr().unwrap());
+        let location = if outside_origin {
+            format!("http://{}/trap", trap.local_addr().unwrap())
+        } else {
+            "/escape".into()
+        };
+        let peer_listener = listener.clone();
+        let peer = tokio::spawn(async move {
+            let (mut socket, _) =
+                tokio::time::timeout(Duration::from_secs(2), peer_listener.accept())
+                    .await
+                    .unwrap()
+                    .unwrap();
+            read_request(&mut socket).await;
+            socket.write_all(format!("HTTP/1.1 307 Temporary Redirect\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").as_bytes()).await.unwrap();
+        });
+        let mut config = ResponsesConfig {
+            base_url: base.clone(),
+            api_key: "FIXTURE_REDIRECT_KEY".into(),
+            timeout: None,
+            header_timeout_ms: Some(2000),
+            chunk_timeout_ms: Some(1000),
+            connect_timeout: Duration::from_secs(1),
+            allow_private: false,
+            headers: Default::default(),
+            cache: CacheMode::None,
+            wire: Default::default(),
+        };
+        config.wire.endpoint =
+            Some(crate::endpoint::EndpointBinding::admit(&base, true, "fixture").unwrap());
+        let result = stream_generation(
+            &config,
+            "m",
+            None,
+            "hello",
+            &[],
+            &AtomicBool::new(false),
+            None,
+        )
+        .await;
+        peer.await.unwrap();
+        assert!(
+            matches!(result, Err(ProviderError::InvalidConfig)),
+            "redirect refusal must not be a retryable transport failure"
+        );
+        assert!(
+            tokio::time::timeout(Duration::from_millis(80), async {
+                tokio::select! { _ = listener.accept() => {}, _ = trap.accept() => {} }
+            })
+            .await
+            .is_err(),
+            "a refused redirect must not dial either target"
+        );
+    }
+}
+
 #[test]
 fn w3_certificate_chain_uses_types_not_eof_or_reset_text() {
     let certificate = std::io::Error::new(

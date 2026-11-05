@@ -128,7 +128,7 @@ pub(crate) fn system_proxy(url: &reqwest::Url) -> Result<bool, ProviderError> {
         .is_some())
 }
 
-/// Resolve once, validate every answer, then pin these answers in the HTTP client.
+/// Resolve once, retain only admitted answers, then pin that set in the client.
 /// This closes the preflight/post-dial DNS gap before any credential is sent.
 pub(crate) async fn resolve(
     url: &str,
@@ -143,17 +143,15 @@ pub(crate) async fn resolve(
     let port = url
         .port_or_known_default()
         .ok_or(ProviderError::InvalidConfig)?;
-    let addrs: Vec<_> = tokio::net::lookup_host((host, port))
+    let mut addrs: Vec<_> = tokio::net::lookup_host((host, port))
         .await
         .map_err(|_| ProviderError::Transport)?
         .collect();
     if addrs.is_empty() {
         return Err(ProviderError::Transport);
     }
-    if addrs
-        .iter()
-        .any(|a| !peer_allowed(binding, a.ip(), test_loopback))
-    {
+    addrs.retain(|address| peer_allowed(binding, address.ip(), test_loopback));
+    if addrs.is_empty() {
         return Err(ProviderError::PrivateHost);
     }
     Ok((host.to_owned(), addrs))

@@ -39,7 +39,6 @@ fn cfg11_document_reports_every_unknown_key_once_without_values() {
     });
     let findings = paths(&scan_document(&document));
     for expected in [
-        "provider",
         "providers.<id>.npm",
         "providers.<id>.options",
         "providers.<id>.models.<id>.id",
@@ -82,7 +81,7 @@ fn cfg11_document_reports_every_unknown_key_once_without_values() {
     assert!(
         !findings
             .iter()
-            .any(|path| path == "permission" || path == "tools")
+            .any(|path| path == "permission" || path == "tools" || path == "provider")
     );
     assert!(!all.contains("SECRET-VALUE") && !all.contains("@ai-sdk") && !all.contains("\"a\""));
 }

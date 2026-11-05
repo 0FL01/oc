@@ -396,6 +396,7 @@ fn spawn(fixture: Arc<Fixture>, session: &str) -> PtySession {
 fn ui07_native_missing_key_preserves_history_picker_and_repairs_exact_selection() {
     let fixture = Fixture::new();
     let mut config = native_config(&fixture);
+    config["providers"]["ludka2"]["settings"]["authPolicy"] = "key".into();
     rows(&fixture, false);
     publish(&fixture, &config);
     let mut initial = spawn(fixture.clone(), "ui07-history");
@@ -669,6 +670,7 @@ fn ui07_native_discovery_deadline_is_local_and_explicit_known_model_works() {
     let fixture = Fixture::new();
     let mut config = native_config(&fixture);
     config["model"] = format!("ludka2/{DYNAMIC}").into();
+    config["agents"]["build"]["model"] = config["model"].clone();
     fixture.catalog_control.hold.store(true, Ordering::Relaxed);
     publish(&fixture, &config);
     let mut pty = spawn(fixture.clone(), "ui07-deadline");
@@ -712,6 +714,7 @@ fn ui07_native_refused_connection_keeps_picker_alive_without_generation() {
     config["model"] =
         format!("ludka2/https://user:{CANARY}@private.invalid/{CANARY}?token={CANARY}\x1b[31m")
             .into();
+    config["agents"]["build"]["model"] = config["model"].clone();
     publish(&fixture, &config);
     let mut pty = spawn(fixture.clone(), "ui07-connect");
     settings(&mut pty, "pending");

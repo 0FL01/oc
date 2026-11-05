@@ -528,6 +528,8 @@ impl CacheMode {
 /// Immutable admitted wire binding: protocol and effective compatibility by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
+    pub(crate) credential_env: Vec<String>,
+    pub(crate) implicit_local_auth: bool,
     pub(crate) selection_scope: Option<String>,
     pub(crate) provider_state: Option<crate::composition::ProviderState>,
     pub(crate) providers: crate::shared::Shared<BTreeMap<String, CapturedProvider>>,
@@ -704,10 +706,29 @@ impl ResponsesConfig {
     pub fn auth_ready(&self) -> bool {
         !self.wire.unsupported
             && (self.wire.auth_policy == crate::auth::AuthPolicy::None
+                || self.local_header_auth()
                 || ((self.wire.auth_policy == crate::auth::AuthPolicy::Key
                     || (self.wire.auth_policy == crate::auth::AuthPolicy::OAuth
                         && self.wire.openai.as_ref().is_some_and(|b| b.subscription)))
                     && !self.api_key.trim().is_empty()))
+    }
+    fn local_header_auth(&self) -> bool {
+        self.wire.implicit_local_auth
+            && self.wire.custom_scope.is_none()
+            && !self.wire.go
+            && self.wire.openai.is_none()
+            && self.wire.protocol != protocol::Protocol::Messages
+            && self.wire.auth_policy == crate::auth::AuthPolicy::Key
+            && self.api_key.is_empty()
+            && self
+                .headers
+                .keys()
+                .filter(|name| {
+                    name.eq_ignore_ascii_case("authorization")
+                        || name.eq_ignore_ascii_case("x-api-key")
+                })
+                .count()
+                == 1
     }
     /// Exact generation URL: trimmed prefix + `/responses`.
     pub fn generation_url(&self) -> Result<String, ProviderError> {
@@ -2645,9 +2666,25 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     let endpoint =
         crate::endpoint::checked_url(&url, config.wire.endpoint.as_ref(), config.allow_private)?;
     let proxied = crate::endpoint::system_proxy(&endpoint)?;
+    let redirect_binding = config.wire.endpoint.clone();
+    let redirect_private = config.allow_private;
     let mut builder = reqwest::Client::builder()
         .retry(reqwest::retry::never())
-        .redirect(reqwest::redirect::Policy::none())
+        .redirect(reqwest::redirect::Policy::custom(move |attempt| {
+            if !matches!(attempt.status().as_u16(), 307 | 308)
+                || attempt.previous().len() > 5
+                || redirect_binding.is_none()
+                || crate::endpoint::checked_url(
+                    attempt.url().as_str(),
+                    redirect_binding.as_ref(),
+                    redirect_private,
+                )
+                .is_err()
+            {
+                return attempt.error("provider redirect outside captured binding");
+            }
+            attempt.follow()
+        }))
         .user_agent(crate::USER_AGENT)
         .connect_timeout(config.connect_timeout);
     if !proxied {
@@ -2662,7 +2699,7 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         .await?;
         builder = builder.resolve_to_addrs(&host, &addresses);
     }
-    // The captured plain-HTTP endpoint cannot use TLS and redirects are refused.
+    // Redirects retain the captured scheme/host/port/path and pinned DNS set.
     // Avoid loading an unused system verifier on every physical attempt; HTTPS
     // retains its normal system trust store; direct origin checks stay separate.
     // An HTTPS proxy still needs TLS roots for a plain-HTTP origin.
@@ -2741,7 +2778,8 @@ pub(crate) fn request_headers(
         let name =
             HeaderName::from_bytes(name.as_bytes()).map_err(|_| ProviderError::InvalidConfig)?;
         match name.as_str() {
-            "authorization" | "accept" | "content-type" => continue,
+            "authorization" if !config.local_header_auth() => continue,
+            "accept" | "content-type" => continue,
             "x-api-key" if config.wire.go || config.wire.openai.is_some() => continue,
             "host"
             | "content-length"
@@ -2767,7 +2805,7 @@ pub(crate) fn request_headers(
     {
         return Err(ProviderError::InvalidConfig);
     }
-    if !anonymous {
+    if !anonymous && !config.local_header_auth() {
         let bearer = !messages || (!config.wire.go && config.wire.messages_bearer);
         let mut auth = HeaderValue::from_str(&if bearer {
             format!("Bearer {}", config.api_key)
@@ -2877,6 +2915,7 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
         })??,
     }
         .map_err(|e| {
+            if e.is_redirect() { return (ProviderError::InvalidConfig, false); }
             if invalid_certificate(&e) {
                 return (ProviderError::InvalidCertificate, false);
             }

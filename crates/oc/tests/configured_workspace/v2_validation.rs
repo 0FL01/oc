@@ -70,7 +70,7 @@ fn cfg11_canonical_settings_and_unknown_warnings_keep_mcp_and_provider() {
         let diagnostic = process.diagnostics();
         assert_eq!(
             diagnostic.contains("unknown_config_key"),
-            id != "permission"
+            id != "permission" && id != "provider"
         );
         assert!(!diagnostic.contains("SCHEMA_VALUE_CANARY"));
         assert_eq!(process.output().trim(), "KNOWN_SIBLINGS_KEPT");

@@ -247,7 +247,7 @@ pub(crate) async fn load_with_env_diagnostic(
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
     let result = async {
-        let mut composition = load_stages(project, parent_env, false).await?;
+        let (mut composition, _) = load_stages(project, parent_env, false).await?;
         composition.retain_local_inputs()?;
         composition.refresh_provider().await?;
         Ok(composition)
@@ -268,8 +268,8 @@ pub(crate) async fn load_local_with_env(
     project: &Path,
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
-    let mut composition = load_stages(project, parent_env, false).await?;
-    composition.admit_provider_views()?;
+    let (mut composition, provider_policy) = load_stages(project, parent_env, false).await?;
+    composition.admit_provider_views(&provider_policy)?;
     composition.retain_local_inputs()?;
     Ok(composition)
 }
@@ -281,8 +281,8 @@ pub(crate) async fn load_reload_local_with_env(
     project: &Path,
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
-    let mut composition = load_stages(project, parent_env, true).await?;
-    composition.admit_provider_views()?;
+    let (mut composition, provider_policy) = load_stages(project, parent_env, true).await?;
+    composition.admit_provider_views(&provider_policy)?;
     composition.retain_local_inputs()?;
     Ok(composition)
 }
@@ -742,14 +742,45 @@ fn admit_settings(
             }
         };
         if let Some(model) = value.get("model") {
-            let model = model
-                .as_str()
-                .ok_or_else(|| invalid(&source.path, &["model"]))?;
+            let model = if let Some(model) = model.as_str() {
+                model.to_owned()
+            } else {
+                let object = model
+                    .as_object()
+                    .ok_or_else(|| invalid(&source.path, &["model"]))?;
+                let component = |key: &str| -> Result<&str, LoadFailure> {
+                    object
+                        .get(key)
+                        .and_then(serde_json::Value::as_str)
+                        .filter(|value| {
+                            !value.trim().is_empty()
+                                && !value.contains('#')
+                                && !value.chars().any(char::is_control)
+                        })
+                        .ok_or_else(|| invalid(&source.path, &["model", key]))
+                };
+                let provider = component("providerID")?;
+                if provider.contains('/') {
+                    return Err(invalid(&source.path, &["model", "providerID"]));
+                }
+                let model = component("model")?;
+                let variant = if object.contains_key("variant") {
+                    Some(component("variant")?)
+                } else {
+                    None
+                };
+                format!(
+                    "{provider}/{model}{}",
+                    variant
+                        .map(|variant| format!("#{variant}"))
+                        .unwrap_or_default()
+                )
+            };
             // Catalog admission validates the known field's shape, but does
             // not resolve unrelated selection templates or choose a model.
             if resolve_selection {
                 selected = Some(
-                    config::substitute(model, &source.path, false, parent_env)
+                    config::substitute(&model, &source.path, false, parent_env)
                         .map_err(|error| config_error(&source.path, &error))?,
                 );
                 selected_source = source.path.clone();
@@ -858,7 +889,7 @@ async fn load_stages(
     project: &Path,
     parent_env: BTreeMap<String, String>,
     reload: bool,
-) -> Result<Composition, LoadFailure> {
+) -> Result<(Composition, catalog::ProviderPolicy), LoadFailure> {
     let AdmittedSources {
         project,
         global,
@@ -1373,11 +1404,12 @@ async fn load_stages(
         );
     }
     let mut startup_notices = Vec::new();
-    if generation
-        .config_diagnostics
-        .iter()
-        .any(|note| note.kind != oc_core::queries::ConfigDiagnosticKind::FileUnavailable)
-    {
+    if generation.config_diagnostics.iter().any(|note| {
+        note.field
+            .first()
+            .is_some_and(|field| field == "compaction")
+            && note.kind != oc_core::queries::ConfigDiagnosticKind::FileUnavailable
+    }) {
         startup_notices.push(StartupNotice::CompactionConfig);
     }
     if generation.mcp.values().any(|entry| entry.failure.is_some()) {
@@ -1698,7 +1730,7 @@ async fn load_stages(
     tui_chrome.copy_markdown_shortcut = Some(conversation_keybinds.copy_markdown_shortcut());
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     watch_inputs.borrow().validate()?;
-    Ok(Composition {
+    let composition = Composition {
         reload_issue: None,
         local_inputs: None,
         watch_inputs: watch_inputs.into_inner(),
@@ -1756,7 +1788,8 @@ async fn load_stages(
         startup_notices,
         dcp_config,
         dcp_protected,
-    })
+    };
+    Ok((composition, provider_policy))
 }
 
 /// Admit the exact process cwd independently of environment inheritance.

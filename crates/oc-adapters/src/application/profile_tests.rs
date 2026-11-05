@@ -9,6 +9,25 @@ fn config() -> serde_json::Value {
 }
 
 #[tokio::test]
+async fn w9_model_object_keeps_provider_model_and_variant() {
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    std::fs::create_dir_all(&project).unwrap();
+    let mut value = config();
+    value["model"] =
+        serde_json::json!({"providerID":"fixture","model":"org/main","variant":"fast"});
+    std::fs::write(project.join("opencode.json"), value.to_string()).unwrap();
+    let (app, guard, _) = spawn_with_env(&project, &root.path().join("data"), BTreeMap::new())
+        .await
+        .unwrap();
+    let catalog = app.catalog().await.unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert_eq!(catalog.model_id, "org/main");
+    assert_eq!(catalog.variant.as_deref(), Some("fast"));
+}
+
+#[tokio::test]
 async fn w5_skill_capacity_omissions_warn_on_startup_and_reload() {
     for (count, body_bytes) in [(4100, 32), (90, 768 * 1024)] {
         for preload in [true, false] {

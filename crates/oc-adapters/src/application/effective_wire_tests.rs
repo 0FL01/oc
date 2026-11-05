@@ -32,7 +32,7 @@ async fn go03_model_variant_and_title_bindings_use_api_ids_without_foreign_crede
                 "compatibility":{"supportsPromptCacheKey":true},
                 "settings":{"baseURL":title_base,"apiKey":"TITLE_KEY_CANARY"},
                 "limit":{"context":32768,"output":4096}},
-            "unbound":{"settings":{"baseURL":format!("{base}/unbound")},
+            "unbound":{"settings":{"baseURL":format!("{base}/unbound"),"authPolicy":"key"},
                 "limit":{"context":32768,"output":4096}}
         }
     }}});

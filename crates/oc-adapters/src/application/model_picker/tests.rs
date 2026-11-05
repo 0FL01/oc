@@ -172,6 +172,83 @@ async fn unselected_dynamic_view_discovers_its_catalog_without_selecting_it() {
 }
 
 #[tokio::test]
+async fn w9_denied_dynamic_provider_never_becomes_a_view_or_discovery_request() {
+    for enabled_filter in [false, true] {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let global = root.path().join("global");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&global).unwrap();
+        let mut config = serde_json::json!({
+            "model":"alpha/missing",
+            "providers":{
+                "alpha":{"package":"@ai-sdk/openai",
+                    "settings":{"baseURL":"http://127.0.0.1:9/alpha", "apiKey":"fixture"},
+                    "models":{"audio-only":{"capabilities":{"input":["audio"],"output":["audio"]}}}},
+                "ludka2":{"package":"@ai-sdk/openai",
+                    "settings":{"baseURL":format!("http://{addr}/v1"),"apiKey":"fixture"}}
+            },
+            "experimental":{"policies":[{"action":"provider.use","resource":"opencode-go","effect":"deny"}]}
+        });
+        if enabled_filter {
+            config["enabled_providers"] = serde_json::json!(["alpha"]);
+        } else {
+            config["policies"] = serde_json::json!([
+                {"action":"provider.use","resource":"ludka2","effect":"deny"}
+            ]);
+        }
+        std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+        let env = BTreeMap::from([
+            (
+                "OPENCODE_CONFIG_DIR".into(),
+                global.to_string_lossy().into_owned(),
+            ),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]);
+        let (app, guard, _, _) = spawn_inner(&project, &data, env, true).await.unwrap();
+        let denied_view = app.provider_catalog("ludka2".into()).await;
+        let catalogs = app.model_catalogs().await.unwrap();
+        let selected = app.catalog().await.unwrap();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        let connected =
+            tokio::time::timeout(std::time::Duration::from_millis(80), listener.accept())
+                .await
+                .is_ok();
+        assert!(
+            denied_view.is_err(),
+            "denied provider was admitted as an executable view"
+        );
+        assert!(
+            !catalogs
+                .catalogs
+                .iter()
+                .any(|view| view.provider == "ludka2")
+        );
+        assert_eq!(selected.model_id, selection_identity("model", "missing"));
+        assert_eq!(
+            selected
+                .chrome
+                .provider
+                .as_ref()
+                .unwrap()
+                .diagnostic
+                .as_ref()
+                .unwrap()
+                .code,
+            oc_core::queries::ServiceCode::ModelUnavailable
+        );
+        assert!(
+            !connected,
+            "denied provider received a discovery connection"
+        );
+    }
+}
+
+#[tokio::test]
 async fn selection_and_effort_survive_a_restart_with_another_default_provider() {
     use oc_core::queries::{ModelCommit, SelectionBinding, SessionSelectionAction as Action};
     let root = tempfile::tempdir().unwrap();

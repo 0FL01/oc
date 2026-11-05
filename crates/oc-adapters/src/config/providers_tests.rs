@@ -21,7 +21,7 @@ fn w5_provider_unknown_fields_do_not_override_known_siblings() {
         None,
     )
     .unwrap();
-    assert!(!generation.providers.contains_key("legacy"));
+    assert_eq!(generation.providers["legacy"].options.api_key, "ignored");
     let provider = &generation.providers["p"];
     assert_eq!(provider.npm.as_deref(), Some("@ai-sdk/openai"));
     assert_eq!(provider.options.base_url, "https://example.com/v1");
@@ -30,6 +30,60 @@ fn w5_provider_unknown_fields_do_not_override_known_siblings() {
     assert!(provider.models["m"].get("unknown").is_none());
     assert_eq!(provider.models["m"]["variants"][0]["body"]["seed"], 7);
     assert!(provider.models["m"]["variants"][0].get("unknown").is_none());
+}
+
+#[test]
+fn w9_legacy_provider_and_model_overlays_use_native_entry_precedence() {
+    let raw = json!({
+        "provider": {
+            "p": {"npm":"@ai-sdk/anthropic", "options":{"apiKey":"legacy-only"}},
+            "legacy": {
+                "npm":"@ai-sdk/openai-compatible", "env":["FIXTURE_KEY"],
+                "options":{"baseURL":"https://example.com/v1", "headers":{"X-P":"p"}, "body":{"seed":1}},
+                "models":{"catalog":{
+                    "id":"wire", "options":{"baseURL":"https://example.com/old-options", "temperature":0.5,"reasoningEffort":"high"},
+                    "headers":{"X-M":"m"},
+                    "variants":{"fast":{"temperature":0.2}},
+                    "provider":{"npm":"@ai-sdk/openai-compatible","api":"https://example.com/model"},
+                    "tool_call":true,"modalities":{"input":["text"],"output":["text"]},
+                    "limit":{"context":65536,"output":4096}
+                }, "native-url": {
+                    "settings":{"baseURL":"https://example.com/native"},
+                    "options":{"baseURL":"https://example.com/old-options"},
+                    "provider":{"api":"https://example.com/legacy-api"}
+                }}
+            }
+        },
+        "providers":{"p":{"package":"@ai-sdk/openai","name":"native"}}
+    });
+    let entries = document(raw.as_object().unwrap()).unwrap();
+    assert_eq!(entries["p"]["npm"], "@ai-sdk/openai");
+    assert!(
+        entries["p"].get("options").is_none(),
+        "native entry must not inherit legacy credentials"
+    );
+    let p = &entries["legacy"];
+    assert_eq!(p["options"]["headers"]["X-P"], "p");
+    assert_eq!(p["options"]["body"]["seed"], 1);
+    let m = &p["models"]["catalog"];
+    assert_eq!(m["modelID"], "wire");
+    assert_eq!(m["package"], "@ai-sdk/openai-compatible");
+    assert_eq!(m["settings"]["baseURL"], "https://example.com/model");
+    assert_eq!(m["settings"]["reasoningEffort"], "high");
+    assert_eq!(m["body"]["temperature"], 0.5);
+    assert_eq!(m["variants"][0]["id"], "fast");
+    assert_eq!(m["variants"][0]["body"]["temperature"], 0.2);
+    assert_eq!(m["tool_call"], true);
+    assert_eq!(
+        p["models"]["native-url"]["settings"]["baseURL"],
+        "https://example.com/native"
+    );
+    for bad in [
+        json!({"provider":{"p":{"options":{"headers":false}}}}),
+        json!({"provider":{"p":false}}),
+    ] {
+        assert!(document(bad.as_object().unwrap()).is_err());
+    }
 }
 
 #[test]

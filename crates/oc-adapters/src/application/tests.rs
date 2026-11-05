@@ -982,7 +982,7 @@ mod reload_tests {
     }
 
     #[tokio::test]
-    async fn hot02_cli_and_mcp_edits_publish_with_unchanged_ready_or_failed_provider() {
+    async fn hot02_cli_and_mcp_edits_publish_with_explicit_ready_or_failed_provider() {
         use oc_core::queries::{McpStatus, ProviderStatus};
         for failed in [false, true] {
             let root = tempfile::tempdir().unwrap();
@@ -1010,6 +1010,7 @@ mod reload_tests {
             });
             let mut source: serde_json::Value =
                 serde_json::from_str(&config("exact", &base, false)).unwrap();
+            source["providers"]["ludka2"]["models"]["exact"] = serde_json::json!({});
             source["providers"]["fixture"] = serde_json::json!({"models":{"other":{}},"settings":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"}});
             source["experimental"]["policies"] = serde_json::json!([
                 {"action":"provider.use","resource":"opencode-go","effect":"deny"},
@@ -1034,6 +1035,9 @@ mod reload_tests {
             })
             .await
             .unwrap();
+            // This test preserves the explicitly selected provider across
+            // unrelated reloads, not the new unselected-default fallback.
+            app.select_model("exact".into(), None).await.unwrap();
             let before = app.catalog().await.unwrap();
             let report = project.join("mcp-counts");
             source["mcp"] = serde_json::json!({"servers":{"added":{"type":"local","command":[
@@ -1987,6 +1991,9 @@ mod reload_tests {
             if !retired {
                 value["providers"]["fixture"]["models"]["old"] = serde_json::json!({});
             }
+            // An explicit choice equal to the current default must still be
+            // retained if that configured model later becomes unavailable.
+            value["model"] = serde_json::json!("fixture/old");
             value.to_string()
         };
         std::fs::write(&path, config(false)).unwrap();
@@ -2010,6 +2017,11 @@ mod reload_tests {
             .session_selection(session.clone(), false, Action::Current)
             .await
             .unwrap();
+        if selected.model_id == "new" {
+            app.shutdown().await.unwrap();
+            guard.join().await.unwrap();
+            panic!("an explicit same-default model choice must survive reload");
+        }
         // T53 keeps the exact retired preference, but exposes an unavailable
         // presentation instead of the old executable catalog or a substitute.
         assert_ne!(selected.model_id, "new");
@@ -2045,6 +2057,45 @@ mod reload_tests {
             .query_row("SELECT count(*) FROM turns", [], |row| row.get(0))
             .unwrap();
         assert_eq!(turns, 0);
+    }
+
+    #[tokio::test]
+    async fn w9_unselected_default_uses_ready_text_model_without_replacing_explicit_or_pinned_choice()
+     {
+        for (pin, disabled) in [(false, false), (true, false), (false, true)] {
+            let root = tempfile::tempdir().unwrap();
+            let project = root.path().join("project");
+            let data = root.path().join("data");
+            std::fs::create_dir_all(&project).unwrap();
+            let mut value: serde_json::Value =
+                serde_json::from_str(&config("new", "http://127.0.0.1:9/v1", true)).unwrap();
+            value["model"] = serde_json::json!(if disabled {
+                "fixture/disabled-default"
+            } else {
+                "fixture/missing"
+            });
+            value["providers"]["fixture"]["models"]["disabled-default"] =
+                serde_json::json!({"disabled":true});
+            value["providers"]["fixture"]["models"]["audio-only"] =
+                serde_json::json!({"capabilities":{"input":["audio"],"output":["audio"]}});
+            if pin {
+                value["agents"] = serde_json::json!({"build":{"model":"fixture/missing"}});
+            }
+            std::fs::write(project.join("opencode.json"), value.to_string()).unwrap();
+            let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+            let catalog = app.catalog().await.unwrap();
+            app.shutdown().await.unwrap();
+            guard.join().await.unwrap();
+            if pin {
+                assert_eq!(catalog.model_id, selection_identity("model", "missing"));
+                assert_eq!(
+                    catalog.chrome.selection.as_ref().unwrap().diagnostic.code,
+                    oc_core::queries::ServiceCode::ModelUnavailable
+                );
+            } else {
+                assert_eq!(catalog.model_id, "new");
+            }
+        }
     }
 
     #[tokio::test]
@@ -2287,6 +2338,17 @@ mod reload_tests {
         source["permission"] = serde_json::json!({"read":"deny"});
         source["harmless"] = serde_json::json!("VALUE_NOT_FOR_DIAGNOSTICS");
         source["providers"]["fixture"]["npm"] = serde_json::json!("ignored-package");
+        source["model"] = serde_json::json!({
+            "providerID":"fixture", "model":"old",
+            "unknownModelField":"VALUE_NOT_FOR_DIAGNOSTICS"
+        });
+        source["provider"] = serde_json::json!({"legacy-warning-fixture":{
+            "npm":"@ai-sdk/openai",
+            "options":{"baseURL":"https://example.invalid/v1","apiKey":"dummy"},
+            "unknownProviderField":"VALUE_NOT_FOR_DIAGNOSTICS",
+            "models":{"m":{"name":"Known legacy sibling",
+                "unknownEntryField":"VALUE_NOT_FOR_DIAGNOSTICS"}}
+        }});
         source["agents"]["build"] =
             serde_json::json!({"description":"Startup known","unknown":true});
         std::fs::write(&path, source.to_string()).unwrap();
@@ -2295,10 +2357,13 @@ mod reload_tests {
         source["agents"]["build"]["description"] = serde_json::json!("Reload known");
         std::fs::write(&path, source.to_string()).unwrap();
         let reloaded = app.reload_location().await.unwrap();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
         assert!(reloaded.generation > before.chrome.selection_generation);
         for catalog in [&before, &reloaded.catalog] {
             assert_eq!(catalog.agent_id.as_deref(), Some("build"));
             assert_eq!(catalog.provider, "fixture");
+            assert_eq!(catalog.model_id, "old");
             let diagnostic = catalog
                 .chrome
                 .service_diagnostics
@@ -2310,6 +2375,9 @@ mod reload_tests {
                 "location opencode.json: harmless",
                 "location opencode.json: providers.<id>.npm",
                 "location opencode.json: agents.<id>.unknown",
+                "location opencode.json: model.unknownModelField",
+                "location opencode.json: provider.<id>.unknownProviderField",
+                "location opencode.json: provider.<id>.models.<id>.unknownEntryField",
             ] {
                 assert!(details.iter().any(|line| line == expected), "{details:?}");
             }
@@ -2325,8 +2393,6 @@ mod reload_tests {
                 .description,
             "Reload known"
         );
-        app.shutdown().await.unwrap();
-        guard.join().await.unwrap();
     }
 
     #[tokio::test]

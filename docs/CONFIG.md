@@ -38,7 +38,8 @@ OC2-действия и отказывают (`edit`/`shell`/`subagent`).
 
 До omission нормализуются policy-bearing legacy root/agent/frontmatter `permission`
 и `tools` (см. порядок ниже): deny не теряется под default Build Allow. Singular
-`provider` и direct `mcp.<name>` только warning+ignore, без новой v1 migration.
+`provider` читается только в ограниченном W9.1 subset ниже; direct `mcp.<name>`
+остаётся warning+ignore, без общей v1 migration.
 Известные неверные типы, malformed policy, reserved request fields и обязательные
 profile/source checks остаются ошибками. Warnings доступны в `chrome.service_diagnostics`,
 headless stderr и TUI Services, без values. Package
@@ -47,6 +48,35 @@ headless stderr и TUI Services, без values. Package
 
 `experimental.policies` с `action: "permission"` (donor deny-hook) не поддержан и
 отказывает typed capability error: молча проигнорированный deny расширил бы права.
+
+### Read-only provider compatibility — W9
+
+Поддерживаются singular `provider` с `npm`/`options` и per-model overlays,
+`small_model` как default только `agents.title.model`, `enabled_providers` и
+`disabled_providers`. В одном документе plural `providers.<id>` целиком побеждает
+одноимённую legacy entry, native `agents.title` побеждает `small_model`; между
+документами сохраняется прежний ordered merge. Файлы автоматически не переписываются,
+остальной OC1 vocabulary и импорт DB не добавлены. Malformed known policy/selected
+profile/source trust остаются gates. Пустой `enabled_providers: []` запрещает все providers.
+Root `policies` с `provider.use` использует того же owner, что `experimental.policies`;
+experimental rules имеют приоритет внутри документа, global policy source — последний,
+как в существующем native контракте.
+
+Top-level `model` принимает строку либо `{providerID, model, variant?}`. Только ещё
+не выбранный configuration default может заменить недоступную модель на admitted,
+ready, text-capable модель. Явный saved/user choice, profile pin и уже принятый request
+не заменяются; selection preferences этим fallback не переписываются.
+
+`provider.env`/`providers.<id>.env` задаёт ordered credential names из **captured owner
+environment**, не нового client/process env. Это lazy fallback только после обычного
+configured/stored/native resolver result `Missing` при Key; существующие приоритеты,
+None/OAuth refusals и Go/OpenAI authority остаются. Нужны trusted declaration и
+trusted effective endpoint; другой model/variant endpoint не наследует env-authority.
+Поздний harmless overlay не повышает trust прежней декларации.
+
+`snapshots: true` принимается с named ignored-setting warning, без filesystem snapshots.
+`share`, `username`, `watcher` и пока не реализованный `formatter` дают отдельные
+warnings с именами, без значений; malformed snapshots type остаётся ошибкой.
 
 ## Source loading
 
@@ -68,7 +98,7 @@ reference dependencies наблюдаются для reload; disabled MCP templa
 Это не автоматический retry или обход source/resource admission. Instructions consumer
 и config/discovery roots этим не расширяются.
 
-Missing required selected-provider key даёт typed `MissingCredential`: локальные TUI/history/model picker работают, но запрос выбранной недоступной модели fails до generation/tool effects; headless nonzero. Нет fallback provider/model. Отсутствующие env references становятся empty; публичный strict assembler сохраняет MissingCredential, application допускает valid-shaped empty credential только с central pre-request refusal. Disabled provider/MCP не запускает network/process и не требует credentials; disabled MCP substitutions выполняются при activation. Пустая подстановка не является действительным ключом и не выводится как secret в effective config. Trust gate применяется до любого active file read.
+Missing required selected-provider key даёт typed `MissingCredential`: локальные TUI/history/model picker работают, но запрос явно выбранной недоступной модели fails до generation/tool effects; headless nonzero. Fallback разрешён только для unselected configuration default по W9, не для explicit/captured choice. Отсутствующие env references становятся empty; публичный strict assembler сохраняет MissingCredential, application допускает valid-shaped empty credential с central pre-request refusal либо узким captured localhost omission ниже. Disabled provider/MCP не запускает network/process и не требует credentials; disabled MCP substitutions выполняются при activation. Пустая подстановка не является действительным ключом и не выводится как secret в effective config. Trust gate применяется до любого active file read.
 
 Cold TUI discovery выполняется асинхронно существующим application owner. `TuiChrome.provider` и read-only Settings показывают отдельно request availability (`ready/pending/unavailable/failed`) и catalog attempt. Первый native attempt остаётся `pending` для requests даже с configured metadata: известная строка не обходит ещё не завершившийся auth check. `ready` означает admitted credential + metadata выбранного model ID после этого attempt, не проверенную connection и не обход остальных admission/caps. Configured/persisted ID сохраняется явно; unavailable model в UI имеет owner-derived opaque identity, не raw URL/path/control string. Native discovery 401/403 блокирует requests текущего effective wire binding; timeout/connect/catalog failure сохраняет configured metadata, а явный выбор известной модели может использовать исправный Responses endpoint.
 
@@ -449,10 +479,9 @@ additional DCP system block), not upstream bundled prompt defaults.
 ## Custom providers — T53 (approved clarification 2026-10-02; pending)
 
 The [T53 config/auth/wire contract](goals/2026-09-29-opencode-go-and-provider-auth.md)
-admits canonical OC2 `providers` only (T66: any provider/model/variant key outside the
-OC2 allowlist, e.g. `npm`, `options`, `tool_call`, `modalities`, fails closed). Pinned OC2
-schema/requests are the oracle. This section describes the target, **not implemented
-Chat/Messages support**.
+   defines the canonical OC2 provider baseline; W9 adds only the read-only legacy subset
+above, without changing the protocol adapters or permitting arbitrary OC1 configuration.
+Pinned OC2 schema/requests remain the oracle; this section is not live qualification.
 
 - Canonical `package`/`settings` (any extra keys; unknown ones warn)/`headers`/`body`,
   API `modelID`, `capabilities`, `compatibility.reasoningField` and array variants.
@@ -460,8 +489,8 @@ Chat/Messages support**.
   supplied overlays merge in admitted source order; request order is provider → model
   → selected variant, recursive settings/body and case-insensitive headers. Model
   package overrides provider; catalog reference differs from API `modelID ?? id`.
-  Conflicting connection/auth values in mixed legacy/canonical roots in one document
-  receive a safe pre-effect diagnostic, a declared native conflict policy.
+  Within one document a native provider entry wins the corresponding legacy entry
+  as a whole; malformed admitted native values still refuse before effects.
   Canonical capabilities are tools/input/output; legacy reasoning has pinned
   unsupported diagnostic, not an invented capability or implicit effort controls.
   Legacy provider api overrides options.baseURL per pinned migration; remote catalog
@@ -474,15 +503,20 @@ Chat/Messages support**.
 - Custom configured auth input takes priority over scoped stored Key. Messages
   `apiKey` sends x-api-key; static `authToken` sends Bearer and does not imply OAuth.
   Both together, competing auth headers or explicit None with auth input conflict.
-  None must be explicit; localhost and absent key never infer it. Go preset precedence
-  stays separately frozen; remote metadata/env never authorizes foreign credentials.
+  Explicit None conflicts remain. Only omitted policy on captured trusted localhost,
+  after ordinary Missing, permits keyless access; trusted local Responses/Chat may use
+  one configured auth header instead. Explicit Key still requires a key, native Bearer
+  keeps precedence, and Messages competing-header checks stay. Go/OpenAI own credential
+  authority stays frozen; remote metadata never authorizes foreign credentials.
 - Explicit trusted/admitted localhost **and LAN** HTTP(S) connections are scoped to
   normalized scheme/host/port/base prefix and source provenance. The same immutable
   binding admits discovery/main/follow-up/title/compaction/child/retry; lower-trust
   overrides do not inherit allowance/secret. URL containment and literal-IP admission
-  remain independent of proxy routing. Direct requests retain DNS pinning/all-answer
-  and peer checks; a proxied hostname is resolved by its proxy, not checked locally.
-  Provider redirects stay refused. Webfetch has its separate captured permission policy.
+  remain independent of proxy routing. Direct requests pin only admitted DNS answers,
+  refuse an empty admitted set and retain actual peer checks; a proxied hostname is
+  resolved by its proxy, not checked locally. Generation permits at most five307/308
+  redirects within the same captured scheme/host/port/path prefix and pinned addresses;
+  other redirects refuse. Discovery retains no redirects. Webfetch has its separate policy.
 - Keep configured static models and source-qualified dynamic retirement semantics;
   compatible alias alone never starts guessed discovery. Existing OpenProxy `/models`
   oracle and Go public models.dev cache remain distinct, with one catalog read-view.
@@ -518,7 +552,8 @@ Qualification uses synthetic host-shaped configs, not copied secrets: legacy/can
 equivalence, API-ID/overlay precedence, real tool roundtrips/variants, private-route
 admission, errors/cancel and protocol-switch/reopen. GO01–GO06 only T53; PRM01 consumes
 chronological system/effort and T50's next-request switch, without new tasks/frameworks.
-`snapshots: false` remains T44 conversation-only target; compaction.auto works.
+`snapshots: false` remains T44 conversation-only target; true only warns as above.
+Compaction.auto works.
 Non-OC2 `snapshot` and compaction `prune` are unknown keys: warn and ignore (W5).
 
 ## Custom /connect onboarding — T59 (approved 2026-10-12; pending)

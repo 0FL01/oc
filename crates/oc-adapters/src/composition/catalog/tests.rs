@@ -477,3 +477,38 @@ fn cfg12_provider_policies_follow_donor_last_match_with_global_last() {
     let LoadFailure::Configuration(diagnostic) = error;
     assert_eq!(diagnostic.code, ServiceCode::UnsupportedCapability);
 }
+
+#[test]
+fn w9_root_and_legacy_provider_filters_preserve_experimental_priority_and_refusals() {
+    use serde_json::json;
+    let source = |text: serde_json::Value| config::Source {
+        path: "fixture".into(),
+        trusted: true,
+        text: text.to_string(),
+    };
+    let policy = provider_filters(&[source(json!({
+        "enabled_providers":["keep","blocked"],"disabled_providers":["blocked"],
+        "policies":[{"action":"provider.use","resource":"root-denied","effect":"deny"}],
+        "experimental":{"policies":[{"action":"provider.use","resource":"keep","effect":"deny"}]}
+    }))])
+    .unwrap();
+    assert!(!policy.allows("keep"));
+    assert!(!policy.allows("blocked"));
+    assert!(!policy.allows("root-denied"));
+    assert!(!policy.allows("unlisted"));
+    let denied = provider_filters(&[source(json!({"enabled_providers":[]}))]).unwrap();
+    assert!(!denied.allows("any") && !denied.allows_unlisted());
+    for rules in [
+        json!(false),
+        json!([{"action":"permission","resource":"shell:*","effect":"deny"}]),
+        json!([{"action":"provider.use","resource":"*","effect":"bad"}]),
+    ] {
+        assert!(provider_filters(&[source(json!({"policies":rules}))]).is_err());
+    }
+    let priority = provider_filters(&[source(json!({
+        "policies":[{"action":"provider.use","resource":"keep","effect":"deny"}],
+        "experimental":{"policies":[{"action":"provider.use","resource":"keep","effect":"allow"}]}
+    }))])
+    .unwrap();
+    assert!(priority.allows("keep"));
+}

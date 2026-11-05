@@ -234,7 +234,17 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-tui-',dir=os.environ['TMPDIR']
             view.send(b'\x7f'*4); view.paste('Beta'); view.send(b'\r'); view.see('● Beta')
             view.send(b'\x04'); view.see('Press ctrl+d again to confirm'); assert len(accounts())==2
             view.send(b'\x04'); wait(lambda: len(accounts())==1, 'confirmed removal')
-            view.see('● Alpha'); view.send(b'\x1b'); view.see('draft-kept-界')
+            try:
+                view.see('● Alpha')
+            except AssertionError:
+                grid = view.screen()
+                saved = accounts()
+                facts = {text:any(text in row for row in grid) for text in
+                         ('Alpha', 'Beta', 'Connected accounts', 'Press ctrl+d again to confirm')}
+                facts['durable_alpha_active'] = len(saved)==1 and saved[0][1:]==('Alpha',1)
+                facts['process_alive'] = view.proc.poll() is None
+                raise AssertionError(('post-delete account acknowledgement', facts)) from None
+            view.send(b'\x1b'); view.see('draft-kept-界')
             view.quit(); view = None
         finally:
             if view is not None: view.close()

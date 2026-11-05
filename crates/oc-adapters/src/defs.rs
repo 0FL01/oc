@@ -835,6 +835,29 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
             .push(diag(source_path, "config", "must be an object"));
         return;
     };
+    if let Some(small) = config.get("small_model")
+        && !["agent", "agents"].iter().any(|domain| {
+            config
+                .get(*domain)
+                .and_then(serde_json::Value::as_object)
+                .is_some_and(|agents| agents.contains_key("title"))
+        })
+    {
+        if small.as_str().is_some_and(|model| {
+            model
+                .split_once('/')
+                .is_some_and(|(provider, model)| !provider.is_empty() && !model.is_empty())
+        }) {
+            merge_config_definitions(
+                defs,
+                &serde_json::json!({"agents":{"title":{"model":small}}}),
+                source,
+            );
+        } else {
+            defs.diagnostics
+                .push(diag(source_path, "small_model", "invalid model reference"));
+        }
+    }
     let total_bytes = existing_definition_bytes(defs);
     let mut out = Collector {
         defs: std::mem::take(defs),

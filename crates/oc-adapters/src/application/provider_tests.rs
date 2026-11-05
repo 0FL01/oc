@@ -275,7 +275,7 @@ async fn ui07_missing_selected_credential_keeps_local_owner_and_refuses_before_a
     listener.set_nonblocking(true).unwrap();
     let mut config = json!({
         "model": "fixture/m", "providers": {"fixture": {
-            "settings": {"baseURL": format!("http://{}/v1", listener.local_addr().unwrap()), "apiKey": "{env:UI07_MISSING}", "headers": {"x-ui07": CANARY}},
+            "settings": {"baseURL": format!("http://{}/v1", listener.local_addr().unwrap()), "authPolicy":"key", "apiKey": "{env:UI07_MISSING}", "headers": {"x-ui07": CANARY}},
             "models": {"m": {"name": "Configured model", "limit": {"context": 32768, "output": 4096}}}
         }}
     });

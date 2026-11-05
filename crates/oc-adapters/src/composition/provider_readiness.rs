@@ -71,20 +71,49 @@ async fn resolve_binding_inner(
             environment,
         )
     };
-    resolved
-        .map_err(|error| {
-            failure(
-                source,
-                fields,
-                stage,
-                if matches!(error, crate::auth::AuthError::Storage(_)) {
-                    ServiceCode::StorageUnavailable
-                } else {
-                    ServiceCode::InvalidConfig
-                },
+    let resolve_error = |error| {
+        failure(
+            source,
+            fields,
+            stage,
+            if matches!(error, crate::auth::AuthError::Storage(_)) {
+                ServiceCode::StorageUnavailable
+            } else {
+                ServiceCode::InvalidConfig
+            },
+        )
+    };
+    let mut resolved = resolved.map_err(resolve_error)?;
+    if resolved.source == crate::auth::AuthSource::Missing
+        && request.wire.auth_policy == crate::auth::AuthPolicy::Key
+        && request.wire.custom_scope.is_none()
+        && (id != crate::models_dev::OPENAI || scope.is_openai())
+        && let Some(key) = request
+            .wire
+            .credential_env
+            .iter()
+            .filter_map(|name| env.get(name))
+            .find(|value| !value.is_empty())
+    {
+        resolved = scope
+            .resolve(
+                db,
+                crate::auth::AuthPolicy::Key,
+                Some(key),
+                competing,
+                || None,
             )
-        })?
-        .apply_to(request);
+            .map_err(resolve_error)?;
+    }
+    let missing = resolved.source == crate::auth::AuthSource::Missing;
+    resolved.apply_to(request);
+    if missing
+        && request.wire.implicit_local_auth
+        && request.wire.custom_scope.is_none()
+        && !competing
+    {
+        request.wire.auth_policy = crate::auth::AuthPolicy::None;
+    }
     Ok(())
 }
 

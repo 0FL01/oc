@@ -103,8 +103,11 @@ promise that the placeholder model exists. Unknown root/provider/definition/requ
 keys warn and are ignored without dropping known siblings. Root/agent/frontmatter
 legacy `permission` and boolean `tools` normalize before omission, with source order
 and native-rule precedence; a deny must not disappear under Build defaults.
-Singular `provider` and direct `mcp.<name>` are warning+ignore, not migration support;
-use canonical fields. Malformed known policy/types/mandatory profiles still refuse.
+Prefer canonical fields. A read-only compatibility subset accepts singular `provider`
+(`npm`/`options`, per-model overlays), `small_model` for title only and enabled/disabled
+provider lists. Native provider entries and native title entries win within one document;
+files are never automatically rewritten. Direct `mcp.<name>` remains warning+ignore.
+Malformed known policy/types/mandatory profiles still refuse.
 Warnings appear in headless stderr and TUI Services without values. Replace endpoint/ID with the user's
 actual admitted values and verified model metadata (the limits below illustrate
 the shape, not a claim about an existing model); merge into the existing file.
@@ -130,6 +133,13 @@ the shape, not a claim about an existing model); merge into the existing file.
   "model": "lab/exact-model-id"
 }
 ```
+
+Top-level `model` also accepts `{providerID, model, variant?}`. Only an unselected
+configuration default can fall back to an admitted ready text model; saved/user choices,
+profile pins and accepted requests retain their exact selection. Root `policies` with
+`provider.use` uses the existing policy owner; experimental rules still take precedence.
+`snapshots:true` only warns, without filesystem snapshots. Unsupported `share`, `username`,
+`watcher` and (until implemented) `formatter` warn by name, never by value.
 
 The `package` value is a **native protocol alias**, not npm execution:
 `@opencode/ai/providers/openai` (also `@ai-sdk/openai`) selects Responses;
@@ -158,10 +168,19 @@ default 900000ms; overall timeout is absent by default. WebSocket frame waits us
 provider chunk setting (absent30minutes, false disabled), not the HTTP default.
 Disabling these deadlines does not disable cancellation or native resource guards.
 
+Provider `env` is an ordered credential fallback from the captured owner environment,
+after existing resolver priority, only for trusted declarations and the same trusted
+endpoint binding. It never transfers a parent's implicit credentials to another model
+endpoint. Omitted policy on captured trusted localhost can be keyless after Missing,
+or use one trusted configured auth header for Responses/Chat; explicit policies,
+native Bearer precedence and built-in Go/OpenAI authority remain unchanged.
+
 Provider HTTP/discovery, webfetch and remote MCP use startup system HTTP proxies
 (`HTTP_PROXY`/`HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`, also lowercase). Provider captured
-URL/literal-IP authority stays enforced; only direct origins use local DNS/pinning/
-peer checks. WebSocket uses `WSS_PROXY → HTTPS_PROXY → ALL_PROXY` or
+URL/literal-IP authority stays enforced; direct origins pin only admitted DNS answers,
+refuse an empty allowed set and check the actual peer. Generation follows at most five
+307/308 redirects within the captured scheme/host/port/path prefix and pinned host;
+other redirects and discovery redirects refuse. WebSocket uses `WSS_PROXY → HTTPS_PROXY → ALL_PROXY` or
 `WS_PROXY → HTTP_PROXY → ALL_PROXY`, with TS port-aware NO_PROXY and loopback bypass;
 HTTP/HTTPS CONNECT preserves TLS validation and never sends proxy credentials to
 the origin. New clients do not replace the native owner's startup environment.

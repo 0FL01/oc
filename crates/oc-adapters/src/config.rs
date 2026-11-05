@@ -90,6 +90,12 @@ pub enum Permission {
 /// strict typing.
 #[derive(Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct ProviderOptions {
+    /// Trusted declared credential names captured by the source owner, never JSON input.
+    #[serde(skip)]
+    pub credential_env: Vec<String>,
+    /// Omitted auth policy on an admitted local endpoint, never JSON input.
+    #[serde(skip)]
+    pub implicit_local_auth: bool,
     /// Captured secret inputs used only by redactors, never credential inheritance.
     #[serde(skip)]
     pub redaction_material: Vec<String>,
@@ -187,7 +193,7 @@ pub struct ProviderEntry {
     /// Display name.
     #[serde(default)]
     pub name: Option<String>,
-    /// Declarative environment metadata, never an implicit credential fallback.
+    /// Declared credential names; authority is captured separately by source admission.
     #[serde(default)]
     pub env: Vec<String>,
     /// Connection options.
@@ -1151,6 +1157,7 @@ fn assemble_with_admission(
         );
     }
     let mut provider_origins: BTreeMap<String, String> = BTreeMap::new();
+    let mut provider_env_trust = BTreeMap::new();
     // Unknown provider option keys: visible warnings, never a hard failure.
     let mut unknown_options: Vec<String> = Vec::new();
     let mut mcp: BTreeMap<String, (McpEntry, String)> = BTreeMap::new();
@@ -1185,84 +1192,120 @@ fn assemble_with_admission(
                 ),
             })?;
         (|| -> Result<(), ConfigError> {
-        let obj = value.as_object().ok_or_else(|| ConfigError::Invalid {
-            field: source.path.clone(),
-            reason: "root must be an object".to_string(),
-        })?;
-        // Owning parsers ignore excess fields; direct callers still receive
-        // payload-free warnings, while composition publishes structured notes.
-        for finding in admission::scan_document(&value) {
-            unknown_options.push(format!("ignored unknown configuration key: {}", finding.path));
-        }
+            let obj = value.as_object().ok_or_else(|| ConfigError::Invalid {
+                field: source.path.clone(),
+                reason: "root must be an object".to_string(),
+            })?;
+            // Owning parsers ignore excess fields; direct callers still receive
+            // payload-free warnings, while composition publishes structured notes.
+            for finding in admission::scan_document(&value) {
+                unknown_options.push(format!(
+                    "ignored unknown configuration key: {}",
+                    finding.path
+                ));
+            }
 
-        {
-            let field = "snapshots";
-            if let Some(value) = obj.get(field) {
-                let enabled = value.as_bool().ok_or_else(|| ConfigError::Invalid {
-                    field: field.to_string(),
-                    reason: "must be a boolean".to_string(),
-                })?;
-                if enabled {
-                    return Err(ConfigError::UnsupportedCapability {
+            {
+                let field = "snapshots";
+                if let Some(value) = obj.get(field) {
+                    let enabled = value.as_bool().ok_or_else(|| ConfigError::Invalid {
                         field: field.to_string(),
-                        reason: "filesystem snapshots are unsupported; conversation undo does not change files".to_string(),
-                    });
-                }
-            }
-        }
-        if let Some(mode) = terminal_copy_value(obj)? {
-            terminal_copy_source = Some(source.path.clone());
-            terminal_copy = Some(mode);
-        }
-        if let Some(modifier) = markdown_copy_modifier_value(obj)? {
-            markdown_copy_source = Some(source.path.clone());
-            markdown_copy_modifier = Some(modifier);
-        }
-        if let Some(value) = obj.get("animations") {
-            animations = Some(value.as_bool().ok_or_else(|| ConfigError::Invalid {
-                field: "animations".to_string(),
-                reason: "must be a boolean".to_string(),
-            })?);
-            animations_source = Some(source.path.clone());
-        }
-        if let Some(value) = obj.get("tool_output") {
-            tool_output = ToolOutputLimits::parse(value)?;
-            tool_output_source = Some(source.path.clone());
-        }
-        if let Some(value) = obj.get("shell") {
-            command_shell = Some(value.as_str().filter(|v| !v.contains('\0')).ok_or_else(|| ConfigError::Invalid {
-                field: "shell".into(), reason: "must be a NUL-free string".into(),
-            })?.to_owned());
-        }
-        if let Some(value) = obj.get("compaction") {
-            let (normalized, mut notes) = compaction.merge_from(&source.path, value);
-            if !require_credential {
-                for note in &mut notes { note.source = mcp::safe_source_id(&note.source); }
-            }
-            config_diagnostics.extend(notes);
-            if let Some(normalized) = normalized {
-                compaction_source = Some(source.path.clone());
-                for (field, pointer) in [
-                    ("auto", "/auto"),
-                    ("keep.tokens", "/keep/tokens"),
-                    ("buffer", "/buffer"),
-                ] {
-                    if normalized.pointer(pointer).is_some() {
-                        compaction_provenance
-                            .insert(format!("compaction.{field}"), source.path.clone());
+                        reason: "must be a boolean".to_string(),
+                    })?;
+                    if enabled {
+                        config_diagnostics.push(oc_core::queries::ConfigDiagnostic {
+                            source: mcp::safe_source_id(&source.path),
+                            field: vec![field.into()],
+                            kind: oc_core::queries::ConfigDiagnosticKind::Unsupported,
+                            action: oc_core::queries::ConfigDiagnosticAction::Skip,
+                        });
                     }
                 }
             }
-        }
+            for field in ["share", "username", "watcher", "formatter"] {
+                if obj.contains_key(field) {
+                    config_diagnostics.push(oc_core::queries::ConfigDiagnostic {
+                        source: mcp::safe_source_id(&source.path),
+                        field: vec![field.into()],
+                        kind: oc_core::queries::ConfigDiagnosticKind::Unsupported,
+                        action: oc_core::queries::ConfigDiagnosticAction::Skip,
+                    });
+                }
+            }
+            if let Some(mode) = terminal_copy_value(obj)? {
+                terminal_copy_source = Some(source.path.clone());
+                terminal_copy = Some(mode);
+            }
+            if let Some(modifier) = markdown_copy_modifier_value(obj)? {
+                markdown_copy_source = Some(source.path.clone());
+                markdown_copy_modifier = Some(modifier);
+            }
+            if let Some(value) = obj.get("animations") {
+                animations = Some(value.as_bool().ok_or_else(|| ConfigError::Invalid {
+                    field: "animations".to_string(),
+                    reason: "must be a boolean".to_string(),
+                })?);
+                animations_source = Some(source.path.clone());
+            }
+            if let Some(value) = obj.get("tool_output") {
+                tool_output = ToolOutputLimits::parse(value)?;
+                tool_output_source = Some(source.path.clone());
+            }
+            if let Some(value) = obj.get("shell") {
+                command_shell = Some(
+                    value
+                        .as_str()
+                        .filter(|v| !v.contains('\0'))
+                        .ok_or_else(|| ConfigError::Invalid {
+                            field: "shell".into(),
+                            reason: "must be a NUL-free string".into(),
+                        })?
+                        .to_owned(),
+                );
+            }
+            if let Some(value) = obj.get("compaction") {
+                let (normalized, mut notes) = compaction.merge_from(&source.path, value);
+                if !require_credential {
+                    for note in &mut notes {
+                        note.source = mcp::safe_source_id(&note.source);
+                    }
+                }
+                config_diagnostics.extend(notes);
+                if let Some(normalized) = normalized {
+                    compaction_source = Some(source.path.clone());
+                    for (field, pointer) in [
+                        ("auto", "/auto"),
+                        ("keep.tokens", "/keep/tokens"),
+                        ("buffer", "/buffer"),
+                    ] {
+                        if normalized.pointer(pointer).is_some() {
+                            compaction_provenance
+                                .insert(format!("compaction.{field}"), source.path.clone());
+                        }
+                    }
+                }
+            }
 
-        for (id, raw) in providers::document(obj)? {
+            for (id, raw) in providers::document(obj)? {
+                if raw.get("env").is_some() {
+                    provider_env_trust.insert(id.clone(), source.trusted);
+                }
                 providers::record_origins(&id, &raw, &source.path, &mut provider_origins);
                 for key in unknown_option_keys(raw.get("options")) {
-                    unknown_options.push(if require_credential { format!(
-                        "providers.{id}.settings.{key} is not supported by the native \
+                    unknown_options.push(if require_credential {
+                        format!(
+                            "providers.{id}.settings.{key} is not supported by the native \
                          profile; the setting is ignored"
-                    ) } else {
-                        diagnostic::failure(&source.path, &["providers", "entry", "settings", "entry"], oc_core::queries::ServiceStage::Config, oc_core::queries::ServiceCode::IgnoredSetting, oc_core::queries::ServiceAction::ReviewConfiguration).to_string()
+                        )
+                    } else {
+                        diagnostic::failure(
+                            &source.path,
+                            &["providers", "entry", "settings", "entry"],
+                            oc_core::queries::ServiceStage::Config,
+                            oc_core::queries::ServiceCode::IgnoredSetting,
+                            oc_core::queries::ServiceAction::ReviewConfiguration,
+                        )
+                        .to_string()
                     });
                 }
                 if let Some(options) = raw.get("options").and_then(serde_json::Value::as_object) {
@@ -1270,11 +1313,20 @@ fn assemble_with_admission(
                         if key == "headers" {
                             if let Some(headers) = value.as_object() {
                                 for name in headers.keys() {
-                                    provider_origins.insert(format!("provider.{id}.options.headers.{}", name.to_ascii_lowercase()), source.path.clone());
+                                    provider_origins.insert(
+                                        format!(
+                                            "provider.{id}.options.headers.{}",
+                                            name.to_ascii_lowercase()
+                                        ),
+                                        source.path.clone(),
+                                    );
                                 }
                             }
                         } else {
-                            provider_origins.insert(format!("provider.{id}.options.{key}"), source.path.clone());
+                            provider_origins.insert(
+                                format!("provider.{id}.options.{key}"),
+                                source.path.clone(),
+                            );
                         }
                     }
                 }
@@ -1284,24 +1336,28 @@ fn assemble_with_admission(
                 } else {
                     providers.insert(id, (raw, source.path.clone()));
                 }
-        }
+            }
 
-        mcp::merge_document(source, obj, &mut mcp, &mut mcp_timeout, &mut mcp_provenance)?;
+            mcp::merge_document(source, obj, &mut mcp, &mut mcp_timeout, &mut mcp_provenance)?;
 
-        let mut source_rules = crate::permissions::PermissionRules::from_config(&value)?;
-        if let Some(home) = env.get("HOME") {
-            source_rules.expand_home(home);
-        }
-        permission_rules.append_configuration(source_rules);
-        if ["permissions", "permission", "tools"].iter().any(|key| obj.contains_key(*key)) {
-            permissions_source = Some(source.path.clone());
-        }
+            let mut source_rules = crate::permissions::PermissionRules::from_config(&value)?;
+            if let Some(home) = env.get("HOME") {
+                source_rules.expand_home(home);
+            }
+            permission_rules.append_configuration(source_rules);
+            if ["permissions", "permission", "tools"]
+                .iter()
+                .any(|key| obj.contains_key(*key))
+            {
+                permissions_source = Some(source.path.clone());
+            }
 
-        if let Some(dcp) = obj.get("dcp") {
-            validate_dcp(dcp)?;
-        }
-        Ok(())
-        })().map_err(|error| diagnostic::LocatedError::new(&source.path, error))?;
+            if let Some(dcp) = obj.get("dcp") {
+                validate_dcp(dcp)?;
+            }
+            Ok(())
+        })()
+        .map_err(|error| diagnostic::LocatedError::new(&source.path, error))?;
     }
 
     // Substitute + selected-only credential check (no network/process here).
@@ -1417,6 +1473,33 @@ fn assemble_with_admission(
                 entry.options.endpoint_source = Some(origin("baseURL").0.clone());
                 entry.options.endpoint_trusted = origin("baseURL").1;
             }
+            if entry.options.endpoint_trusted {
+                if provider_env_trust.get(id) == Some(&true) {
+                    entry.options.credential_env = entry.env.clone();
+                }
+                entry.options.implicit_local_auth = raw
+                    .get("options")
+                    .and_then(|options| options.get("authPolicy"))
+                    .is_none()
+                    && entry
+                        .options
+                        .headers
+                        .keys()
+                        .filter(|name| {
+                            name.eq_ignore_ascii_case("authorization")
+                                || name.eq_ignore_ascii_case("x-api-key")
+                        })
+                        .all(|name| origin(&format!("headers.{}", name.to_ascii_lowercase())).1)
+                    && reqwest::Url::parse(&entry.options.base_url).is_ok_and(|url| {
+                        url.host_str().is_some_and(|host| {
+                            host == "localhost"
+                                || host
+                                    .trim_matches(['[', ']'])
+                                    .parse::<std::net::IpAddr>()
+                                    .is_ok_and(|ip| ip.is_loopback())
+                        })
+                    });
+            }
             entry.options.api_key = substitute_with(
                 &entry.options.api_key,
                 origin("apiKey").0,
@@ -1460,10 +1543,18 @@ fn assemble_with_admission(
             Ok(())
         })()
         .map_err(|error| diagnostic::LocatedError::new(path, error))?;
-        entry.options.request_bindings =
-            providers::request_bindings(id, raw, path, &provider_origins, sources, env, reader)
-                .map_err(|error| diagnostic::LocatedError::new(path, error))?
-                .into();
+        entry.options.request_bindings = providers::request_bindings(
+            id,
+            raw,
+            &entry.options,
+            path,
+            &provider_origins,
+            sources,
+            env,
+            reader,
+        )
+        .map_err(|error| diagnostic::LocatedError::new(path, error))?
+        .into();
         out_providers.insert(id.clone(), entry);
         provenance.insert(format!("provider.{id}"), path.clone());
     }
@@ -1767,6 +1858,8 @@ pub(crate) fn provider_wire(
         .and_then(ProviderTimeout::milliseconds);
     wire.websocket_chunk_timeout = entry.options.chunk_timeout;
     wire.auth_policy = entry.options.auth_policy;
+    wire.credential_env = entry.options.credential_env.clone();
+    wire.implicit_local_auth = entry.options.implicit_local_auth;
     wire.transport = entry
         .options
         .wire_settings
@@ -2860,7 +2953,7 @@ mod tests {
     }
 
     #[test]
-    fn conversation_snapshots_default_off_and_false_is_safe() {
+    fn conversation_snapshots_warn_without_turning_undo_into_filesystem_snapshots() {
         for raw in [
             serde_json::json!({"snapshots":false}),
             serde_json::json!({}),
@@ -2876,30 +2969,38 @@ mod tests {
             )
             .unwrap();
         }
+        let generation = assemble(
+            &[Source { path:"fixture".into(), trusted:true, text:r#"{"snapshots":true,"share":"CANARY_VALUE","username":"CANARY_VALUE","watcher":{"ignore":["CANARY_VALUE"]},"formatter":false}"#.into() }],
+            &BTreeMap::new(), None,
+        ).unwrap();
+        let diagnostics = generation
+            .config_diagnostics
+            .iter()
+            .map(super::diagnostic::from_note)
+            .map(|note| note.to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
+        for field in ["snapshots", "share", "username", "watcher", "formatter"] {
+            assert!(
+                diagnostics.contains(field),
+                "missing named warning: {field}"
+            );
+        }
+        assert!(!diagnostics.contains("CANARY_VALUE"));
         {
             let field = "snapshots";
-            for value in [serde_json::json!(true), serde_json::json!("false")] {
-                let raw = serde_json::json!({field:value});
-                let error = assemble(
-                    &[Source {
-                        path: "fixture".into(),
-                        trusted: true,
-                        text: raw.to_string(),
-                    }],
-                    &BTreeMap::new(),
-                    None,
-                )
-                .unwrap_err();
-                if value == true {
-                    assert!(
-                        matches!(error,ConfigError::UnsupportedCapability { field:actual,.. } if actual==field)
-                    );
-                } else {
-                    assert!(
-                        matches!(error,ConfigError::Invalid { field:actual,.. } if actual==field)
-                    );
-                }
-            }
+            let raw = serde_json::json!({field:"false"});
+            let error = assemble(
+                &[Source {
+                    path: "fixture".into(),
+                    trusted: true,
+                    text: raw.to_string(),
+                }],
+                &BTreeMap::new(),
+                None,
+            )
+            .unwrap_err();
+            assert!(matches!(error,ConfigError::Invalid { field:actual,.. } if actual==field));
         }
     }
 

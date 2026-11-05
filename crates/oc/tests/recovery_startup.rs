@@ -113,9 +113,15 @@ fn isolated_discovery_startup_routes() {
         .env("TMPDIR", std::env::temp_dir())
         .output()
         .expect("python PTY harness");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stage = stdout
+        .lines()
+        .rev()
+        .find(|line| line.starts_with("discovery-fixture-stage ") && line.len() <= 128)
+        .unwrap_or("discovery-fixture-stage unavailable");
     assert!(
         output.status.success(),
-        "discovery fixture failed (output withheld; inspect sanitized fixture assertions)"
+        "discovery fixture failed ({stage}; raw output withheld)"
     );
     println!("{}", String::from_utf8_lossy(&output.stdout));
 }

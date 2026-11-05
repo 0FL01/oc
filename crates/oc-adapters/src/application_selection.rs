@@ -227,6 +227,7 @@ fn set_model(e: &mut Effective, c: &Composition, choice: ModelChoice) -> Result<
     e.model_id = selected.id;
     e.provider_id = provider.to_owned();
     e.variant = selected.variant.map(|v| v.name);
+    e.configured_default = false;
     // An explicit admitted model repairs a profile's blocked pin, while an
     // absent/nonprimary agent still requires a separate agent choice.
     if e.profile_issue
@@ -276,9 +277,11 @@ fn base_for_agent(
         if selected.agent_id.as_deref() != Some(agent) {
             // Explicitly changing primary cannot inherit the previous agent's
             // model/variant. Scoped drafts are applied only after this base.
-            selected.model_id = c.model_id.clone();
-            selected.provider_id = c.catalog.provider.clone();
-            selected.variant = c.variant.clone();
+            let default = Effective::from_composition(c);
+            selected.model_id = default.model_id;
+            selected.provider_id = default.provider_id;
+            selected.variant = default.variant;
+            selected.configured_default = default.configured_default;
         }
         if selected.set_agent(c, agent).is_err() {
             // Saved references are view state, not execution admission. Preserve
@@ -289,6 +292,7 @@ fn base_for_agent(
     } else {
         return Err(app_error("no selectable primary agent"));
     }
+    selected.resolve_default(c);
     Ok(selected)
 }
 
@@ -333,6 +337,7 @@ fn resolve(
     selected.model_id = model.id;
     selected.provider_id = model.provider.unwrap_or_else(|| c.catalog.provider.clone());
     selected.variant = model.variant;
+    selected.configured_default = false;
     Ok(selected)
 }
 
@@ -360,11 +365,14 @@ pub(super) fn for_turn(
     fallback: &Effective,
     session: &str,
 ) -> Result<Effective, CoreError> {
-    match load_session(db, c, session)? {
+    let mut selected = match load_session(db, c, session)? {
         Some(choice) if choice.epoch >= fallback.legacy_epoch => resolve(db, c, fallback, &choice),
         Some(_) => Ok(fallback.clone()), // explicit legacy API supersedes older scoped drafts
         None => Ok(fallback.clone()),    // existing headless selection contract
-    }
+    }?;
+    selected.resolve_default(c);
+    selected.configured_default = false;
+    Ok(selected)
 }
 
 /// A source update re-resolves the accepted primary, not the worker's Home
@@ -381,6 +389,7 @@ pub(super) fn for_reload(
     selected.model_id = accepted.model_id.clone();
     selected.provider_id = accepted.provider_id.clone();
     selected.variant = accepted.variant.clone();
+    selected.configured_default = false;
     for_turn(db, c, &selected, session)
 }
 
@@ -615,6 +624,7 @@ fn home_for_agent(
         .provider
         .unwrap_or_else(|| c.catalog.provider.clone());
     selected.variant = choice.variant;
+    selected.configured_default = false;
     Ok(selected)
 }
 
@@ -827,6 +837,14 @@ pub(super) fn apply(
     generation: u64,
 ) -> Result<(Effective, Vec<oc_core::session::MessageId>), CoreError> {
     let previous = for_turn(db, c, fallback, session)?;
+    let existing = load_session(db, c, session)?;
+    let retain_default_choice = fallback.configured_default
+        && !existing.as_ref().is_some_and(|choice| {
+            choice.epoch >= fallback.legacy_epoch
+                && choice
+                    .models
+                    .contains_key(choice.agent.as_deref().unwrap_or_default())
+        });
     if let Action::Commit(commit) = &action {
         validate_commit(db, c, &previous, session, generation, commit)?;
         let visible = previous.snapshot(c, generation);
@@ -838,11 +856,12 @@ pub(super) fn apply(
             // identity. Keep its original owner cause/admission, never treat
             // that display identity as a replacement model or silent fallback.
             previous.admit_selection(c)?;
-            return Ok((previous, Vec::new()));
+            if !retain_default_choice {
+                return Ok((previous, Vec::new()));
+            }
         }
     }
     let key = session_key(c, session);
-    let existing = load_session(db, c, session)?;
     if existing.is_none() && action == Action::Current && fallback.legacy_epoch != 0 {
         return Ok((fallback.clone(), Vec::new()));
     }
@@ -999,6 +1018,7 @@ pub(super) fn apply(
         Action::Model(_) | Action::Variant(_) | Action::Commit(_) | Action::AgentCommit(_)
     );
     if model_action
+        && !retain_default_choice
         && selected.provider_id == previous.provider_id
         && selected.model_id == previous.model_id
         && selected.agent_id == previous.agent_id

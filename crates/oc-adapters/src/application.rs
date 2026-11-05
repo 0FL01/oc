@@ -796,6 +796,8 @@ async fn spawn_stages(
 /// Effective model/variant/agent selection for the next turn.
 #[derive(Clone)]
 pub(crate) struct Effective {
+    // Only an unselected configuration default may follow catalog availability.
+    configured_default: bool,
     provider_id: String,
     model_id: String,
     variant: Option<String>,
@@ -828,7 +830,12 @@ impl Effective {
         Ok((catalog, provider))
     }
     fn from_composition(composition: &Composition) -> Self {
-        Self {
+        let mut selected = Self {
+            configured_default: composition
+                .default_agent
+                .as_ref()
+                .and_then(|id| composition.agents.get(id))
+                .is_none_or(|agent| agent.model.is_none() && agent.variant.is_none()),
             provider_id: composition.catalog.provider.clone(),
             model_id: composition.model_id.clone(),
             variant: composition.variant.clone(),
@@ -839,6 +846,49 @@ impl Effective {
             legacy_epoch: 0,
             inline_command: None,
             command_parents: Vec::new(),
+        };
+        selected.resolve_default(composition);
+        selected
+    }
+
+    fn resolve_default(&mut self, composition: &Composition) {
+        if !self.configured_default || composition.model_id.is_empty() {
+            return;
+        }
+        self.provider_id = composition.catalog.provider.clone();
+        self.model_id = composition.model_id.clone();
+        self.variant = composition.variant.clone();
+        let ready = |provider: &str, model: &str, variant: Option<&str>| {
+            composition.catalog_for(provider).is_some_and(|catalog| {
+                catalog.models.get(model).is_some_and(|entry| {
+                    entry.get("disabled").and_then(serde_json::Value::as_bool) != Some(true)
+                })
+            }) && composition.readiness_for(provider, model, variant).status
+                == oc_core::queries::ProviderStatus::Ready
+        };
+        if ready(&self.provider_id, &self.model_id, self.variant.as_deref()) {
+            return;
+        }
+        for provider in std::iter::once(composition.catalog.provider.as_str())
+            .chain(composition.provider_views.keys().map(String::as_str))
+        {
+            let Some(catalog) = composition.catalog_for(provider) else {
+                continue;
+            };
+            for (model, entry) in catalog.models.iter() {
+                let caps = crate::models::capabilities(entry);
+                let text = |axis: &Option<Vec<String>>| {
+                    axis.as_ref().is_none_or(|values| {
+                        values.is_empty() || values.iter().any(|value| value.starts_with("text"))
+                    })
+                };
+                if text(&caps.input) && text(&caps.output) && ready(provider, model, None) {
+                    self.provider_id = provider.to_owned();
+                    self.model_id = model.clone();
+                    self.variant = None;
+                    return;
+                }
+            }
         }
     }
 
@@ -882,6 +932,8 @@ impl Effective {
             return Err(saved_selection_issue(db, &["selection", "variant"]));
         }
         let variant = value.get("variant").and_then(|v| v.as_str());
+        self.configured_default = false;
+        self.provider_id = provider.to_owned();
         match crate::models::select_model(&composition.catalog, id)
             .and_then(|base| crate::models::select_variant(&base, variant))
         {
@@ -971,6 +1023,7 @@ impl Effective {
     }
 
     fn retain_unavailable_agent(&mut self, composition: &Composition, id: &str) {
+        self.configured_default = false;
         self.agent_id = Some(id.to_string());
         self.agent_prompt = None;
         self.agent_digest = None;
@@ -986,6 +1039,7 @@ impl Effective {
     /// a model problem. Keep its exact private identity and admitted profile
     /// constraints so an explicit scoped model replacement can repair it.
     fn retain_invalid_saved_agent(&mut self, composition: &Composition, id: &str) {
+        self.configured_default = false;
         if let Some(agent) = composition
             .agents
             .get(id)
@@ -1133,6 +1187,7 @@ impl Effective {
             return Err(failed());
         }
         if let Some(model) = agent.model.as_deref() {
+            self.configured_default = false;
             // Retain the existing exact bare-ID alias; full profile references
             // share the child/title resolver, including IDs with slashes.
             let resolved = composition
@@ -1142,6 +1197,7 @@ impl Effective {
             self.model_id = resolved.id;
             self.variant = resolved.variant.or(agent.variant.clone());
         } else if agent.variant.is_some() {
+            self.configured_default = false;
             self.variant = agent.variant.clone();
         }
         self.agent_id = Some(id.to_string());
@@ -1157,15 +1213,18 @@ impl Effective {
 
     /// Catalog plus this effective selection.
     fn snapshot(&self, composition: &Composition, generation: u64) -> CatalogSnapshot {
+        let mut selected = self.clone();
+        selected.resolve_default(composition);
+        let this = &selected;
         let empty = crate::models::ModelCatalog {
-            provider: self.provider_id.clone(),
+            provider: this.provider_id.clone(),
             models: Default::default(),
         };
-        self.snapshot_catalog(
+        this.snapshot_catalog(
             composition,
             generation,
-            composition.catalog_for(&self.provider_id).unwrap_or(&empty),
-            composition.readiness_for(&self.provider_id, &self.model_id, self.variant.as_deref()),
+            composition.catalog_for(&this.provider_id).unwrap_or(&empty),
+            composition.readiness_for(&this.provider_id, &this.model_id, this.variant.as_deref()),
         )
     }
 
@@ -4105,6 +4164,8 @@ async fn query(
                 ])
                 .map_err(app_error)?;
                 effective.legacy_epoch += 1;
+                effective.configured_default = false;
+                effective.provider_id = composition.catalog.provider.clone();
                 effective.model_id = selection.id.clone();
                 effective.variant = selection.variant.map(|variant| variant.name);
                 Ok(effective.snapshot(composition, location_epoch.load(Ordering::SeqCst)))

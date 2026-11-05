@@ -197,6 +197,18 @@ pub(crate) fn from_note(note: &oc_core::queries::ConfigDiagnostic) -> ServiceDia
     );
     diagnostic.source = note.source.clone();
     diagnostic.field = note.field.clone();
+    if note.kind == ConfigDiagnosticKind::Unsupported
+        && note.field.first().is_some_and(|field| {
+            matches!(
+                field.as_str(),
+                "snapshots" | "share" | "username" | "watcher" | "formatter"
+            )
+        })
+    {
+        diagnostic.details = Some(Box::new(vec![
+            "This setting is unsupported and ignored.".into(),
+        ]));
+    }
     diagnostic
 }
 

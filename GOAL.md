@@ -8,7 +8,7 @@ Scope текущей работы задаёт пользователь; workflo
 
 - Нативный Rust 2024 coding agent: один `oc2`, TUI и headless используют общий typed runtime. Квалифицированная платформа — Debian 13 GNU/Linux x86_64; setup и запуск — [README](README.md).
 - Один native owner на UID/data root, private UDS, одна Db/recovery authority; нет public HTTP/TCP service, privileged broker или второго write owner. Shared TUI/finite headless leases не возвращают старый `oc service` scope.
-- Config — только канонический OC2 + объявленные native extensions, fail-closed. OpenProxy discovery использует [владельческий oracle](references/openproxy-models.user.mjs), не старый repository plugin.
+- Config — канонический OC2 + объявленные native extensions и явно ограниченная read-only normalization legacy-подмножества [W9.1](docs/goals/2026-11-04-demine-ts-parity.md). Malformed known fields, policy и source trust остаются fail-closed; неизвестные ключи предупреждаются без payload. OpenProxy discovery использует [владельческий oracle](references/openproxy-models.user.mjs), не старый repository plugin.
 - Поддержанные provider/tool/config semantics — [CONTRACTS](docs/CONTRACTS.md), [CONFIG](docs/CONFIG.md), [OpenProxy](docs/PROVIDER_OPENPROXY.md), [tools/MCP](docs/TOOLS_MCP.md).
 - RAW/HOT, intentional forgetting и отсутствие artificial round stops остаются свойствами продукта, не процессом ведения документации: [DCP](docs/DCP.md), [Long Horizon](docs/LONG_HORIZON.md).
 - Публикация, historical PASS, offline gate или отдельный bugfix не означают full-product READY либо полный паритет с OpenCode.
@@ -109,7 +109,7 @@ Root-only workflow, fake child и отдельная Go campaign этот рез
 
 ## Вне scope этого продукта/среза
 
-- OC1 config vocabulary, миграция/import пользовательских DB и automatic config rewrite.
+- Остальной OC1 config vocabulary вне явно перечисленного W9.1 subset; миграция/import пользовательских DB и automatic config rewrite по-прежнему запрещены.
 - Arbitrary JS/TS/npm plugin host; native Code Mode — confined Rust interpreter, не такой host. Внешний MCP — явная пользовательская зависимость.
 - Public remote API/serve/attach parity, privileged cross-user broker, вечный daemon, web/desktop, auto-update, embeddings/RAG и файловый rollback через conversation Undo.
 - Сокращение workflow не меняет storage schema/data roots, разрешения, security/durability/resource guards, DCP и no unknown-effect replay. [Лицензии/provenance](docs/SOURCES.md) остаются в текущем составе.

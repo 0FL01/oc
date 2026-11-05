@@ -188,6 +188,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
         fixture['providers']['fixture']['settings']['baseURL'] = (
             f'http://127.0.0.1:{listener.getsockname()[1]}/v1')
         fixture['providers']['fixture']['settings']['apiKey'] = '{env:FIXTURE_KEY}'
+        fixture['providers']['fixture']['settings']['authPolicy'] = 'key'
         config_file.unlink()
         config_file = config / 'opencode.jsonc'
         config_file.write_text(json.dumps(fixture))
@@ -220,6 +221,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
         config_file = config / 'opencode.json'
         fixture['providers']['fixture']['settings']['baseURL'] = 'http://127.0.0.1:9/v1'
         fixture['providers']['fixture']['settings']['apiKey'] = 'DUMMY-STARTUP-SECRET'
+        fixture['providers']['fixture']['settings'].pop('authPolicy')
         config_file.write_text(json.dumps(fixture))
     with sqlite3.connect(data / 'oc.sqlite') as db:
         db.execute("INSERT INTO prefs(key,value,updated_at) VALUES (?,?,?)",

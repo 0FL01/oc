@@ -48,6 +48,11 @@ const ROOT: &[&str] = &[
     "worktree",
     "warming",
     "providers",
+    "provider",
+    "small_model",
+    "enabled_providers",
+    "disabled_providers",
+    "policies",
     "experimental",
     "dcp",
     "animations",
@@ -494,49 +499,87 @@ pub(crate) fn scan_document(document: &Value) -> Vec<Finding> {
             &["tokens"],
         );
     }
-    for provider in entries(root.get("providers")) {
-        let Some(provider) = check(&mut out, Some(provider), "providers.<id>.", PROVIDER) else {
-            continue;
-        };
-        scan_settings(
-            &mut out,
-            "providers.<id>.settings.",
-            provider.get("settings"),
-        );
-        for model in entries(provider.get("models")) {
-            let prefix = "providers.<id>.models.<id>.";
-            let Some(model) = check(&mut out, Some(model), prefix, MODEL) else {
+    check(
+        &mut out,
+        root.get("model"),
+        "model.",
+        &["providerID", "model", "variant"],
+    );
+    for (key, legacy) in [("providers", false), ("provider", true)] {
+        let provider_prefix = format!("{key}.<id>.");
+        let model_prefix = format!("{provider_prefix}models.<id>.");
+        let mut provider_keys = PROVIDER.to_vec();
+        let mut model_keys = MODEL.to_vec();
+        if legacy {
+            provider_keys.extend(["npm", "options"]);
+            model_keys.extend([
+                "id",
+                "provider",
+                "options",
+                "tool_call",
+                "modalities",
+                "status",
+            ]);
+        }
+        for provider in entries(root.get(key)) {
+            let Some(provider) = check(&mut out, Some(provider), &provider_prefix, &provider_keys)
+            else {
                 continue;
             };
             scan_settings(
                 &mut out,
-                &format!("{prefix}settings."),
-                model.get("settings"),
+                &format!("{provider_prefix}settings."),
+                provider.get("settings"),
             );
-            check(
-                &mut out,
-                model.get("capabilities"),
-                &format!("{prefix}capabilities."),
-                CAPABILITIES,
-            );
-            check(
-                &mut out,
-                model.get("limit"),
-                &format!("{prefix}limit."),
-                LIMIT,
-            );
-            for variant in items(model.get("variants")) {
-                check(
-                    &mut out,
-                    Some(variant),
-                    &format!("{prefix}variants[]."),
-                    VARIANT,
-                );
+            for model in entries(provider.get("models")) {
+                let prefix = model_prefix.as_str();
+                let Some(model) = check(&mut out, Some(model), prefix, &model_keys) else {
+                    continue;
+                };
                 scan_settings(
                     &mut out,
-                    &format!("{prefix}variants[].settings."),
-                    variant.get("settings"),
+                    &format!("{prefix}settings."),
+                    model.get("settings"),
                 );
+                check(
+                    &mut out,
+                    model.get("capabilities"),
+                    &format!("{prefix}capabilities."),
+                    CAPABILITIES,
+                );
+                check(
+                    &mut out,
+                    model.get("limit"),
+                    &format!("{prefix}limit."),
+                    LIMIT,
+                );
+                if legacy {
+                    check(
+                        &mut out,
+                        model.get("provider"),
+                        &format!("{prefix}provider."),
+                        &["npm", "api"],
+                    );
+                    check(
+                        &mut out,
+                        model.get("modalities"),
+                        &format!("{prefix}modalities."),
+                        CAPABILITIES,
+                    );
+                }
+                for variant in items(model.get("variants")) {
+                    check(
+                        &mut out,
+                        Some(variant),
+                        &format!("{prefix}variants[]."),
+                        VARIANT,
+                    );
+                    scan_settings(
+                        &mut out,
+                        &format!("{prefix}variants[].settings."),
+                        variant.get("settings"),
+                    );
+                }
             }
         }
     }

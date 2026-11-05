@@ -88,7 +88,6 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
                             'apiKey': '{env:FIXTURE_DISCOVERY_KEY}'},
             }},
         }
-        (config / 'opencode.json').write_text(json.dumps(fixture))
         env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'),
                'XDG_DATA_HOME': str(home / 'data'), 'TERM': 'xterm-256color',
                'LANG': 'C.UTF-8', 'PATH': '/usr/bin:/bin',
@@ -111,6 +110,13 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
             ('present', 200, catalog(chosen), False, '█▀▀█', None),
         ]
         for label, status, payload, slow, expected, detailed in cases:
+            print('discovery-fixture-stage '+label+' tui', flush=True)
+            if label == 'absent':
+                # Exercise an explicit unavailable selection, not default fallback.
+                fixture['agents'] = {'build': {'model': fixture['model']}}
+            else:
+                fixture.pop('agents', None)
+            (config / 'opencode.json').write_text(json.dumps(fixture))
             response[:] = [status, payload, slow]
             requests.clear()
             trace_path = root / ('startup-trace-' + label + '.log')
@@ -150,6 +156,7 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
                     child.wait(timeout=5)
                 os.close(master)
                 os.close(slave)
+            print('discovery-fixture-stage '+label+' trace', flush=True)
             assert trace_path.exists(), (label, 'startup trace missing')
             trace = trace_path.read_bytes()
             for marker in (key, body_marker):
@@ -170,6 +177,7 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
                 assert 'tui.exit: code=0' in trace_text, (label, 'no clean tui exit')
             assert requests == [('GET', '/v1/models', True)], (label, 'wrong discovery wire')
             if detailed:
+                print('discovery-fixture-stage '+label+' headless', flush=True)
                 requests.clear()
                 headless_trace = root / ('startup-trace-headless-' + label + '.log')
                 headless_env = dict(env, OC_STARTUP_TRACE=str(headless_trace))

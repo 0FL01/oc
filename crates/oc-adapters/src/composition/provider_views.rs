@@ -211,7 +211,10 @@ impl Composition {
 
     /// Freeze only connection views. Reassembling normalized provider inputs does
     /// not publish policy, activate MCP, read new config files or open another Db.
-    pub(crate) fn admit_provider_views(&mut self) -> Result<(), LoadFailure> {
+    pub(super) fn admit_provider_views(
+        &mut self,
+        policy: &super::catalog::ProviderPolicy,
+    ) -> Result<(), LoadFailure> {
         let mut ids: BTreeSet<_> = self.generation.providers.keys().cloned().collect();
         // The native dynamic-discovery provider has no static models, so the
         // selected generation drops it as inert metadata. Its own per-view
@@ -232,7 +235,7 @@ impl Composition {
             .collect();
         let observed = std::cell::RefCell::new(&mut self.watch_inputs);
         for id in ids {
-            if id == self.catalog.provider {
+            if id == self.catalog.provider || !policy.allows(&id) {
                 continue;
             }
             let admitted = config::assemble_admitted_with_terminal_copy(

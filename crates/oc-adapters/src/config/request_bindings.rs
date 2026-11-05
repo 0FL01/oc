@@ -1,5 +1,7 @@
 //! Local, immutable request templates. Secrets resolve only after endpoint admission.
-use super::super::{ConfigError, ProviderEntry, Source, substitute_with, validate_provider};
+use super::super::{
+    ConfigError, ProviderEntry, ProviderOptions, Source, substitute_with, validate_provider,
+};
 use super::{invalid, merge};
 use crate::provider::ResponsesConfig;
 use serde_json::{Value, json};
@@ -72,6 +74,7 @@ pub(in crate::config) fn record_origins(
 pub(in crate::config) fn request_bindings(
     id: &str,
     raw: &Value,
+    base_options: &ProviderOptions,
     fallback_source: &str,
     origins: &BTreeMap<String, String>,
     sources: &[Source],
@@ -174,6 +177,35 @@ pub(in crate::config) fn request_bindings(
                 .map_err(|_| invalid(&model_prefix))?;
             entry.options.endpoint_source = Some(source.to_owned());
             entry.options.endpoint_trusted = trusted;
+            if trusted
+                && base_options.endpoint_trusted
+                && crate::auth::AuthScope::admit(id, &base_options.base_url).is_ok_and(|base| {
+                    crate::auth::AuthScope::admit(id, &entry.options.base_url)
+                        .is_ok_and(|model| base == model)
+                })
+            {
+                entry.options.credential_env = base_options.credential_env.clone();
+            }
+            entry.options.implicit_local_auth = trusted
+                && options.get("authPolicy").is_none()
+                && entry
+                    .options
+                    .headers
+                    .keys()
+                    .filter(|name| {
+                        name.eq_ignore_ascii_case("authorization")
+                            || name.eq_ignore_ascii_case("x-api-key")
+                    })
+                    .all(|name| origin(&format!("headers.{}", name.to_ascii_lowercase())).1)
+                && reqwest::Url::parse(&entry.options.base_url).is_ok_and(|url| {
+                    url.host_str().is_some_and(|host| {
+                        host == "localhost"
+                            || host
+                                .trim_matches(['[', ']'])
+                                .parse::<std::net::IpAddr>()
+                                .is_ok_and(|ip| ip.is_loopback())
+                    })
+                });
             let (source, trusted) = origin("apiKey");
             entry.options.api_key =
                 substitute_with(&entry.options.api_key, source, trusted, env, reader)?;

@@ -9,6 +9,28 @@ fn seeded() -> LoadedDefs {
 }
 
 #[test]
+fn w9_small_model_is_only_a_title_default_and_native_title_entry_wins() {
+    for native in [false, true] {
+        let mut defs = seeded();
+        let mut document = serde_json::json!({"small_model":"fixture/small#fast"});
+        if native {
+            document["agents"] = serde_json::json!({"title":{"description":"native title"}});
+        }
+        merge_config_definitions(&mut defs, &document, "fixture");
+        assert!(defs.diagnostics.is_empty());
+        assert_eq!(
+            defs.agents["title"].model.as_deref(),
+            if native { None } else { Some("fixture/small") }
+        );
+        assert_eq!(
+            defs.agents["title"].variant.as_deref(),
+            if native { None } else { Some("fast") }
+        );
+        assert!(defs.agents["build"].model.is_none());
+    }
+}
+
+#[test]
 fn builtin_registration_supplied_field_merge_and_explicit_eligibility() {
     let mut defs = seeded();
     assert_eq!(defs.agents.len(), 5);

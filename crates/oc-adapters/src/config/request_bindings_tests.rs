@@ -2,6 +2,85 @@ use super::*;
 use crate::config::assemble;
 
 #[test]
+fn w9_declared_env_authority_is_not_laundered_or_inherited_by_another_endpoint() {
+    for trusted in [false, true] {
+        let declaration = Source {
+            path: "/declaration.json".into(),
+            trusted,
+            text: json!({"providers":{"p":{
+                "env":["FIXTURE_CREDENTIAL"], "settings":{"apiKey":"configured"},
+                "models":{"m":{},"other":{"settings":{"baseURL":"https://other.example/v1"}}}
+            }}})
+            .to_string(),
+        };
+        let endpoint = Source {
+            path: "/endpoint.json".into(),
+            trusted: true,
+            text: json!({"providers":{"p":{
+                "name":"Later trusted overlay", "settings":{"baseURL":"https://example.com/v1"}
+            }}})
+            .to_string(),
+        };
+        let generation = assemble(&[declaration, endpoint], &BTreeMap::new(), None).unwrap();
+        let entry = &generation.providers["p"];
+        let expected: Vec<String> = if trusted {
+            vec!["FIXTURE_CREDENTIAL".into()]
+        } else {
+            vec![]
+        };
+        assert_eq!(entry.options.credential_env, expected);
+        assert_eq!(
+            entry.options.request_bindings[&("m".into(), None)]
+                .wire
+                .credential_env,
+            expected
+        );
+        assert!(
+            entry.options.request_bindings[&("other".into(), None)]
+                .wire
+                .credential_env
+                .is_empty()
+        );
+    }
+}
+
+#[test]
+fn w9_local_implicit_auth_requires_omission_and_captured_trusted_inputs() {
+    let source = Source { path:"/local.json".into(), trusted:true, text:json!({"providers":{"p":{
+        "settings":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"configured"},
+        "models":{"m":{"variants":[{"id":"required","settings":{"authPolicy":"key"}}]},
+            "remote":{"settings":{"baseURL":"https://example.com/v1","implicit_local_auth":true,"credential_env":["FORGED"]}}}
+    }}}).to_string() };
+    let generation = assemble(std::slice::from_ref(&source), &BTreeMap::new(), None).unwrap();
+    let requests = &generation.providers["p"].options.request_bindings;
+    assert!(requests[&("m".into(), None)].wire.implicit_local_auth);
+    assert!(
+        !requests[&("m".into(), Some("required".into()))]
+            .wire
+            .implicit_local_auth
+    );
+    assert!(!requests[&("remote".into(), None)].wire.implicit_local_auth);
+    assert!(
+        requests[&("remote".into(), None)]
+            .wire
+            .credential_env
+            .is_empty()
+    );
+    let header = Source {
+        path: "/header.json".into(),
+        trusted: false,
+        text: json!({"providers":{"p":{"headers":{"Authorization":"synthetic"}}}}).to_string(),
+    };
+    let generation = assemble(&[source, header], &BTreeMap::new(), None).unwrap();
+    assert!(!generation.providers["p"].options.implicit_local_auth);
+    assert!(
+        !generation.providers["p"].options.request_bindings[&("m".into(), None)]
+            .wire
+            .implicit_local_auth
+    );
+}
+
+#[test]
 fn cfg16_provider_only_settings_ignore_model_and_variant_overlays() {
     let fixture: Value = serde_json::from_str(include_str!(
         "../../tests/fixtures/v2-config-semantics.json"
@@ -139,6 +218,7 @@ fn go01_model_endpoint_is_admitted_before_secret_reads_and_cannot_gain_later_tru
         request_bindings(
             "opencode-go",
             &raw["opencode-go"],
+            &ProviderOptions::default(),
             &go.path,
             &origins,
             std::slice::from_ref(&go),
