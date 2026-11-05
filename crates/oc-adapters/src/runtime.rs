@@ -612,11 +612,11 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "read".to_string(),
-            description: "Read a file or directory. Text streams the selected page without a whole-file size cap, with 1-based line references and a 65536-byte page budget; limit defaults to 2000. Directories are sorted with directories first. Explicit symlinks are followed; permissions use the lexical path and the resolved I/O target cannot be the native data root. Validated PNG/JPEG/GIF/WebP images retain the 1 MiB cap and are inline content for image-capable selected Responses models; PDF is unsupported."
+            description: "Read a file or directory. Text streams the selected page without a whole-file size cap, with 1-based line references and a 65536-byte page budget; limit defaults to 2000. Directories are sorted with directories first. Explicit symlinks are followed; permissions use the lexical path and the resolved I/O target cannot be the native data root. Validated PNG/JPEG/GIF/WebP images up to 20 MiB are inline content for image-capable selected models on Responses and Messages wires. Chat wire replaces image tool output with a text notice regardless of size. Request-size projection may also replace a large image with a notice instead of sending its pixels; do not claim to see an image replaced by a notice. PDF is unsupported."
                 .to_string(),
             parameters: schema(
                 serde_json::json!({
-                    "path": {"type": "string", "minLength":1, "description":"Use '.' for the project root. Nonempty, at most 4096 UTF-8 bytes, no control characters. Pagination does not bypass whole-file admission."},
+                    "path": {"type": "string", "minLength":1, "description":"Use '.' for the project root. Nonempty, at most 4096 UTF-8 bytes, no control characters. Pagination does not bypass image admission."},
                     "offset": {"type": "integer", "minimum":1, "maximum":crate::storage::tool_output::CAP+1, "default":1,"description":"Ordinary files: at most 1000000; exact registered tool-output artifacts: bounded by the 32 MiB capture extent."},
                     "limit": {"type": "integer", "minimum":1, "maximum":2000, "default":2000},
                 }),

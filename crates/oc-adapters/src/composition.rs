@@ -326,6 +326,7 @@ struct AdmittedSources {
     sources: Vec<config::Source>,
     source_authority: BTreeMap<String, (usize, PathBuf)>,
     unknown: config::admission::Report,
+    warnings: Vec<oc_core::queries::ServiceDiagnostic>,
 }
 
 fn source_roots<'a>(
@@ -412,6 +413,7 @@ fn admit_sources(
     let mut source_authority = BTreeMap::new();
     let mut seen = HashSet::new();
     let mut unknown = config::admission::Report::default();
+    let mut warnings = Vec::new();
     for (index, (root, admitted)) in roots.iter().zip(&admitted_roots).enumerate() {
         let Some(admitted) = admitted else { continue };
         for name in ["opencode.json", "opencode.jsonc"] {
@@ -454,6 +456,28 @@ fn admit_sources(
                         &format!("{} {name}", admission_scope(index, global.is_some())),
                         &config::admission::scan_document(&document),
                     );
+                    if !(global.is_some() && index == 0)
+                        && let Some(formatter) = document.get("formatter")
+                    {
+                        let mut note = config::diagnostic::failure(
+                            &source_path,
+                            &["formatter"],
+                            ServiceStage::Admission,
+                            ServiceCode::IgnoredSetting,
+                            ServiceAction::ReviewConfiguration,
+                        );
+                        let mut details = vec!["Project formatter ignored; only global configuration may declare formatter programs. Declared argv below is literal, before env/file substitution.".into()];
+                        if let Some(entries) = formatter.as_object() {
+                            details.extend(
+                                entries
+                                    .values()
+                                    .filter_map(|entry| entry.get("command"))
+                                    .map(|argv| format!("declared argv: {argv}")),
+                            );
+                        }
+                        note.details = Some(Box::new(details));
+                        warnings.push(note);
+                    }
                 }
                 sources.push(config::Source {
                     path: source_path,
@@ -474,6 +498,7 @@ fn admit_sources(
         sources,
         source_authority,
         unknown,
+        warnings,
     })
 }
 
@@ -914,6 +939,7 @@ async fn load_stages(
         sources,
         source_authority,
         mut unknown,
+        mut warnings,
     } = admit_sources(project, &parent_env)?;
     let watch_inputs =
         std::cell::RefCell::new(watch_inputs::WatchInputs::admitted(&roots, &admitted_roots));
@@ -1088,14 +1114,21 @@ async fn load_stages(
             baseline: None,
         });
     }
-    let configured_instructions = configured_instructions::load(
+    let global_sources = source_authority
+        .iter()
+        .filter(|(_, (index, _))| global.is_some() && *index == 0)
+        .map(|(source, _)| source.as_str())
+        .collect();
+    let (configured_instructions, configured_diagnostics) = configured_instructions::load(
         &project,
         &parent_env,
         &sources,
+        &global_sources,
         &instruction_roots,
         data_scope.as_ref(),
         &watch_inputs,
     )?;
+    warnings.extend(configured_diagnostics);
     for source in &configured_instructions.sources {
         if let Some(content) = &source.content {
             instruction_files.push((source.path.clone(), Ok(content.clone())));
@@ -1257,6 +1290,7 @@ async fn load_stages(
         &parent_env,
         Some(&selected_providers),
         &source_roots,
+        &global_sources,
         Some(&observe_dependency),
     )
     .map_err(LoadFailure::Configuration)?;
@@ -1554,7 +1588,9 @@ async fn load_stages(
             .take(64)
             .map(|diagnostic| diagnostic.failure.to_string()),
     );
-    let service_diagnostics_omitted = loaded_defs.diagnostics.len().saturating_sub(64)
+    diagnostics.extend(warnings.iter().take(64).map(ToString::to_string));
+    let service_diagnostics_omitted = warnings.len().saturating_sub(64)
+        + loaded_defs.diagnostics.len().saturating_sub(64)
         + instruction_diagnostics.len().saturating_sub(64)
         + generation.config_diagnostics.len().saturating_sub(64)
         + dcp_note_count.saturating_sub(64)
@@ -1646,6 +1682,7 @@ async fn load_stages(
                     .map(|diagnostic| diagnostic.failure.clone()),
             )
             .chain(dcp_notes)
+            .chain(warnings.into_iter().take(64))
             .chain(config_notes)
             .chain((!unknown.is_empty()).then(|| unknown.diagnostic()))
             .collect(),
@@ -2454,10 +2491,62 @@ fn plugin_packages(value: &serde_json::Value, source: &str) -> Result<Vec<String
 
 #[cfg(test)]
 mod tests {
-    use super::load_with_env;
-    use oc_core::queries::TabIndicators;
+    use super::{load_local_with_env, load_with_env};
+    use oc_core::queries::{ServiceCode, TabIndicators};
     use std::collections::BTreeMap;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn w11_project_formatter_cannot_override_or_reset_global_and_warns_exact_declared_argv() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let global = root.path().join("global");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&global).unwrap();
+        std::fs::write(global.join("opencode.json"), r#"{"formatter":{"global":{"command":["global-program","{env:CAPTURED}"],"extensions":[".txt"]}}}"#).unwrap();
+        let argv = serde_json::json!([
+            "/bin/sh",
+            "-c",
+            "cat <<'EOF'\n{env:CAPTURED} {file:private.txt}\nEOF",
+            "$FILE"
+        ]);
+        std::fs::write(project.join("private.txt"), "FILE_CANARY").unwrap();
+        let env = BTreeMap::from([
+            (
+                "OPENCODE_CONFIG_DIR".into(),
+                global.to_string_lossy().into_owned(),
+            ),
+            ("CAPTURED".into(), "ENV_CANARY".into()),
+        ]);
+        for formatter in [
+            serde_json::json!({"project":{"command":argv,"extensions":[".txt"]},"global":{"disabled":true}}),
+            serde_json::json!(false),
+        ] {
+            std::fs::write(
+                project.join("opencode.json"),
+                serde_json::json!({"formatter":formatter}).to_string(),
+            )
+            .unwrap();
+            let loaded = load_local_with_env(&project, env.clone()).await.unwrap();
+            assert_eq!(loaded.generation.formatters.len(), 1);
+            let global = &loaded.generation.formatters[0];
+            assert_eq!(global.command, ["global-program", "ENV_CANARY"]);
+            assert!(!global.disabled);
+            let note = loaded
+                .tui_chrome
+                .service_diagnostics
+                .iter()
+                .find(|note| {
+                    note.field == ["formatter"] && note.code == ServiceCode::IgnoredSetting
+                })
+                .unwrap();
+            let details = note.details.as_ref().unwrap().join("\n");
+            if formatter.is_object() {
+                assert!(details.contains(&argv.to_string()), "{details}");
+            }
+            assert!(!details.contains("ENV_CANARY") && !details.contains("FILE_CANARY"));
+        }
+    }
 
     #[tokio::test]
     async fn w10_skill_sources_recurse_with_leaf_ids_order_and_captured_bodies() {
@@ -2935,6 +3024,7 @@ mod tests {
             &BTreeMap::new(),
             Some(&HashSet::from(["fixture".into()])),
             &roots,
+            &std::collections::BTreeSet::new(),
             None,
         );
         let error = generation.expect_err("replaced ancestor must fail closed");
@@ -2949,6 +3039,7 @@ mod tests {
             &BTreeMap::new(),
             None,
             &roots,
+            &std::collections::BTreeSet::new(),
             None,
         )
         .unwrap()
@@ -3042,23 +3133,25 @@ mod tests {
             (project.join("rules/common.txt"), "W10_MATCHED_ALIAS"),
             (home.join("absolute.md"), "W10_ABSOLUTE"),
             (home.join("home.md"), "W10_HOME"),
+            (home.join("blocked.md"), "W11_PROJECT_EXTERNAL_BLOCKED"),
         ] {
             std::fs::write(path, body).unwrap();
         }
         std::fs::write(project.join("notes.txt"), "UNMATCHED_INSTRUCTION_NOISE").unwrap();
         std::os::unix::fs::symlink("../notes.txt", project.join("rules/noise.txt")).unwrap();
         std::os::unix::fs::symlink("common.txt", project.join("rules/team.md")).unwrap();
+        std::os::unix::fs::symlink(home.join("blocked.md"), project.join("escape.md")).unwrap();
         std::fs::write(
             global.join("opencode.json"),
-            r#"{"instructions":["global-rule.md","local.md"]}"#,
+            serde_json::json!({"instructions":["global-rule.md","local.md","rules/*.md",home.join("absolute.md"),"~/home.md"]}).to_string(),
         )
         .unwrap();
         std::fs::write(project.join("opencode.json"), serde_json::json!({
             "model":"fixture/m", "providers":{"fixture":{"package":"@ai-sdk/openai",
                 "settings":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}},
-            "instructions":["rules/*.md","local.md",home.join("absolute.md"),"~/home.md","AGENTS.md","missing.md"]
+            "instructions":["rules/*.md","local.md",home.join("absolute.md"),"~/home.md","~/blocked.md","../../home/blocked.md","escape.md","https://example.invalid/rules","file:///outside/rules","AGENTS.md","missing.md"]
         }).to_string()).unwrap();
-        let loaded = load_with_env(
+        let loaded = load_local_with_env(
             &project,
             BTreeMap::from([
                 ("HOME".into(), home.to_string_lossy().into_owned()),
@@ -3070,6 +3163,16 @@ mod tests {
         )
         .await
         .unwrap();
+        assert!(!loaded.instructions.contains("W11_PROJECT_EXTERNAL_BLOCKED"));
+        assert!(loaded.configured_instructions.urls.is_empty());
+        assert!(
+            loaded
+                .tui_chrome
+                .service_diagnostics
+                .iter()
+                .any(|note| note.field == ["instructions"]
+                    && note.code == ServiceCode::IgnoredSetting)
+        );
         for marker in [
             "W10_BASELINE",
             "W10_GLOBAL_DECLARATION",

@@ -140,10 +140,9 @@ impl Runtime<'_> {
         &self,
         mut input: WorkspacePublication,
     ) -> Result<RuntimeWorkspace, RuntimeError> {
-        let (mut skills, warnings) = SkillSnapshot::build(&input.files);
-        if !warnings.is_empty() {
-            return Err(RuntimeError::InvalidArgs(warnings.join("; ")));
-        }
+        // Discovery already publishes per-skill diagnostics. A skipped entry is
+        // not a fatal workspace error and must not discard its valid siblings.
+        let (mut skills, _) = SkillSnapshot::build(&input.files);
         skills.errors = input.skill_errors;
         let projection = skills.projection();
         let skills_projection = if projection.is_empty() {

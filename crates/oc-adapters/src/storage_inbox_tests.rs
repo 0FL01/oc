@@ -361,6 +361,58 @@ fn failed_acceptance_and_checkpoint_leave_the_admitted_input_pending() {
 }
 
 #[test]
+fn w11_inbox_accepts_full_raw_image_budget_and_reports_capacity() {
+    use oc_core::prompt::{IMAGE_BYTES, ImageMark, PromptImage};
+    let (_tmp, db) = db();
+    let image = PromptImage {
+        mark: ImageMark {
+            start: 0,
+            end: 9,
+            ordinal: 1,
+        },
+        png: vec![0; IMAGE_BYTES].into(),
+    };
+    let mut payload = InboxPayload {
+        prompt: PromptInput {
+            text: "\u{1}".repeat(oc_core::session::MAX_INPUT_BYTES),
+            images: vec![image.clone(), image],
+        },
+        command: None,
+    };
+    let (item, _) = db
+        .inbox_add_rich("s", InboxDelivery::Queue, &payload, None)
+        .unwrap();
+    assert_eq!(item.images, 2);
+    assert_eq!(
+        db.inbox_read("s", &item.id)
+            .unwrap()
+            .unwrap()
+            .payload
+            .prompt,
+        payload.prompt
+    );
+    payload.prompt.images.push(PromptImage {
+        mark: ImageMark {
+            start: 0,
+            end: 9,
+            ordinal: 3,
+        },
+        png: vec![0; 1].into(),
+    });
+    let error = db
+        .inbox_add_rich("s", InboxDelivery::Queue, &payload, None)
+        .unwrap_err();
+    assert!(error.to_string().contains("capacity"), "{error}");
+    assert_eq!(db.inbox_pending("s").unwrap().len(), 1);
+    payload.prompt.images.clear();
+    payload.prompt.text.push('x');
+    assert!(
+        db.inbox_add_rich("s", InboxDelivery::Queue, &payload, None)
+            .is_err()
+    );
+}
+
+#[test]
 fn rich_pending_reopens_and_steered_message_restores_its_own_images_and_fork_links() {
     use oc_core::prompt::{ImageMark, PromptImage};
     let (tmp, db) = db();

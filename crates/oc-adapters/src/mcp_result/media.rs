@@ -366,7 +366,22 @@ fn media_part(mime: &str, data: &str) -> Value {
 pub(crate) fn project_rich(
     result: rmcp::model::CallToolResult,
 ) -> Result<McpToolOutput, ResultError> {
+    bound_expansion(result.content.len())?;
     make(serde_json::to_value(result).map_err(|_| ResultError::BadResult)?)
+}
+
+fn bound_expansion(parts: usize) -> Result<(), ResultError> {
+    // Tiny encoded parts can multiply into large SDK/Value/wire graphs. Bound
+    // their structural storage before building those additional representations,
+    // independently of encoded bytes, without restoring an arbitrary 64-part cap.
+    let bytes = parts.saturating_mul(std::mem::size_of::<rmcp::model::ContentBlock>());
+    if bytes > MEDIA_BYTES_CAP {
+        return Err(ResultError::TooLarge {
+            bytes,
+            limit: MEDIA_BYTES_CAP,
+        });
+    }
+    Ok(())
 }
 
 fn bound(value: &impl Serialize, limit: usize) -> Result<(), ResultError> {
@@ -411,6 +426,9 @@ fn binary(data: &str) -> Result<(), ResultError> {
 }
 
 fn make(mut facts: Value) -> Result<McpToolOutput, ResultError> {
+    if let Some(parts) = facts["content"].as_array() {
+        bound_expansion(parts.len())?;
+    }
     let media = facts["content"].as_array().is_some_and(|parts| {
         parts.iter().any(|part| {
             matches!(part["type"].as_str(), Some("image" | "audio"))

@@ -243,6 +243,9 @@ impl Composition {
                 &self.parent_env,
                 Some(&HashSet::from([id.clone()])),
                 &roots,
+                // Provider-only reassembly cannot activate/substitute formatters;
+                // the complete generation already captured global programs.
+                &BTreeSet::new(),
                 Some(&|path| observed.borrow_mut().file(path)),
             );
             let entry = match admitted {

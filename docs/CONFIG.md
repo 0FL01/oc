@@ -660,6 +660,9 @@ preview and old SQLite continuation alone do not qualify this behavior.
 
 ## Configured formatters
 
+Only **global config** contributes `formatter`; project declarations (including
+reset/override) are ignored with a warning showing literal declared argv as JSON,
+before env/file substitution. This is an owner-selected deliberate TS divergence.
 `formatter` accepts named entries with `command` (direct argv), `environment`,
 `extensions` (including the leading dot), and `disabled`. Entries retain source
 order; overlays update an existing entry in place. A matching formatter runs
@@ -681,7 +684,7 @@ builtin formatter/program discovery is supplied.
 }
 ```
 
-Formatter commands require an admitted trusted config source and remain captured
+Formatter commands require an admitted trusted global config source and remain captured
 for the issuing request/batch. They are a continuation of the original mutation,
 not a model `shell` call or a new permission grant. Native mutation Deny, Plan and
 child narrowing, approved preimage and resolved data-root checks still apply
@@ -702,7 +705,7 @@ stops. Cancellation does not roll back the preceding native write.
 
 `AGENTS.md` — не config override. Effective instructions состоят из canonical-deduplicated `G/AGENTS.md`, затем applicable Location files в pinned nearest-working-directory-to-root order; distinct sentinel каждого admitted файла входит ровно один раз с provenance. Unreadable/disappeared local file не сохраняет старый текст. Configured sources принадлежат captured generation и не перечитываются посреди её request/tool batch; successful-read Nested sources сохраняют отдельный существующий lifecycle.
 
-`instructions: ["rules/*.md", "~/shared.md", "https://example.com/rules.md"]`
+В global config `instructions: ["rules/*.md", "~/shared.md", "https://example.com/rules.md"]`
 объединяется в порядке admitted config documents с удалением повторных деклараций
 и canonical file paths. Relative paths/globs ищутся от Location вверх до enclosing
 worktree boundary; совпадения каждого pattern сортируются, включая dotfiles.
@@ -711,6 +714,13 @@ regular/no-follow чтением и исключением actual native data ro
 включая descendants/aliases. Это **не** расширяет Files/read/Nested roots.
 Сохраняются bounds128 sources,128KiB/file,512KiB total; glob walk ограничен
 4096 entries/depth32.
+
+Project declarations разрешают только paths/globs внутри Location, включая
+resolved symlink targets; relative globs не ищутся по внешним ancestors. Внешние
+absolute/`~/`/`..` paths и **любые** URL игнорируются с warning до чтения/GET.
+Внутренние absolute/`..` paths остаются допустимы. Gate определяется actual
+admitted config origin, не `trusted` bit; global возможности выше сохранены.
+Это осознанное расхождение с TS, а не новый approval flow.
 
 HTTP(S) sources загружаются асинхронно как raw UTF-8, без HTML conversion и
 credential headers, с default TLS/userinfo checks,5s deadline и concurrency4.

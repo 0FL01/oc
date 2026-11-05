@@ -206,9 +206,20 @@ async fn load_catalog_inner(
         dynamic.insert(crate::models_dev::OPENAI.into());
     }
     let roots = source_roots(&admitted.admitted_roots, &admitted.source_authority);
-    let mut generation =
-        config::assemble_catalog_admitted(&admitted.sources, &env, &dynamic, &roots)
-            .map_err(LoadFailure::Configuration)?;
+    let global_sources = admitted
+        .source_authority
+        .iter()
+        .filter(|(_, (index, _))| admitted.global.is_some() && *index == 0)
+        .map(|(source, _)| source.as_str())
+        .collect();
+    let mut generation = config::assemble_catalog_admitted(
+        &admitted.sources,
+        &env,
+        &dynamic,
+        &roots,
+        &global_sources,
+    )
+    .map_err(LoadFailure::Configuration)?;
     // Foreign protocol metadata is inert, not an admitted native source.
     generation.providers.retain(|id, entry| {
         include(id) && config::package_protocol(id, entry.npm.as_deref()).is_ok()
@@ -220,6 +231,7 @@ async fn load_catalog_inner(
         .entries
         .into_iter()
         .filter_map(|entry| entry.diagnostic)
+        .chain(admitted.warnings)
         .chain((!admitted.unknown.is_empty()).then(|| admitted.unknown.diagnostic()))
         .chain(
             generation

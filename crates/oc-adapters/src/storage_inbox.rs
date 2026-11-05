@@ -9,7 +9,12 @@ use oc_core::{
 
 pub const MAX_INBOX_ITEMS: usize = oc_core::session::MAX_QUEUE_ITEMS;
 const MAX_PENDING_BYTES: usize = MAX_INBOX_ITEMS * oc_core::session::MAX_INPUT_BYTES;
-const MAX_PAYLOAD_BYTES: usize = 32 * 1024 * 1024;
+// Preserve the text/command envelope, plus base64 (including per-image padding)
+// and JSON marks for the complete admitted RAW image budget. Pending bytes do
+// not grow: large prompts consume more of the same session-wide capacity.
+const MAX_PAYLOAD_BYTES: usize = 32 * 1024 * 1024
+    + oc_core::prompt::IMAGES_TOTAL_BYTES.div_ceil(3) * 4
+    + oc_core::prompt::MAX_IMAGES * 256;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct CommandCapture {
@@ -132,7 +137,12 @@ impl Db {
         payload: &InboxPayload,
         selection: Option<(&str, &str)>,
     ) -> Result<(InboxItem, Vec<InboxItem>), StorageError> {
-        payload.prompt.check_budget().map_err(|_| invalid())?;
+        payload.prompt.check_budget().map_err(|_| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "pending prompt exceeds input capacity",
+            )
+        })?;
         let raw = serde_json::to_string(payload).map_err(|_| invalid())?;
         if raw.len() > MAX_PAYLOAD_BYTES {
             return Err(StorageError::InboxFull);

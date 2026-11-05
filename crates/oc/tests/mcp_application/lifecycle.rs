@@ -302,7 +302,10 @@ fn sidebar_mcp_live_status_wheel_fold_and_restart_without_generation() {
     tui.wait_screen("sidebar-ack-pinned-ack", TIMEOUT);
     assert_eq!(markers(&tui), stable);
 
-    let header_y = sidebar_after
+    // Resolve the click from the completed frame after the pinned wheel/ack,
+    // not the sidebar snapshot taken before those input events.
+    let header_y = tui
+        .screen()
         .iter()
         .position(|row| row.contains("▼ MCP"))
         .unwrap();

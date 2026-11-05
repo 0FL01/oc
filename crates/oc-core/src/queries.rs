@@ -1028,8 +1028,9 @@ impl std::fmt::Display for ConfigDiagnostic {
     }
 }
 
-/// Payload-free service or fatal admission failure, shared with startup consumers.
+/// Service or fatal admission failure, shared with startup consumers.
 /// Producers bound/sanitize identities; no remote exceptions or expanded values.
+/// Project-formatter gate warnings explicitly include literal declared argv.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ServiceDiagnostic {
     #[serde(default)]
@@ -1040,7 +1041,8 @@ pub struct ServiceDiagnostic {
     pub stage: ServiceStage,
     pub code: ServiceCode,
     pub action: ServiceAction,
-    /// Bounded schema-only or numeric budget facts (no payload values/IDs).
+    /// Bounded schema/numeric facts, or explicit literal project-formatter argv
+    /// before env/file substitution. Other payload values/IDs stay excluded.
     /// Boxed so the common detail-free diagnostic stays pointer-sized.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub details: Option<Box<Vec<String>>>,

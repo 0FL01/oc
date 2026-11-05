@@ -1,9 +1,117 @@
 use super::*;
 
+/// Run each mode in a fresh test process to keep VmHWM independent of compiler
+/// and earlier cases. The peer streams its result instead of allocating a list.
+#[tokio::test]
+#[ignore = "opt-in isolated MCP RSS measurement; W11_MCP_PROBE=baseline|large|many"]
+async fn w11_mcp_expansion_rss_probe() {
+    use crate::mcp_stdio::{StdioClient, StdioConfig};
+    use std::{sync::atomic::AtomicBool, time::Duration};
+    let mode = std::env::var("W11_MCP_PROBE").unwrap_or_else(|_| "many".into());
+    assert!(["baseline", "large", "many"].contains(&mode.as_str()));
+    let script = r#"
+import json, sys
+mode = sys.argv[1]
+block = '{"type":"image","mimeType":"image/png","data":"AA=="}'
+for line in sys.stdin:
+    m = json.loads(line)
+    if 'id' not in m: continue
+    if m['method'] == 'initialize':
+        result = {'protocolVersion':'2024-11-05','capabilities':{'tools':{}},'serverInfo':{'name':'rss-fixture','version':'1'}}
+    elif m['method'] == 'tools/list':
+        result = {'tools':[{'name':'probe','inputSchema':{'type':'object'}}]}
+    elif m['method'] == 'tools/call':
+        sys.stdout.write('{"jsonrpc":"2.0","id":'+str(m['id'])+',"result":{"content":[')
+        if mode == 'many':
+            for i in range(300000): sys.stdout.write((',' if i else '')+block)
+        elif mode == 'large':
+            sys.stdout.write('{"type":"image","mimeType":"image/png","data":"')
+            remaining = ((len(block)+1)*300000-64)//4*4
+            while remaining:
+                n = min(remaining, 65536)
+                sys.stdout.write('A'*n)
+                remaining -= n
+            sys.stdout.write('"}')
+        else: sys.stdout.write(block)
+        sys.stdout.write(']}}\n')
+        sys.stdout.flush()
+        continue
+    else: continue
+    print(json.dumps({'jsonrpc':'2.0','id':m['id'],'result':result}), flush=True)
+"#;
+    let client = StdioClient::launch(&StdioConfig {
+        server_id: "rss".into(),
+        argv: vec![
+            "/usr/bin/python3".into(),
+            "-I".into(),
+            "-c".into(),
+            script.into(),
+            mode.clone(),
+        ],
+        cwd: None,
+        extra_env: vec![],
+        secrets: vec![],
+        enabled: true,
+        timeout: Duration::from_secs(20),
+        startup_timeout: None,
+        catalog_timeout: None,
+    })
+    .await
+    .unwrap();
+    let result = client
+        .call_tool_rich("probe", json!({}), &AtomicBool::new(false))
+        .await;
+    let hwm = || {
+        std::fs::read_to_string("/proc/self/status")
+            .unwrap()
+            .lines()
+            .find(|line| line.starts_with("VmHWM:"))
+            .unwrap()
+            .to_owned()
+    };
+    eprintln!("W11 mode={mode} post_call {}", hwm());
+    match result {
+        Ok(output) => {
+            let raw_bytes = serde_json::to_vec(output.facts()).unwrap().len();
+            let wire_bytes = serde_json::to_vec(&output).unwrap().len();
+            eprintln!(
+                "W11 mode={mode} accepted raw_bytes={raw_bytes} parts={} wire_bytes={wire_bytes} post_serialize {}",
+                output.facts()["content"].as_array().unwrap().len(),
+                hwm()
+            );
+        }
+        Err(error) => eprintln!("W11 mode={mode} rejected={error} {}", hwm()),
+    }
+    client.shutdown().await.unwrap();
+}
+
 fn fixture() -> Value {
     serde_json::from_str::<Value>(include_str!("../../../../../fixtures/mcp12-media.json")).unwrap()
         ["result"]
         .clone()
+}
+
+#[test]
+fn w11_mcp_expanded_content_budget_applies_before_projection_and_on_restore() {
+    let count = MEDIA_BYTES_CAP / std::mem::size_of::<rmcp::model::ContentBlock>() + 1;
+    let original =
+        json!({"content":vec![json!({"type":"image","mimeType":"image/png","data":"AA=="});count]});
+    assert!(original.to_string().len() < MEDIA_BYTES_CAP);
+    let result = project_rich(serde_json::from_value(original.clone()).unwrap());
+    assert!(matches!(
+        result,
+        Err(ResultError::TooLarge {
+            limit: MEDIA_BYTES_CAP,
+            ..
+        })
+    ));
+    assert!(matches!(
+        McpToolOutput::from_stored(original),
+        Err(ResultError::TooLarge {
+            limit: MEDIA_BYTES_CAP,
+            ..
+        })
+    ));
 }
 
 #[test]

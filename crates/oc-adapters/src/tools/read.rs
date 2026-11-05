@@ -213,7 +213,7 @@ pub(crate) fn execute(
             if !images {
                 return Outcome::error(
                     "failed",
-                    "selected model cannot accept image input; choose an image-capable Responses model",
+                    "selected model cannot accept image input; choose an image-capable model",
                 );
             }
             let Some(source_path) = source_path

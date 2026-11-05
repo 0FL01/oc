@@ -44,9 +44,22 @@ Configured formatter — доверенная captured программа как
 
 W10 отдельно допускает выбранные локальные `skills` roots из trusted config и compatibility skill roots captured HOME/checkout-to-Location. Каждый получает собственный pinned admission boundary; symlink escape и свой data root отклоняются, snapshot body не перечитывается после publication. Это узкое расширение discovery, не следствие `{file:}` и не model read grant. CLI `-f` — явный пользовательский ввод с regular-file/bounded text/image validation и тем же исключением data root; разрешённые image containers нормализуются в PNG, не добавляются автоматические filesystem roots или произвольные media types.
 
-W7 model shell authorization uses every source command from the captured-shell
-scanner, including nested commands. Any opaque construct refuses the whole input
-before approval/spawn. Static directory changes and explicit workdir have separate
+W11 D5/D6 — deliberate divergence from TS по решению владельца: project config
+не расширяет instruction/formatter authority. Project instructions ограничены
+Location и resolved contained targets; внешние absolute/`~/`/`..` paths и любые
+URL пропускаются с warning. Global config сохраняет внешние paths/globs и HTTP(S).
+Новые model read/Nested roots не создаются. Formatter honored только из global;
+project declaration, включая reset/override, отбрасывается до env/file substitution.
+Warning намеренно показывает точный **literal declared argv** в JSON, не expanded
+env/file values; буквальные secrets, записанные прямо в argv, поэтому могут быть
+видны. Это узкое исключение из payload-free config diagnostics, не env dump.
+
+W7 model shell authorization uses commands extracted by the captured-shell
+scanner, including supported nested commands. Scanner-refused syntax rejects
+before approval/spawn. Granular Deny guarantees apply to parsed commands and
+directories, not arbitrary shell effects: redirection targets, wrapper/interpreter
+arguments and dynamic `$cmd` resolution are outside that guarantee. This is not
+a sandbox and does not change shell semantics. Static directory changes and explicit workdir have separate
 lexical external-directory admission; approved cwd retains its descriptor identity
 and excludes resolved native data root. Whole-tool Deny still refuses zero-command
 inputs. Old exact composite command grants are fallback only after every granular

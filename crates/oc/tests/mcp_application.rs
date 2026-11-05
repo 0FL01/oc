@@ -56,6 +56,21 @@ mod lookups;
 mod media;
 
 #[test]
+fn screen_waits_for_complete_synchronized_presentation() {
+    let complete = "\x1b[?2026h\x1b[1;1Hold header\x1b[?2026l";
+    let partial = format!("{complete}\x1b[?2026h\x1b[1;1Hnew header");
+    assert_eq!(
+        PtyProcess::screen_from_bytes(partial.as_bytes())[0].trim_end(),
+        "old header"
+    );
+    let completed = format!("{partial}\x1b[?2026l");
+    assert_eq!(
+        PtyProcess::screen_from_bytes(completed.as_bytes())[0].trim_end(),
+        "new header"
+    );
+}
+
+#[test]
 fn pending_edit_screen_accepts_fragmented_cursor_updates_not_raw_substrings() {
     let bytes = concat!(
         "pending draft e",
@@ -1707,6 +1722,18 @@ impl PtyProcess {
     fn screen_from_bytes(bytes: &[u8]) -> Vec<String> {
         // Text-only reconstruction for ASCII fixture assertions. Unlike raw
         // substring matching, this accounts for ratatui's unchanged-cell skips.
+        // A real terminal presents synchronized updates only at their end.
+        // PTY reads can split a frame after the input ack but before sidebar
+        // geometry, so never use an in-flight frame for mouse coordinates.
+        let begin = b"\x1b[?2026h";
+        let end = b"\x1b[?2026l";
+        let bytes = if let Some(index) = bytes.windows(end.len()).rposition(|part| part == end) {
+            &bytes[..index + end.len()]
+        } else if let Some(index) = bytes.windows(begin.len()).position(|part| part == begin) {
+            &bytes[..index]
+        } else {
+            bytes
+        };
         let text = String::from_utf8_lossy(bytes);
         let mut chars = text.chars().peekable();
         let mut cells = vec![vec![' '; 160]; 50];

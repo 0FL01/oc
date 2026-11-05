@@ -2945,20 +2945,24 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
                 result = optional_timeout_at(deadline,response.chunk()) => result,
             };
             match chunk {
-                Ok(Ok(Some(chunk))) if bytes.len() + chunk.len() <= 16 * 1024 => {
-                    bytes.extend_from_slice(&chunk)
+                Ok(Ok(Some(chunk))) => {
+                    let retained = chunk.len().min(16 * 1024 - bytes.len());
+                    bytes.extend_from_slice(&chunk[..retained]);
+                    if bytes.len() == 16 * 1024 {
+                        break;
+                    }
                 }
                 Ok(Ok(None)) => break,
-                // Status remains affirmative even when the bounded diagnostic
-                // body is unavailable. Do not decode a truncated body.
-                _ => {
-                    bytes.clear();
-                    break;
-                }
+                // Status and the bounded prefix remain affirmative even if the
+                // body is truncated or the peer stops delivering it.
+                _ => break,
             }
         }
         let diagnostic = serde_json::from_slice::<serde_json::Value>(&bytes).ok();
         let mut failure = failure::classified(diagnostic.as_ref(), Some(status), false);
+        if status == 429 && diagnostic.is_none() && failure::quota_prefix(&bytes) {
+            failure.kind = FailureKind::Quota;
+        }
         failure.headers = retry_headers;
         if !matches!(
             failure.kind,

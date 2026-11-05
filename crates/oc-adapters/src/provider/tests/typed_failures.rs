@@ -779,7 +779,7 @@ async fn ret01_one_physical_attempt_throttle_and_quota() {
             status: "429 Too Many Requests",
             headers: vec![],
             chunks: vec![(
-                serde_json::json!({"error":{"code":code}})
+                serde_json::json!({"error":{"code":code},"padding":"x".repeat(64 * 1024)})
                     .to_string()
                     .into_bytes(),
                 0,
@@ -803,9 +803,16 @@ async fn ret01_one_physical_attempt_throttle_and_quota() {
             1,
             "one POST for {code}"
         );
-        if code == "insufficient_quota" {
-            assert!(result.unwrap_err().to_string().contains("quota"));
-        }
+        let failure = facts(result.unwrap_err());
+        assert_eq!(failure.retry_eligible(), code != "insufficient_quota");
+        assert_eq!(
+            failure.kind,
+            if code == "insufficient_quota" {
+                FailureKind::Quota
+            } else {
+                FailureKind::RateLimit
+            }
+        );
         server.shutdown();
     }
 }

@@ -3,6 +3,26 @@
 
 use super::ProviderError;
 
+const QUOTA_CODES: &[&str] = &[
+    "quota",
+    "insufficient_quota",
+    "usage_not_included",
+    "billing_error",
+    "gousagelimiterror",
+    "freeusagelimiterror",
+    "creditlimitexceeded",
+];
+
+/// A bounded HTTP diagnostic prefix may end before the JSON closes. It is not
+/// a complete structured error, but affirmative quota markers still forbid retry.
+pub(super) fn quota_prefix(bytes: &[u8]) -> bool {
+    let text = String::from_utf8_lossy(bytes).to_ascii_lowercase();
+    text.contains("quota")
+        || QUOTA_CODES.iter().any(|code| text.contains(code))
+        || text.contains("budget exceeded")
+        || text.contains("usage limit")
+}
+
 /// Affirmatively observed provider failure category, in classifier precedence.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FailureKind {
@@ -297,14 +317,7 @@ pub(super) fn classified(
     {
         FailureKind::ContentPolicy
     } else if status == Some(402)
-        || has(&[
-            "insufficient_quota",
-            "usage_not_included",
-            "billing_error",
-            "gousagelimiterror",
-            "freeusagelimiterror",
-            "creditlimitexceeded",
-        ])
+        || has(QUOTA_CODES)
         || (status == Some(429)
             && (source_signal(&message, "insufficient", "quota")
                 || source_signal(&message, "quota", "exceeded")

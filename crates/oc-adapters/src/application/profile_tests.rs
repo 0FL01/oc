@@ -29,7 +29,7 @@ async fn w9_model_object_keeps_provider_model_and_variant() {
 
 #[tokio::test]
 async fn w5_skill_capacity_omissions_warn_on_startup_and_reload() {
-    for (count, body_bytes) in [(4100, 32), (90, 768 * 1024)] {
+    for (count, body_bytes) in [(2, 1024 * 1024), (4100, 32), (90, 768 * 1024)] {
         for preload in [true, false] {
             let temp = tempfile::tempdir().unwrap();
             let project = temp.path().join("project");
@@ -46,7 +46,7 @@ async fn w5_skill_capacity_omissions_warn_on_startup_and_reload() {
                         dir.join("SKILL.md"),
                         format!(
                             "---\ndescription: Kept skill\n---\n{}",
-                            "x".repeat(body_bytes)
+                            "x".repeat(if index == count - 1 { 32 } else { body_bytes })
                         ),
                     )
                     .unwrap();
@@ -65,7 +65,15 @@ async fn w5_skill_capacity_omissions_warn_on_startup_and_reload() {
                 app.reload_location().await.unwrap().catalog
             };
             let skills = app.skills().await.unwrap();
-            assert!(!skills.is_empty() && skills.len() < count);
+            let loaded = skills
+                .iter()
+                .filter(|skill| skill.id.starts_with("slot-"))
+                .count();
+            assert!(loaded > 0 && loaded < count);
+            if body_bytes == 1024 * 1024 {
+                assert!(!skills.iter().any(|skill| skill.id == "slot-000"));
+                assert!(skills.iter().any(|skill| skill.id == "slot-001"));
+            }
             assert!(catalog.commands.iter().any(|id| id == "usable"));
             assert_eq!(catalog.agent_id.as_deref(), Some("build"));
             assert!(

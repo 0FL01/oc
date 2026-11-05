@@ -107,6 +107,77 @@ pub(in crate::runtime) async fn respond(
 }
 
 #[tokio::test]
+async fn w11_long_http_quota_is_terminal_before_a_second_request() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = ResponsesConfig {
+        base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
+        api_key: "synthetic".into(),
+        timeout: None,
+        header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+        chunk_timeout_ms: Some(3000),
+        connect_timeout: Duration::from_secs(1),
+        allow_private: true,
+        headers: BTreeMap::new(),
+        cache: crate::provider::CacheMode::None,
+        wire: Default::default(),
+    };
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = request(&listener).await;
+        let body = json!({"error":{"code":"insufficient_quota"},"padding":"x".repeat(64 * 1024)})
+            .to_string();
+        socket.write_all(format!("HTTP/1.1 429 Too Many Requests\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        listener
+    });
+    let db = Db::open(data.path()).unwrap();
+    let runtime = owner(&db, project.path());
+    runtime.create_session("quota").unwrap();
+    let catalog = ModelCatalog {
+        provider: "fixture".into(),
+        models: crate::models::Models::from([(
+            "m".into(),
+            json!({"limit":{"context":500000,"output":2048}}),
+        )]),
+    };
+    let (events, mut receiver) = tokio::sync::broadcast::channel(128);
+    runtime.set_approval_events(&events);
+    let cancel = AtomicBool::new(false);
+    let turn = runtime.run_turn(TurnParams {
+        session: "quota".into(),
+        prompt: "test quota".into(),
+        invocation: None,
+        catalog: &catalog,
+        model_id: "m".into(),
+        variant: None,
+        max_output: 1000,
+        provider,
+        cancel: &cancel,
+    });
+    tokio::pin!(turn);
+    let mut retried = false;
+    let report = loop {
+        tokio::select! {
+            result = &mut turn => break result.unwrap(),
+            event = receiver.recv() => {
+                if matches!(event.unwrap(), oc_core::core_app::CoreEvent::RetryScheduled { .. }) {
+                    retried = true;
+                    cancel.store(true, Ordering::SeqCst); // Settle the RED path, too.
+                }
+            }
+        }
+    };
+    let listener = peer.await.unwrap();
+    assert!(!retried, "quota must not schedule a transient retry");
+    assert_eq!(report.status, TurnStatus::Failed);
+    assert!(
+        tokio::time::timeout(Duration::from_millis(20), listener.accept())
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
 async fn w6_chat_network_error_retries_past_ten_without_changing_request() {
     let data = tempfile::tempdir().unwrap();
     let project = tempfile::tempdir().unwrap();

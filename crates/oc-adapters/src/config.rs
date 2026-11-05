@@ -6,7 +6,7 @@
 //! plugin code are never executed here; future modules are not activated.
 
 use std::cell::RefCell;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fs::{File, OpenOptions};
 use std::io::Read;
 use std::os::fd::AsRawFd;
@@ -1070,6 +1070,7 @@ pub(crate) fn assemble_admitted_with_terminal_copy(
     env: &BTreeMap<String, String>,
     enabled_providers: Option<&HashSet<String>>,
     roots: &BTreeMap<String, (&File, PathBuf)>,
+    formatter_sources: &BTreeSet<&str>,
     observe: Option<&dyn Fn(&Path)>,
 ) -> Result<
     (Generation, Option<oc_core::queries::TerminalCopyMode>),
@@ -1086,6 +1087,7 @@ pub(crate) fn assemble_admitted_with_terminal_copy(
         },
         false,
         false,
+        &|source| formatter_sources.contains(source),
     )
     .map_err(|error| error.diagnostic)?;
     generation.config_diagnostics.extend(notes.into_inner());
@@ -1098,8 +1100,16 @@ fn assemble_with_reader(
     enabled_providers: Option<&HashSet<String>>,
     reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
 ) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), ConfigError> {
-    assemble_with_admission(sources, env, enabled_providers, reader, true, false)
-        .map_err(|error| *error.error)
+    assemble_with_admission(
+        sources,
+        env,
+        enabled_providers,
+        reader,
+        true,
+        false,
+        &|_| true,
+    )
+    .map_err(|error| *error.error)
 }
 
 /// Catalog admission shares normalization/policy and pinned substitution authority,
@@ -1109,6 +1119,7 @@ pub(crate) fn assemble_catalog_admitted(
     env: &BTreeMap<String, String>,
     dynamic: &HashSet<String>,
     roots: &BTreeMap<String, (&File, PathBuf)>,
+    formatter_sources: &BTreeSet<&str>,
 ) -> Result<Generation, oc_core::queries::ServiceDiagnostic> {
     let notes = RefCell::new(Vec::new());
     let (mut generation, _) = assemble_with_admission(
@@ -1121,6 +1132,7 @@ pub(crate) fn assemble_catalog_admitted(
         },
         false,
         true,
+        &|source| formatter_sources.contains(source),
     )
     .map_err(|error| error.diagnostic)?;
     generation.config_diagnostics.extend(notes.into_inner());
@@ -1134,6 +1146,7 @@ fn assemble_with_admission(
     reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
     require_credential: bool,
     catalog_only: bool,
+    formatter_allowed: &impl Fn(&str) -> bool,
 ) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), diagnostic::LocatedError> {
     let mut providers: BTreeMap<String, (serde_json::Value, String)> = BTreeMap::new();
     // Local provider-owned preset, never remote connection/auth metadata. Only
@@ -1237,7 +1250,7 @@ fn assemble_with_admission(
                     });
                 }
             }
-            if obj.contains_key("formatter") {
+            if obj.contains_key("formatter") && formatter_allowed(&source.path) {
                 formatter::merge(&mut formatters, source, env, reader)?;
             }
             if let Some(mode) = terminal_copy_value(obj)? {

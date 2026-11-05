@@ -52,7 +52,7 @@ MCP inheritance follows the captured-environment contract below.
 | Runtime | `opencode.json` / `opencode.jsonc`: provider/model selection, MCP, permission rules, agent/command definitions, instructions and DCP inputs. |
 | CLI preferences | `cli.json` / `cli.jsonc`, watched and automatically applied through the same admitted-root reader, JSON before JSONC and later roots winning supplied preferences (keybinds/chrome/session permissions; `--auto` takes priority). These are not runtime-provider fields. Start with `G/cli.jsonc` for user-wide preferences; an admitted Location/`.opencode` CLI file may override them natively. |
 | Definitions | Built-ins → inline `G` → Markdown `G` → inline Location → inline Location `.opencode` → Markdown Location `.opencode`. Markdown roots are `G` and Location `.opencode`, not a separate `G/.opencode` or bare Location directory. Singular directories load before plural at the same source. |
-| Instructions | `AGENTS.md` and admitted config `instructions` paths/globs/HTTP(S): captured guidance, **not** a config override or permission grant. Explicit sources do not expand Files/read/Nested roots; native data-root exclusion still applies. |
+| Instructions | `AGENTS.md` and config `instructions`: project paths/globs stay inside Location; only global config may declare external paths/HTTP(S). Rejected project sources warn. Captured guidance is **not** a config override or permission grant and does not expand Files/read/Nested roots; native data-root exclusion still applies. |
 | DCP | Inline `dcp`, then optional `dcp.json`, then `dcp.jsonc` within the existing global → Location → `.opencode` layers. No automatic config file creation. |
 | Native profile | `oc-rs.toml` reference/examples are Proposed, not an application-input/support guarantee. Use only consumer-qualified controls; parser acceptance and `examples/oc-rs.toml` are not a shipped-feature inventory. |
 
@@ -139,7 +139,13 @@ configuration default can fall back to an admitted ready text model; saved/user 
 profile pins and accepted requests retain their exact selection. Root `policies` with
 `provider.use` uses the existing policy owner; experimental rules still take precedence.
 `snapshots:true` only warns, without filesystem snapshots. Unsupported `share`, `username`,
-`watcher` and (until implemented) `formatter` warn by name, never by value.
+`watcher` warn by name, never by value. Only global `formatter` declarations are
+honored (`command` argv, `environment`, `extensions`, `disabled`; boolean resets).
+Project formatter/reset/override is ignored with exact literal-argv JSON in the
+warning, before env/file substitution; do not put secrets directly in argv.
+The trusted formatter continues an admitted write/edit/patch, not a model shell
+call: Shell Deny/Plan do not sandbox its host effects. These project-source gates
+are deliberate TS divergences, not extra approval flows.
 
 The `package` value is a **native protocol alias**, not npm execution:
 `@opencode/ai/providers/openai` (also `@ai-sdk/openai`) selects Responses;

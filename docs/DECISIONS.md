@@ -362,8 +362,12 @@ The former shell/other-tool credential-material redaction clause is superseded b
 the 2026-11-03 decision below. MCP servers are not a secret-output security boundary.
 
 Text-only results have a single16 MiB cap and use existing preview + `read(path)`
-capture; media-bearing results keep a1 MiB aggregate cap. Deadline, BadResult,
-Unsupported and TooLarge are ordinary failed tool outcomes with connection reuse,
+capture; media-bearing results use the same16 MiB encoded-JSON aggregate cap,
+without a separate64-part ceiling.
+An independent16 MiB content-structure byte budget bounds native expansion and
+durable reconstruction (`parts * size_of<ContentBlock>`), not the initial SDK parse
+or whole-process RSS; it does not reintroduce the former64-part limit.
+Deadline, BadResult, Unsupported and TooLarge are ordinary failed tool outcomes with connection reuse,
 not unknown/quarantine. Transport, MessageLimited, CleanupFailed and Cancelled
 keep unknown-effect handling. Numeric JSON-RPC errors retain fixed categories
 without copying remote error messages. No storage migration or new retry system.
@@ -479,6 +483,26 @@ auth/binding remains; implicit keyless is limited to trusted captured localhost.
 Only same-origin/in-prefix307/308 redirects are admitted. This does not authorize
 credential forwarding across origins or certificate bypass. These are scoped
 behavior decisions, not live/full-product qualification.
+
+## Project config authority gates — deliberate TS divergence, W11, 2026-11-05
+
+By explicit owner decision, project config cannot add external instruction
+sources or formatter execution authority. Project `instructions` permits only
+paths/globs contained in Location (including resolved symlink targets); external
+absolute/`~/`/`..` paths and every URL are skipped with a warning. Global config
+retains its external paths, ancestor glob search and HTTP(S) captures. Neither
+kind of instruction declaration creates model Files/read/Nested roots.
+
+Only global config contributes formatters, including overrides/resets. Project
+declarations are ignored before env/file substitution and cannot disable a global
+formatter. Their warning displays the exact literal declared argv as JSON, not
+expanded env/file values. This is an intentional departure from TS, not a new
+approval UI or an extension of formatter host-effect guarantees.
+
+Granular model-shell Deny covers scanner-extracted commands and directories, not
+arbitrary shell effects: redirection targets, interpreter/wrapper arguments and
+dynamic `$cmd` resolution are outside that guarantee. Shell is not a sandbox;
+this clarification changes no scanner or execution semantics.
 
 ## Остаточные prerequisites, не новые Q
 

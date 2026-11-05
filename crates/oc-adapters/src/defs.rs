@@ -1548,6 +1548,15 @@ fn insert_skill_text(
     text: String,
     path: &Path,
 ) {
+    if text.len() > crate::tools::SKILL_BODY_CAP {
+        out.defs.diagnostics.push(diag_code(
+            path,
+            "skill",
+            "oversized body",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
+        return;
+    }
     if out.defs.skills.len() >= MAX_DEFS_PER_KIND && !out.defs.skills.contains_key(&id) {
         out.defs.diagnostics.push(diag_code(
             path,

@@ -69,7 +69,7 @@ the streak. A stream missing its genuine terminal remains an error, not length.
 Unknown effects still stop with `tool outcome unknown; retry may duplicate side effects`;
 the generic wording does not authorize replay for shell, execute or MCP.
 
-`read`: потоковое чтение выбранного диапазона строк с path/offset/limit, без whole-file size admission для текста. Сохраняются ≤2000 lines, 65536-byte rendered page, bounded huge-line prefix, UTF-8/CRLF и явный next cursor; binary/NUL проверяется только в consumed prefix, включая пропущенные до offset строки. Artifact содержит выбранную страницу, не весь файл. Image media-ingest ≤20 MiB, отдельно от неизменных text/search bounds; PDF unsupported. Явные пути read/edit/write/apply_patch следуют symlinks; permissions/external_directory — по lexical path, own-data-root exclusion — по разрешённой цели I/O. Recursive search не следует найденным ссылкам. Точный registered artifact сохраняет отдельный authorized read/grep route, не общий доступ к native directory/blob/mutations. Complete search pages stable sorted/paginated; budget-limited subsets честно truncated, без обещания глобального sorted prefix/cursor.
+`read`: потоковое чтение выбранного диапазона строк с path/offset/limit, без whole-file size admission для текста. Сохраняются ≤2000 lines, 65536-byte rendered page, bounded huge-line prefix, UTF-8/CRLF и явный next cursor; binary/NUL проверяется только в consumed prefix, включая пропущенные до offset строки. Artifact содержит выбранную страницу, не весь файл. Image media-ingest ≤20 MiB (PNG/JPEG/GIF/WebP): inline tool images доступны image-capable моделям на Responses/Messages; Chat wire заменяет image tool output текстовым notice независимо от размера. Text/search bounds неизменны; PDF unsupported. TS-parity image projection дополнительно может заменить крупное изображение notice до отправки provider: успешный read не гарантирует, что пиксели вошли в request; RAW не меняется. Явные пути read/edit/write/apply_patch следуют symlinks; permissions/external_directory — по lexical path, own-data-root exclusion — по разрешённой цели I/O. Recursive search не следует найденным ссылкам. Точный registered artifact сохраняет отдельный authorized read/grep route, не общий доступ к native directory/blob/mutations. Complete search pages stable sorted/paginated; budget-limited subsets честно truncated, без обещания глобального sorted prefix/cursor.
 
 `apply_patch`: один JSON argument `patchText` с upstream-style `*** Begin Patch` / Add File / Update File / Delete File / Move to / End Patch. Не смешивать с provider-hosted Responses `apply_patch` schema. В M2 сохранить parser fixtures выбранного OpenCode baseline; политика unsafe paths — наша.
 
@@ -129,7 +129,10 @@ owner, actual resources, before/after approval preview и approved-preimage rech
 не обходятся выбором модели. Intent до effects, outcome/confirmed diffs после; crash
 не разрешает replay. Нет prerequisite отдельного read call. T44 VIS35 показывает
 Write/Edit/ApplyPatch отдельно; replay использует persisted input/results/effects,
-не сегодняшние файлы. No Formatter/LSP subsystem в этом файловом срезе.
+не сегодняшние файлы. Configured formatter из global config продолжает уже
+разрешённую mutation через общий process supervisor и guarded actual readback;
+project declarations игнорируются с literal-argv warning. Shell Deny/Plan не
+sandbox host effects доверенной программы. LSP subsystem отсутствует.
 
 `shell` (T50 target): command/workdir/timeout/background through the actual configured Linux shell; default foreground timeout120000ms, explicit0 disables execution timeout, background default has no execution timeout. Preserve legacy `bash(argv/cwd/timeout_ms)` through one supervisor/policy owner with unambiguous schema normalization, not duplicate advertised tools or a Deny bypass. Process group, trusted cwd, captured owner env, concurrent drains, bounded preview/retained output and TERM→grace→KILL→wait remain. Background returns running/shellID after launch and later an automatic durable terminal notice, without polling; output/jobs/queues/teardown stay bounded even with no execution timeout. Native unknown effects never auto-replay; no hidden persistent terminal manager or sandbox claim.
 Нет отдельного32KiB argv-entry cap и600000ms positive-timeout ceiling. Аргументы
@@ -140,9 +143,11 @@ selector-input bound; это не ограничение фактических 
 Model `shell` source is analyzed by a native bash/zsh/posix scanner using the same
 captured executable as execution. Every extracted command is an authorization
 resource; quoted legacy `bash` argv remains one literal resource, not shell source.
-Opaque input, including opaque nested syntax, refuses the whole invocation before
-approval or spawn. Supported compounds, substitutions and heredocs are not blanket
-opaque. A zero-command result still prepares/pins cwd and honors whole-tool Deny;
+Syntax rejected by the scanner refuses the whole invocation before approval or
+spawn. Granular Deny covers extracted commands/directories, not arbitrary shell
+effects: redirection targets, wrapper/interpreter arguments and dynamic `$cmd`
+resolution are outside that guarantee. Supported compounds, substitutions and
+heredocs are not blanket refused. A zero-command result still prepares/pins cwd and honors whole-tool Deny;
 the execution preview retains the full original command, not the first resource.
 Always confirmation displays the actual saved prefixes, not the narrower current
 invocation; internal command/executable domain tags are not shown.
@@ -546,6 +551,10 @@ remote вызова и не выполняет автоматическую св
 `tools/call` возвращает обычный `failed`, без retirement/quarantine. Text-only
 result ограничен16 MiB (lookup использует тот же лимит); media-bearing result
 использует тот же16MiB encoded-JSON aggregate, без отдельного64-part ceiling.
+Native expansion дополнительно ограничивает content-structure storage16MiB
+(`parts * size_of<ContentBlock>`), до построения дополнительных Value/wire graphs
+и при durable restore. Это byte budget, не возврат64-part cap и не RSS ceiling
+для первичного SDK/transport parse; превышение — обычный TooLarge failed result.
 MIME/base64/SDK shape и ordered durable reconstruction остаются обязательными.
 Превышение сообщает `MCP result N bytes exceeds L bytes`.
 Большой допустимый текст публикуется существующим preview + `read(path)` artifact,

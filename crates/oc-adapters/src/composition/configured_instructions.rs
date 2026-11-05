@@ -13,11 +13,13 @@ pub(super) fn load(
     project: &Path,
     env: &BTreeMap<String, String>,
     documents: &[config::Source],
+    global_sources: &BTreeSet<&str>,
     roots: &[crate::instructions::Root],
     data: Option<&crate::files::Files>,
     watch: &RefCell<watch_inputs::WatchInputs>,
-) -> Result<Configured, LoadFailure> {
+) -> Result<(Configured, Vec<oc_core::queries::ServiceDiagnostic>), LoadFailure> {
     let mut configured = Configured::default();
+    let mut warnings = Vec::new();
     let mut digest = Sha256::new();
     let mut declarations = BTreeSet::new();
     let mut paths: BTreeSet<String> = roots
@@ -51,9 +53,7 @@ pub(super) fn load(
         let entries = input
             .as_array()
             .ok_or_else(|| invalid(&document.path, &["instructions"]))?;
-        let origin = if roots.iter().any(|root| {
-            root.origin == Origin::Global && Path::new(&document.path).starts_with(&root.path)
-        }) {
+        let origin = if global_sources.contains(document.path.as_str()) {
             Origin::Global
         } else {
             Origin::Project
@@ -62,6 +62,38 @@ pub(super) fn load(
             let entry = entry
                 .as_str()
                 .ok_or_else(|| invalid(&document.path, &["instructions"]))?;
+            let warn = || {
+                config::diagnostic::failure(
+                    &document.path,
+                    &["instructions"],
+                    ServiceStage::Admission,
+                    ServiceCode::IgnoredSetting,
+                    ServiceAction::ReviewConfiguration,
+                )
+            };
+            let local = origin == Origin::Project;
+            if local && reqwest::Url::parse(entry).is_ok() {
+                warnings.push(warn());
+                continue;
+            }
+            let expanded = if let Some(relative) = entry.strip_prefix("~/") {
+                let Some(home) = env.get("HOME") else {
+                    continue;
+                };
+                Path::new(home).join(relative.trim_start_matches('/'))
+            } else {
+                PathBuf::from(entry)
+            };
+            if expanded.as_os_str().is_empty() {
+                continue;
+            }
+            let pattern = project.join(&expanded);
+            // Check before dedup: a global declaration does not authorize the
+            // same external source when repeated by project configuration.
+            if local && !within_project(&pattern, project) {
+                warnings.push(warn());
+                continue;
+            }
             if !declarations.insert(entry.to_owned()) {
                 continue;
             }
@@ -77,23 +109,29 @@ pub(super) fn load(
                 ));
                 continue;
             }
-            let expanded = if let Some(relative) = entry.strip_prefix("~/") {
-                let Some(home) = env.get("HOME") else {
-                    continue;
-                };
-                Path::new(home).join(relative.trim_start_matches('/'))
-            } else {
-                PathBuf::from(entry)
-            };
-            if expanded.as_os_str().is_empty() {
-                continue;
-            }
             let mut matches = Vec::new();
-            if expanded.is_absolute() {
-                matches.extend(scan(&expanded, project, data, watch)?);
+            if local {
+                match scan(&pattern, project, data, watch, true) {
+                    Ok(found) => matches.extend(found),
+                    Err(LoadFailure::Configuration(note))
+                        if note.code == ServiceCode::TrustRefused =>
+                    {
+                        warnings.push(warn());
+                        continue;
+                    }
+                    Err(error) => return Err(error),
+                }
+            } else if expanded.is_absolute() {
+                matches.extend(scan(&expanded, project, data, watch, false)?);
             } else {
                 for directory in project.ancestors() {
-                    matches.extend(scan(&directory.join(&expanded), project, data, watch)?);
+                    matches.extend(scan(
+                        &directory.join(&expanded),
+                        project,
+                        data,
+                        watch,
+                        false,
+                    )?);
                     if directory == stop {
                         break;
                     }
@@ -117,7 +155,49 @@ pub(super) fn load(
         }
     }
     configured.config_digest = digest.finalize().into();
-    Ok(configured)
+    Ok((configured, warnings))
+}
+
+fn pattern_directory(pattern: &Path) -> (bool, PathBuf) {
+    let meta = |part: &std::ffi::OsStr| part.to_string_lossy().contains(['*', '?', '[', '{']);
+    let glob = pattern.components().any(|part| meta(part.as_os_str()));
+    let directory = if glob {
+        pattern
+            .components()
+            .take_while(|part| !meta(part.as_os_str()))
+            .collect()
+    } else {
+        pattern.parent().unwrap_or(Path::new("/")).to_path_buf()
+    };
+    (glob, directory)
+}
+
+fn within_project(pattern: &Path, project: &Path) -> bool {
+    let (glob, directory) = pattern_directory(pattern);
+    let candidate = if glob { directory.as_path() } else { pattern };
+    let mut lexical = PathBuf::new();
+    for component in candidate.components() {
+        match component {
+            std::path::Component::ParentDir => {
+                lexical.pop();
+            }
+            std::path::Component::CurDir => {}
+            part => lexical.push(part),
+        }
+    }
+    if !lexical.starts_with(project) {
+        return false;
+    }
+    // Existing symlinks cannot turn a project declaration into an external
+    // root. Descriptor admission below repeats this check against races.
+    for ancestor in candidate.ancestors() {
+        match ancestor.canonicalize() {
+            Ok(canonical) => return canonical.starts_with(project),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(_) => return false,
+        }
+    }
+    false
 }
 
 fn capacity() -> LoadFailure {
@@ -148,17 +228,9 @@ fn scan(
     project: &Path,
     data: Option<&crate::files::Files>,
     watch: &RefCell<watch_inputs::WatchInputs>,
+    local: bool,
 ) -> Result<Vec<(PathBuf, PathBuf, AdmittedRoot)>, LoadFailure> {
-    let meta = |part: &std::ffi::OsStr| part.to_string_lossy().contains(['*', '?', '[', '{']);
-    let glob = pattern.components().any(|part| meta(part.as_os_str()));
-    let directory = if glob {
-        pattern
-            .components()
-            .take_while(|part| !meta(part.as_os_str()))
-            .collect::<PathBuf>()
-    } else {
-        pattern.parent().unwrap_or(Path::new("/")).to_path_buf()
-    };
+    let (glob, directory) = pattern_directory(pattern);
     // A missing literal prefix is observed, but never creates a discovery root.
     watch.borrow_mut().file(&directory);
     if let Some(scope) = data {
@@ -166,7 +238,7 @@ fn scan(
             .io_target(&directory)
             .map_err(|_| invalid("configured instructions", &["data_root"]))?;
     }
-    let Some(root) = admit_root(&directory, project, false)? else {
+    let Some(root) = admit_root(&directory, project, local)? else {
         return Ok(Vec::new());
     };
     if let Some(scope) = data {
@@ -409,17 +481,19 @@ mod tests {
         let project = root.path().join("project");
         let external = root.path().join("external");
         let data = external.join("state");
+        let global = root.path().join("global");
         std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&global).unwrap();
         std::fs::create_dir_all(&data).unwrap();
         std::fs::write(external.join("public.md"), "PUBLIC_SOURCE").unwrap();
         std::fs::write(data.join("private.md"), "PRIVATE_DATA_CANARY").unwrap();
-        let path = project.join("opencode.json");
+        let path = global.join("opencode.json");
         let mut input =
             serde_json::json!({"instructions":[format!("{}/**/*.md",external.display())]});
         std::fs::write(&path, input.to_string()).unwrap();
         let env = BTreeMap::from([(
             "OPENCODE_CONFIG_DIR".into(),
-            root.path().join("global").to_string_lossy().into_owned(),
+            global.to_string_lossy().into_owned(),
         )]);
         let loaded = load_local_inputs(&project, env.clone(), false, Some(&data))
             .await
@@ -483,14 +557,16 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let project = root.path().join("project");
         let data = root.path().join("state");
+        let global = root.path().join("global");
         std::fs::create_dir_all(&project).unwrap();
-        let path = project.join("opencode.json");
+        std::fs::create_dir_all(&global).unwrap();
+        let path = global.join("opencode.json");
         let mut input = serde_json::json!({"instructions":[url,"rule.md"]});
         std::fs::write(project.join("rule.md"), "LOCAL_A").unwrap();
         std::fs::write(&path, input.to_string()).unwrap();
         let env = BTreeMap::from([(
             "OPENCODE_CONFIG_DIR".into(),
-            root.path().join("global").to_string_lossy().into_owned(),
+            global.to_string_lossy().into_owned(),
         )]);
         let mut initial = load_local_inputs(&project, env.clone(), false, Some(&data))
             .await
