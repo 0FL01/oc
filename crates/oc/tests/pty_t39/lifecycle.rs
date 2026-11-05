@@ -1375,24 +1375,30 @@ fn vis38_pty_dcp_equal_active_archive_resource_samples() {
     let small = measure_vis38_dcp_display(0);
     let large = measure_vis38_dcp_display(3000);
     assert_eq!(
-        small.0, large.0,
+        small.accounting, large.accounting,
         "same active compressed contents/accounting"
     );
     assert!(
-        large.1.hwm_kb <= small.1.hwm_kb + 64 * 1024,
+        large.peak.hwm_kb <= small.peak.hwm_kb + 64 * 1024,
         "shared AUD32 64MiB equal-active peak delta"
     );
     assert!(
-        large.1.pss_kb <= small.1.pss_kb + 64 * 1024,
+        large.peak.pss_kb <= small.peak.pss_kb + 64 * 1024,
         "equal-active PSS delta"
     );
     assert_eq!(
-        small.1.threads, large.1.threads,
+        small.min_threads, large.min_threads,
         "archive does not create OS tasks/threads"
     );
 }
 
-fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
+struct Vis38DcpSample {
+    accounting: (u64, u64, u64),
+    peak: ProcSample,
+    min_threads: u64,
+}
+
+fn measure_vis38_dcp_display(archive: usize) -> Vis38DcpSample {
     let fixture = Fixture::new();
     let project = fixture.root.path().join("project");
     std::fs::write(project.join("dcp.jsonc"), serde_json::json!({
@@ -1521,6 +1527,23 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
         wait_screen_row(&pty, "summary preview limited", DEADLINE);
         sample(&pty);
     }
+    // Tokio retains idle blocking workers for 10s after a transient scheduler
+    // handoff. Measure the resting minimum over a hard 12s window instead of
+    // comparing those transient peaks; permanent archive threads remain counted.
+    let thread_window = Duration::from_secs(12);
+    let thread_began = Instant::now();
+    let mut thread_samples = Vec::new();
+    while thread_began.elapsed() < thread_window {
+        thread_samples.push(s07_proc_sample(pid, &fixture.data_dir()).threads);
+        std::thread::sleep(
+            Duration::from_millis(250).min(thread_window.saturating_sub(thread_began.elapsed())),
+        );
+    }
+    assert!(
+        thread_samples.len() >= 2,
+        "archive={archive}: insufficient thread samples in {thread_window:?}: {thread_samples:?}"
+    );
+    let min_threads = *thread_samples.iter().min().expect("at least two samples");
     // As in the preparation phase, this resource sample does not exercise
     // repeated Ctrl+C: a second byte after raw-mode restoration is a real
     // SIGINT, not another editor action. Still require a clean, restored exit.
@@ -1570,7 +1593,7 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
         Some(run.clone())
     );
     println!(
-        "VIS38 S07 DCP native_application_processes=2 archive={archive} archive_source_bytes={} rss_kb={} pss_kb={} hwm_kb={} os_tasks_threads={} unexpected_children={} cpu_ticks={} elapsed_ms={} retained_bytes={} window_rows={} queue_peak={} queue_lagged={} markdown_cache_peak={} frames={} draw_max_ns={} replay_requests=0 actual_runs=1 summary_page_limit={}",
+        "VIS38 S07 DCP native_application_processes=2 archive={archive} archive_source_bytes={} rss_kb={} pss_kb={} hwm_kb={} os_tasks_threads={} min_os_tasks_threads={min_threads} thread_samples={thread_samples:?} unexpected_children={} cpu_ticks={} elapsed_ms={} retained_bytes={} window_rows={} queue_peak={} queue_lagged={} markdown_cache_peak={} frames={} draw_max_ns={} replay_requests=0 actual_runs=1 summary_page_limit={}",
         archive * 16 * 1024,
         peak.rss_kb,
         peak.pss_kb,
@@ -1588,10 +1611,11 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
         metrics["frame_max_ns"],
         oc_tui::dcp_view::SUMMARY_PAGE_BYTES
     );
-    (
-        (run.removed, run.summary, run.cumulative.active_summary),
+    Vis38DcpSample {
+        accounting: (run.removed, run.summary, run.cumulative.active_summary),
         peak,
-    )
+        min_threads,
+    }
 }
 
 fn vis38_thread_snapshot(client: u32, data: &Path, point: usize) {
