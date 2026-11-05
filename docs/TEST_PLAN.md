@@ -11,22 +11,22 @@
 4. В ответе укажи команды/исходы и существенное непроверенное. Не создавай отдельный implementation/closeout commit protocol.
 
 ```sh
-cargo test -p oc-adapters --lib --locked <filter>
-cargo test -p oc-tui --lib --locked <filter>
-cargo test -p oc2 --test <target> --locked <filter>
+cargo test -p oc-adapters --lib --locked <filter> -- --test-threads=4
+cargo test -p oc-tui --lib --locked <filter> -- --test-threads=4
+cargo test -p oc2 --test <target> --locked <filter> -- --test-threads=4
 git diff --check
 ```
 
 ## Полный offline gate
 
 ```sh
-bash scripts/test.sh
+CARGO_BUILD_JOBS=4 NEXTEST_TEST_THREADS=4 bash scripts/test.sh
 ```
 
 - Один Cargo owner: fmt → strict workspace/all-target Clippy → workspace nextest → Cargo doctests → debug build → help/version. Не запускать параллельные Cargo-команды с одним target.
 - `cargo-nextest` **0.9.148** — dev prerequisite, не runtime dependency. Gate сам его не устанавливает; принимает установленный binary или gitignored `.local/tools/cargo-nextest`.
 - Разрешённая non-root установка prerequisite: `cargo binstall cargo-nextest --version 0.9.148 --secure`. Не делать auto-install, global package changes, `cargo clean`, удаление `target/debug` или override `CARGO_TARGET_DIR`.
-- `.config/nextest.toml`: 10 slots на текущем 16-core host, serial PTY/archive groups и exclusive timing/I/O cases. Нет retries/default-filter, скрывающего tests. На меньшем host можно снизить `NEXTEST_TEST_THREADS`, не deadlines или нагрузку.
+- `.config/nextest.toml`: по умолчанию 10 slots исходного 16-core профиля, serial PTY/archive groups и exclusive timing/I/O cases. Agent gate использует явные 4 потока выше; doctests также получают `--test-threads=4`. Нет retries/default-filter, скрывающего tests; concurrency не меняет deadlines или нагрузку.
 - Не заменяй scheduler общим `RUST_TEST_THREADS=1/16`. `dev`/`test` используют `opt-level=1`, сохраняя assertions, overflow checks и FULL durability.
 - Gate передаёт реальные Cargo/Rustup homes fixtures с isolated HOME, не расширяя production environment allowlist. Его XDG isolation не заменяет real-user E2E06.
 - Live cases остаются явным opt-in; full offline gate не запускает реальные auth/generation/browser campaigns и paired visual capture.

@@ -16,11 +16,14 @@ def rows(stream, cols=120, height=40):
     """Only reconstruct fixture host cells across sparse Ratatui repaints."""
     grid = [[' ']*cols for _ in range(height)]
     x = y = 0
-    for match in re.finditer(r'\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07]*(?:\x07|\x1b\\)|.', stream, re.S):
+    top, bottom, saved = 0, height-1, (0,0)
+    for match in re.finditer(r'\x1b[78]|\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07]*(?:\x07|\x1b\\)|.', stream, re.S):
         char = match.group()
-        if char.startswith('\x1b['):
+        if char == '\x1b7': saved = (x,y)
+        elif char == '\x1b8': x,y = saved
+        elif char.startswith('\x1b['):
             code, args = char[-1], char[2:-1].lstrip('?').split(';')
-            number = int(args[0]) if args[0].isdigit() else 1
+            number = int(args[0]) if args[0].isdigit() else (0 if code in 'JK' else 1)
             if code in 'Hf':
                 x = (int(args[1]) if len(args)>1 and args[1].isdigit() else 1)-1; y = number-1
             elif code == 'G': x = number-1
@@ -28,9 +31,25 @@ def rows(stream, cols=120, height=40):
             elif code == 'B': y += number
             elif code == 'C': x += number
             elif code == 'D': x -= number
-            elif code == 'J' and number in (1,2): grid = [[' ']*cols for _ in range(height)]
+            elif code == 'r':
+                top = max(0, number-1)
+                bottom = min(height-1, (int(args[1]) if len(args)>1 and args[1].isdigit() else height)-1)
+                x = y = 0
+            elif code in 'ST' and top <= bottom:
+                n = min(number, bottom-top+1)
+                region = grid[top:bottom+1]
+                blank = [[' ']*cols for _ in range(n)]
+                grid[top:bottom+1] = region[n:]+blank if code=='S' else blank+region[:-n]
+            elif code == 'X' and 0 <= y < height:
+                grid[y][x:min(cols,x+number)] = [' ']*max(0,min(cols,x+number)-x)
+            elif code == 'J':
+                for row in range(height):
+                    if number==2 or number==0 and row>y or number==1 and row<y: grid[row] = [' ']*cols
+                    elif row==y and number in (0,1):
+                        start,end = (x,cols) if number==0 else (0,x+1)
+                        grid[row][start:end] = [' ']*(end-start)
             elif code == 'K' and 0 <= y < height:
-                start, end = (0,x+1) if number==1 else (x,cols)
+                start, end = (0,x+1) if number==1 else (0,cols) if number==2 else (x,cols)
                 grid[y][max(0,start):min(cols,end)] = [' ']*max(0,min(cols,end)-max(0,start))
         elif char.startswith('\x1b'): continue
         elif char == '\r': x = 0
@@ -42,6 +61,12 @@ def rows(stream, cols=120, height=40):
             if width==2 and x+1<cols: grid[y][x+1] = ' '
             x += width
     return [''.join(row) for row in grid]
+
+
+# Native scroll/resize operations must preserve the public cells we assert on.
+assert rows('\x1b[1;1HAaaa\x1b[2;1HBbbb\x1b[3;1HCccc\x1b[4;1HDddd\x1b[2;3r\x1b[1S\x1b[1T', 4, 4) == ['Aaaa', '    ', 'Cccc', 'Dddd']
+assert rows('\x1b[1;1HABCDE\x1b[2;1H12345\x1b[1;3H\x1b7\x1b[2;3H\x1b[2K\x1b8\x1b[2X', 5, 2) == ['AB  E', '     ']
+assert rows('\x1b[1;1HABCDE\x1b[2;1H12345\x1b[1;3H\x1b[K\x1b[2;3H\x1b[J', 5, 2) == ['AB   ', '12   ']
 
 
 class View:

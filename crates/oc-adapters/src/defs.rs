@@ -1354,11 +1354,21 @@ fn collect_skill_paths(
         }
         let candidate = path.join(name.as_ref());
         let kind = entry.file_type();
-        if !(kind
-            .as_ref()
-            .is_ok_and(|kind| kind.is_dir() || kind.is_symlink())
-            || depth == 0 && name.ends_with(".md"))
-        {
+        // Irrelevant file aliases do not consume the directory budget. An
+        // unresolved alias still reaches the existing bounded trust diagnostic.
+        let directory = kind.as_ref().is_ok_and(|kind| {
+            kind.is_dir()
+                || kind.is_symlink()
+                    && open_admitted(
+                        root,
+                        admitted,
+                        &candidate,
+                        libc::O_RDONLY | libc::O_NONBLOCK,
+                    )
+                    .and_then(|file| file.metadata())
+                    .map_or(true, |meta| meta.is_dir())
+        });
+        if !(directory || depth == 0 && name.ends_with(".md")) {
             continue;
         }
         if *remaining == 0 {

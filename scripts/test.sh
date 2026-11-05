@@ -21,7 +21,7 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 "${nextest[@]}" run --workspace --locked --no-fail-fast
 # Nextest runs unit/integration tests; rustdoc remains Cargo-owned.
-cargo test --workspace --locked --doc --no-fail-fast
+cargo test --workspace --locked --doc --no-fail-fast -- --test-threads=4
 cargo build -p oc2 --bin oc2 --locked
 target/debug/oc2 --help >/dev/null
 target/debug/oc2 --version
