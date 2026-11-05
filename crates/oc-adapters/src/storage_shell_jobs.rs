@@ -21,6 +21,49 @@ impl AdmittedUserShell {
 }
 
 impl Db {
+    /// One formatter lifecycle on the already-started mutation. Jobs alone
+    /// rearms it after joining the preceding process; unknown is never rearmed.
+    pub(crate) fn admit_formatter(&self, provenance: &Provenance) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let parent: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND session_id=?2 AND turn_id=?3 AND state='started' AND name IN ('write','edit','apply_patch'))", params![provenance.operation, provenance.session, provenance.turn], |r| r.get(0))?;
+        if !parent || !provenance.formatter {
+            return Err(StorageError::OperationNotFound);
+        }
+        let previous: Option<(String, String, Option<String>)> = tx
+            .query_row(
+                "SELECT provenance,phase,outcome FROM shell_jobs WHERE operation_id=?1",
+                [&provenance.operation],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .optional()?;
+        if let Some((raw, phase, outcome)) = previous {
+            let previous: Provenance =
+                serde_json::from_str(&raw).map_err(|_| StorageError::OperationNotFound)?;
+            let outcome: Outcome = serde_json::from_str(outcome.as_deref().unwrap_or(""))
+                .map_err(|_| StorageError::OperationNotFound)?;
+            if !previous.formatter
+                || previous.session != provenance.session
+                || previous.turn != provenance.turn
+                || previous.location != provenance.location
+                || previous.generation != provenance.generation
+                || previous.agent != provenance.agent
+                || previous.agent_digest != provenance.agent_digest
+                || previous.model != provenance.model
+                || previous.provider != provenance.provider
+                || phase != "terminal"
+                || !matches!(outcome.state.as_str(), "completed" | "failed")
+            {
+                return Err(StorageError::OperationNotFound);
+            }
+            tx.execute("UPDATE shell_jobs SET provenance=?2,phase='admitted',process=NULL,outcome=NULL WHERE operation_id=?1", params![provenance.operation,serde_json::to_string(provenance).expect("formatter provenance")])?;
+        } else {
+            Self::insert_shell_job(&tx, provenance, false)?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
     pub(crate) fn has_active_shell_jobs(&self, session: &str) -> Result<bool, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         conn.prepare_cached(
@@ -238,7 +281,7 @@ impl Db {
             .map(|raw| serde_json::from_str::<ProcessIdentity>(&raw).map(|p| p.pid))
             .transpose()
             .map_err(|_| StorageError::OperationNotFound)?;
-        if p.version != 1 || p.session != session || p.operation != operation {
+        if p.version != 1 || p.formatter || p.session != session || p.operation != operation {
             return Err(StorageError::OperationNotFound);
         }
         Ok(oc_core::queries::ShellJob {
@@ -287,6 +330,11 @@ impl Db {
             }
             return Err(StorageError::OperationNotFound);
         }
+        let formatter: bool = tx.query_row("SELECT coalesce(json_extract(provenance,'$.formatter'),0)=1 FROM shell_jobs WHERE operation_id=?1", [operation], |r| r.get(0))?;
+        if formatter {
+            tx.commit()?;
+            return Ok(());
+        }
         let user_command: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM events WHERE kind='user_shell_admitted' AND payload=?1)")?.query_row([operation],
             |r| r.get(0),
         )?;
@@ -334,12 +382,13 @@ impl Db {
     pub(crate) fn recover_shell_jobs(&self) -> Result<(), StorageError> {
         let pending = {
             let conn = self.conn.lock().expect("db mutex");
-            let mut stmt = conn.prepare("SELECT operation_id,session_id,process FROM shell_jobs WHERE phase!='terminal' ORDER BY rowid LIMIT 9")?;
+            let mut stmt = conn.prepare("SELECT operation_id,session_id,process,coalesce(json_extract(provenance,'$.formatter'),0)=1 FROM shell_jobs WHERE phase!='terminal' ORDER BY rowid LIMIT 9")?;
             stmt.query_map([], |row| {
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
                     row.get::<_, Option<String>>(2)?,
+                    row.get::<_, bool>(3)?,
                 ))
             })?
             .collect::<Result<Vec<_>, _>>()?
@@ -347,7 +396,7 @@ impl Db {
         if pending.len() > crate::shell::jobs::ACTIVE_JOB_CAP {
             return Err(StorageError::OperationNotFound);
         }
-        for (operation, session, process) in pending {
+        for (operation, session, process, formatter) in pending {
             let diagnostic = match process {
                 Some(raw) => {
                     let identity: ProcessIdentity =
@@ -359,6 +408,10 @@ impl Db {
             let mut outcome = Outcome::unknown(&format!(
                 "interrupted shell effect unknown; not replayed; {diagnostic}"
             ));
+            if formatter {
+                self.finish_shell_job(&operation, &outcome)?;
+                continue;
+            }
             if let Some(resource) = self.output_for_operation(&operation)? {
                 outcome.capture = self
                     .open_tool_output(&resource.session, &resource.path)
@@ -384,7 +437,7 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let rows = {
-            let mut stmt = tx.prepare("SELECT operation_id,session_id,delivery_id,provenance,outcome FROM shell_jobs j WHERE phase='terminal' AND message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)) ORDER BY rowid LIMIT ?1")?;
+            let mut stmt = tx.prepare("SELECT operation_id,session_id,delivery_id,provenance,outcome FROM shell_jobs j WHERE phase='terminal' AND coalesce(json_extract(provenance,'$.formatter'),0)=0 AND message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)) ORDER BY rowid LIMIT ?1")?;
             stmt.query_map([SHELL_NOTICE_BATCH as i64], |r| {
                 Ok((
                     r.get::<_, String>(0)?,

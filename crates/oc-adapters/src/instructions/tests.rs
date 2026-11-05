@@ -45,6 +45,7 @@ fn prm01_automatic_ask_sources_are_not_opened_in_either_resource_form() {
         );
         let sources = after_read(
             &[root],
+            &[],
             &files,
             "nested/file.txt",
             false,
@@ -101,6 +102,7 @@ fn prm01_approved_ask_file_guard_keeps_permanent_allow_source_admission() {
         // after_read is called only following the separate original approval.
         let sources = after_read(
             std::slice::from_ref(&root),
+            &[],
             &files,
             "nested/file.txt",
             false,
@@ -258,6 +260,7 @@ fn prm01_future_directory_hook_and_source_guards_share_admitted_descriptors() {
     let cancel = AtomicBool::new(false);
     let sources = after_read(
         std::slice::from_ref(&root),
+        &[],
         &files,
         "one/two",
         true,
@@ -280,6 +283,7 @@ fn prm01_future_directory_hook_and_source_guards_share_admitted_descriptors() {
     );
     let file_sources = after_read(
         std::slice::from_ref(&root),
+        &[],
         &files,
         "one/two/file",
         false,
@@ -295,6 +299,7 @@ fn prm01_future_directory_hook_and_source_guards_share_admitted_descriptors() {
     files.read("one/two/AGENTS.md", 1, 2).unwrap();
     let direct = after_read(
         std::slice::from_ref(&root),
+        &[],
         &files,
         "one/two/AGENTS.md",
         false,
@@ -311,6 +316,7 @@ fn prm01_future_directory_hook_and_source_guards_share_admitted_descriptors() {
     assert!(
         after_read(
             std::slice::from_ref(&root),
+            &[],
             &files,
             "one/two/file",
             false,
@@ -339,6 +345,7 @@ fn prm01_future_directory_hook_and_source_guards_share_admitted_descriptors() {
     let denied = RuntimePolicy::with_rules(&permissions, &rules).with_root(&project);
     let sources = after_read(
         std::slice::from_ref(&root),
+        &[],
         &files,
         "one/two/file",
         false,
@@ -355,6 +362,7 @@ fn prm01_future_directory_hook_and_source_guards_share_admitted_descriptors() {
     symlink(&external, project.join("one/two/AGENTS.md")).unwrap();
     let sources = after_read(
         std::slice::from_ref(&root),
+        &[],
         &files,
         "one/two/file",
         false,
@@ -369,6 +377,7 @@ fn prm01_future_directory_hook_and_source_guards_share_admitted_descriptors() {
     assert!(
         after_read(
             std::slice::from_ref(&root),
+            &[],
             &files,
             "data",
             true,
@@ -380,5 +389,18 @@ fn prm01_future_directory_hook_and_source_guards_share_admitted_descriptors() {
         .is_err()
     );
     cancel.store(true, Ordering::Release);
-    assert!(after_read(&[root], &files, "one/two", true, 7, &data, &policy, &cancel).is_err());
+    assert!(
+        after_read(
+            &[root],
+            &[],
+            &files,
+            "one/two",
+            true,
+            7,
+            &data,
+            &policy,
+            &cancel
+        )
+        .is_err()
+    );
 }

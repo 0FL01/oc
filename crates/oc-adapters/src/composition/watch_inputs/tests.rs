@@ -147,11 +147,7 @@ async fn hot02_watch_inputs_follow_actual_admission_and_keep_missing_roots_inert
         native.join("shared-agents/worker.md"),
         InputKind::File
     ));
-    assert!(has(
-        inputs,
-        native.join("shared-skill"),
-        InputKind::SkillDirectory
-    ));
+    assert!(has(inputs, native.join("shared-skill"), InputKind::Skills));
     assert!(loaded.agents.contains_key("nested/worker"));
     assert_eq!(loaded.provider.api_key, "SYNTHETIC_KEY");
     assert_eq!(

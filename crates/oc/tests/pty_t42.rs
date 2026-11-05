@@ -3309,6 +3309,52 @@ fn bare_home_review_completion_submits_pinned_prompt_and_keeps_invocation_on_sam
 }
 
 #[test]
+fn w10_root_prompt_and_continue_submit_once_on_the_selected_session() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["--session", "w10-startup", "--prompt", "startup first"],
+        None,
+    );
+    let requests = fixture.wait_requests(1);
+    assert_eq!(
+        last_user_text(&requests[0]).as_deref(),
+        Some("startup first")
+    );
+    wait_screen_row(&pty, "echo: startup first", DEADLINE);
+    wait_idle(&pty);
+    quit(&mut pty);
+    let mut resumed = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["--continue", "--prompt", "startup second"],
+        None,
+    );
+    let requests = fixture.wait_requests(2);
+    assert_eq!(
+        last_user_text(&requests[1]).as_deref(),
+        Some("startup second")
+    );
+    wait_screen_row(&resumed, "echo: startup second", DEADLINE);
+    wait_idle(&resumed);
+    quit(&mut resumed);
+    assert_eq!(fixture.wait_requests(2).len(), 2);
+    assert_eq!(journal_counts(&fixture).0, 1);
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    let history = db.read_history("w10-startup").unwrap();
+    assert_eq!(
+        history
+            .iter()
+            .filter(|(role, _)| role == "user")
+            .map(|(_, text)| text.as_str())
+            .collect::<Vec<_>>(),
+        ["startup first", "startup second"]
+    );
+}
+
+#[test]
 fn vis25_reload_rebuilds_real_config_on_home_and_session_without_losing_identity() {
     for attached in [false, true] {
         let fixture = Fixture::new();

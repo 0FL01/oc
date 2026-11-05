@@ -698,7 +698,7 @@ async fn spawn_stages(
     env: BTreeMap<String, String>,
     defer_provider: bool,
 ) -> Result<(CoreApp, WorkerGuard, Vec<String>, Vec<StartupNotice>), SpawnIssue> {
-    let mut composition = composition::load_local_with_env(project, env)
+    let mut composition = composition::load_local_inputs(project, env, false, Some(data))
         .await
         .map_err(SpawnIssue::configuration)?;
     let mut diagnostics = composition.diagnostics.clone();
@@ -729,6 +729,10 @@ async fn spawn_stages(
             });
         }
     };
+    composition
+        .refresh_instruction_urls(None, false)
+        .await
+        .map_err(SpawnIssue::configuration)?;
     composition
         .attach_custom_connections(&db)
         .map_err(SpawnIssue::configuration)?;
@@ -2452,7 +2456,12 @@ async fn switch_target<'a>(
     ),
     SpawnIssue,
 > {
-    let mut composition = composition::load_local_with_env(Path::new(path), env)
+    let mut composition =
+        composition::load_local_inputs(Path::new(path), env, false, Some(db.root()))
+            .await
+            .map_err(SpawnIssue::configuration)?;
+    composition
+        .refresh_instruction_urls(None, false)
         .await
         .map_err(SpawnIssue::configuration)?;
     composition
@@ -2595,6 +2604,7 @@ fn workspace_publication(
         agent_permission_rules: commands::permission_rules(composition, effective, agent),
         agent_request: agent.map(|agent| agent.request.clone()).unwrap_or_default(),
         instruction_roots: composition.instruction_roots.clone(),
+        configured_instructions: composition.configured_instructions.sources.clone(),
         subagents: subagent_catalog(composition),
         command_digest: Some(command_digest(composition)),
         profile_issue: effective
@@ -6485,7 +6495,9 @@ fn resolve_submission(
     let Some(template) = composition.commands.get(id) else {
         return Ok((text, None));
     };
-    if id == "review" && composition.builtin_review {
+    if id == "review" && composition.builtin_review
+        || id == "init" && !composition.command_defs.contains_key("init")
+    {
         let remainder = command[split..].trim();
         let expanded = crate::runtime::expand_command(template, &[remainder.to_string()])?;
         return Ok((expanded, Some(text)));

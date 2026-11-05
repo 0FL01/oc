@@ -12,6 +12,7 @@ pub(super) struct BuildInputs {
     env: BTreeMap<String, String>,
     local: Option<Arc<composition::ReloadInputs>>,
     catalogs: composition::CatalogReuse,
+    instructions: crate::instructions::Configured,
 }
 
 impl BuildInputs {
@@ -21,6 +22,7 @@ impl BuildInputs {
             env: composition.parent_env.clone(),
             local: composition.local_inputs.clone(),
             catalogs: composition.catalog_reuse(),
+            instructions: composition.configured_instructions.clone(),
         }
     }
 }
@@ -92,9 +94,10 @@ pub(super) async fn build(
     watch: &composition::Observation,
     force: bool,
 ) -> Result<Candidate, CoreError> {
-    let mut next = composition::load_reload_local_with_env(&base.project, base.env.clone())
-        .await
-        .map_err(configuration)?;
+    let mut next =
+        composition::load_local_inputs(&base.project, base.env.clone(), true, Some(db.root()))
+            .await
+            .map_err(configuration)?;
     if next.project != base.project {
         return Err(CoreError::Diagnostic(crate::config::diagnostic::failure(
             "native source publication",
@@ -111,11 +114,12 @@ pub(super) async fn build(
         .map_err(CoreError::Diagnostic)?;
     // Closing the load→watch registration window is a local admitted rescan,
     // not a second discovery or an expanded read capability.
-    let ready_inputs = composition::load_reload_local_with_env(&base.project, base.env.clone())
-        .await
-        .map_err(configuration)?
-        .reload_inputs()
-        .map_err(configuration)?;
+    let ready_inputs =
+        composition::load_local_inputs(&base.project, base.env.clone(), true, Some(db.root()))
+            .await
+            .map_err(configuration)?
+            .reload_inputs()
+            .map_err(configuration)?;
     if ready_inputs != admitted_inputs {
         return Err(superseded());
     }
@@ -134,6 +138,9 @@ pub(super) async fn build(
             retained_selected: false,
         });
     }
+    next.refresh_instruction_urls(Some(&base.instructions), force)
+        .await
+        .map_err(configuration)?;
     next.attach_custom_connections(db).map_err(configuration)?;
     next.resolve_credentials(db).await.map_err(configuration)?;
     next.attach_public_catalog(db).await;
@@ -154,11 +161,12 @@ pub(super) async fn build(
     // Discovery is bounded but can outlive a file replacement. Re-admission is
     // local-only: no second discovery, credentials, MCP activation or effects.
     // Compare original resolved inputs, never the remote-merged model catalog.
-    let current_inputs = composition::load_reload_local_with_env(&base.project, base.env.clone())
-        .await
-        .map_err(configuration)?
-        .reload_inputs()
-        .map_err(configuration)?;
+    let current_inputs =
+        composition::load_local_inputs(&base.project, base.env.clone(), true, Some(db.root()))
+            .await
+            .map_err(configuration)?
+            .reload_inputs()
+            .map_err(configuration)?;
     if current_inputs != admitted_inputs || watch.epoch() != epoch {
         return Err(superseded());
     }

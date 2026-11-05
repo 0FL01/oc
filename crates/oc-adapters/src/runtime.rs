@@ -38,6 +38,7 @@ pub(crate) mod children;
 #[path = "runtime_compaction.rs"]
 mod compaction;
 mod environment;
+mod formatter;
 mod retry;
 mod terminals;
 
@@ -1210,6 +1211,7 @@ struct RuntimeWorkspace {
     agent_request: crate::provider::RequestOverlay,
     instructions: String,
     instruction_roots: Vec<crate::instructions::Root>,
+    configured_instructions: Vec<crate::instructions::Source>,
     skills_projection: Option<String>,
     subagents: Option<SubagentCatalog>,
     command_digest: Option<String>,
@@ -2512,6 +2514,7 @@ impl<'a> Runtime<'a> {
             agent_permission_rules,
             agent_request,
             instruction_roots: workspace.instruction_roots,
+            configured_instructions: workspace.configured_instructions,
             subagents: workspace.subagents,
             command_digest: workspace.command_digest,
             profile_issue: None,

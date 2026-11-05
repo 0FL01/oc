@@ -312,6 +312,7 @@ impl Shell {
             None,
             approved,
             false,
+            false,
             None,
             |_| Ok(()),
         )
@@ -331,6 +332,7 @@ impl Shell {
         timeout_cleared: Option<&AtomicBool>,
         approved: Option<&PinnedCwd>,
         finish_group: bool,
+        gated: bool,
         capture: Option<&jobs::Capture>,
         started: impl FnOnce(i32) -> Result<(), ShellError> + Send,
     ) -> Result<ShellOutcome, ShellError> {
@@ -393,7 +395,7 @@ impl Shell {
         // New session => process group leader; group kills stay contained.
         // The OS error is kept (kind only, no payload) so a refused exec is
         // diagnosable instead of a bare `Reap`.
-        let (child, started) = if self.command_shell.is_some() {
+        let (child, started) = if gated || self.command_shell.is_some() {
             (spawn_admitted_command(&mut cmd, started)?, None)
         } else {
             (
@@ -1229,6 +1231,7 @@ mod tests {
             None,
             None,
             true,
+            false,
             None,
             |child| {
                 launch = Some((

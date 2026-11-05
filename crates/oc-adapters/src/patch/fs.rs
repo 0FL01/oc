@@ -184,6 +184,18 @@ impl Root {
 }
 
 impl Entry {
+    /// Verify that the current namespace still names the pinned parent before
+    /// using a pathname for the trusted program or native result validation.
+    pub(super) fn absolute_path(&self) -> io::Result<std::path::PathBuf> {
+        let path = std::fs::read_link(format!("/proc/self/fd/{}", self.dir.as_raw_fd()))?;
+        let current = Root::new(&path)?;
+        let meta = self.dir.metadata()?;
+        if current.authority_identity()? != (meta.dev(), meta.ino()) {
+            return Err(io::Error::other("mutation parent replaced"));
+        }
+        Ok(path.join(OsStr::from_bytes(self.name.as_bytes())))
+    }
+
     pub fn metadata(&self) -> io::Result<Metadata> {
         open(&self.dir, &self.name, libc::O_PATH, 0)?.metadata()
     }
@@ -209,7 +221,7 @@ impl Entry {
         self.snapshot_with_cap(super::PLAN_BYTES_CAP)
     }
 
-    fn snapshot_with_cap(&self, cap: usize) -> io::Result<Snapshot> {
+    pub(super) fn snapshot_with_cap(&self, cap: usize) -> io::Result<Snapshot> {
         let mut file = open(&self.dir, &self.name, libc::O_RDONLY | libc::O_NONBLOCK, 0)?;
         let meta = file.metadata()?;
         if !meta.is_file() {

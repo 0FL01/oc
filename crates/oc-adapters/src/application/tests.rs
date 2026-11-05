@@ -496,7 +496,10 @@ mod review_tests {
         let (app, guard, _) = spawn_with_env(&project, &data, env.clone())
             .await
             .expect("spawn");
-        assert_eq!(app.catalog().await.expect("catalog").commands, ["review"]);
+        assert_eq!(
+            app.catalog().await.expect("catalog").commands,
+            ["init", "review"]
+        );
         assert_eq!(
             app.catalog().await.expect("catalog").command_descriptions["review"],
             "review changes [commit|branch|pr], defaults to uncommitted"
@@ -504,6 +507,15 @@ mod review_tests {
         let composed = composition::load_with_env(&project, env.clone())
             .await
             .expect("admitted generation");
+        let original_init = "/init   preserve $ARGUMENTS and ${path}   ";
+        let (init, invocation) = resolve_submission(&composed, original_init.into()).unwrap();
+        assert_eq!(invocation.as_deref(), Some(original_init));
+        assert_eq!(
+            init,
+            include_str!("../../assets/upstream/v2/initialize.txt")
+                .replacen("${path}", &project.to_string_lossy(), 1)
+                .replace("$ARGUMENTS", "preserve $ARGUMENTS and ${path}")
+        );
         let (default_prompt, default_invocation) =
             resolve_submission(&composed, "/review".into()).expect("default review");
         assert_eq!(default_invocation.as_deref(), Some("/review"));

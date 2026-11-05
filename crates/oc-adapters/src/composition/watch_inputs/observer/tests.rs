@@ -22,7 +22,7 @@ fn hot02_source_watch_filters_shapes_and_marks_overflow_without_paths() {
     inputs.insert(Path::new("/known/agents"), InputKind::AgentTree);
     inputs.insert(Path::new("/known/commands"), InputKind::MarkdownDirectory);
     inputs.insert(Path::new("/known/skills"), InputKind::Skills);
-    inputs.insert(Path::new("/aliases/kit"), InputKind::SkillDirectory);
+    inputs.insert(Path::new("/aliases/kit"), InputKind::Skills);
     for (path, directory, expected) in [
         ("/known/opencode.json", false, true),
         ("/known/tui.json", false, false),
@@ -38,7 +38,7 @@ fn hot02_source_watch_filters_shapes_and_marks_overflow_without_paths() {
         ("/known/skills/kit", true, true),
         ("/known/skills/kit/SKILL.md", false, true),
         ("/known/skills/kit/body.txt", false, false),
-        ("/known/skills/deep/kit/SKILL.md", false, false),
+        ("/known/skills/deep/kit/SKILL.md", false, true),
         ("/aliases/kit/SKILL.md", false, true),
         ("/aliases/kit/private.txt", false, false),
         ("/known", true, true),

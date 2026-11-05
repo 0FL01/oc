@@ -167,6 +167,7 @@ fn model_shell_notice_is_bounded_exact_data_and_redo_preserves_its_raw_delivery(
             command,
             cwd: "/project".into(),
             selected_shell: "/bin/sh".into(),
+            formatter: false,
         };
         db.admit_shell_job_mode(&provenance, false).unwrap();
         let mut outcome = Outcome::unknown("literal cancelled failed successful process prose");
@@ -361,6 +362,7 @@ fn direct_user_shell_is_not_an_undo_prompt_and_whole_tail_redo_preserves_raw_and
             command: "printf data".into(),
             cwd: "/project".into(),
             selected_shell: "/bin/sh".into(),
+            formatter: false,
         };
         drop(db.admit_user_shell_job(&p, false, None).unwrap());
         let mut outcome = crate::shell::jobs::Outcome::unknown("fixture outcome");
@@ -527,6 +529,7 @@ fn direct_user_shell_admission_after_undo_or_revert_atomically_opens_the_new_bra
             command: "printf new-branch".into(),
             cwd: "/project".into(),
             selected_shell: "/bin/sh".into(),
+            formatter: false,
         };
         db.conn.lock().unwrap().execute_batch("CREATE TRIGGER fail_shell_branch BEFORE INSERT ON prefs WHEN NEW.key='tui.prompt_history.v1' BEGIN SELECT RAISE(ABORT,'fixture'); END;").unwrap();
         assert!(db.admit_user_shell_job(&p, false, None).is_err());

@@ -462,6 +462,24 @@ startup and reload; valid siblings survive while incomplete agent catalogs and
 selected-profile validation still refuse. These clauses supersede the contradictory
 parts of D21/D27/D28, not provider credential binding, effect/retry/cleanup policy.
 
+## Scoped TS parity — W6–W10, 2026-11-05
+
+The current [CONFIG](CONFIG.md), [SECURITY](SECURITY.md) and [TOOLS_MCP](TOOLS_MCP.md)
+supersede the older W5 singular-provider/no-instructions/4MiB clauses only for the
+explicit W9 normalization subset and W10 features. Definitions remain finite at
+4096 per kind/64MiB aggregate. Configured instructions and local skill roots are
+admitted captured generation inputs, not model read grants; URL skills remain
+deferred. Configured formatter is trusted host execution continuing the admitted
+mutation, with guarded actual effects, joined supervision and no unknown replay;
+Shell Deny/Plan are not a sandbox for it. `/init` is an overridable model prompt.
+
+The earlier direct-DNS all-answer mechanism is superseded by W9's admitted-subset
+pinning, with empty subset refusal and actual direct-peer verification. Explicit
+auth/binding remains; implicit keyless is limited to trusted captured localhost.
+Only same-origin/in-prefix307/308 redirects are admitted. This does not authorize
+credential forwarding across origins or certificate bypass. These are scoped
+behavior decisions, not live/full-product qualification.
+
 ## Остаточные prerequisites, не новые Q
 
 Secrets/connectivity/наличие нужной live модели проверяются just-in-time в T16/T27, не в T00. Missing → конкретный external blocker, не угадывание credentials. Docker проверяется только перед первым использованием и иначе `NOT_USED`. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

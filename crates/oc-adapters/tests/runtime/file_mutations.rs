@@ -19,6 +19,370 @@ fn text_params<'a>(
 }
 
 #[tokio::test]
+async fn w10_configured_formatter_changes_actual_mutation_results_without_shell_calls_or_replay() {
+    use sha2::{Digest as _, Sha256};
+    for (tool, denied) in [
+        ("write", false),
+        ("edit", false),
+        ("apply_patch", false),
+        ("write", true),
+    ] {
+        let (harness, _) = text_harness(allow_all());
+        let source = oc_adapters::config::Source {
+            path: harness._project.path().join("opencode.json").to_string_lossy().into_owned(),
+            trusted: true,
+            text: serde_json::json!({
+                "permissions":[{"action":"*","resource":"*","effect":"allow"},
+                    {"action":"shell","resource":"*","effect":"deny"},
+                    {"action":"edit","resource":"*","effect":if denied {"deny"} else {"allow"}}],
+                "formatter":{"fixture":{"command":["/usr/bin/python3","-I","-c",
+                    "import os,pathlib,sys; p=pathlib.Path(sys.argv[1]); p.write_bytes(os.environ['W10_FMT_PREFIX'].encode()+p.read_bytes().upper()); f=open('formatter-ran','a'); f.write('ran\\n'); f.close(); print('FORMATTER_STDOUT_CANARY')", "$FILE"],
+                    "environment":{"W10_FMT_PREFIX":"CAPTURED_"},"extensions":[".txt"]}}
+            }).to_string(),
+        };
+        let mut generation =
+            oc_adapters::config::assemble(&[source], &BTreeMap::new(), None).unwrap();
+        generation.compaction.auto = false;
+        if tool == "edit" {
+            std::fs::write(harness._project.path().join("formatted.txt"), "before").unwrap();
+        }
+        let runtime = runtime_of(&harness, generation, vec![]);
+        runtime.create_session("formatter").unwrap();
+        let args = match tool {
+            "write" => serde_json::json!({"path":"formatted.txt","content":"lowercase\n"}),
+            "edit" => {
+                serde_json::json!({"path":"formatted.txt","oldString":"before","newString":"lowercase\n"})
+            }
+            _ => {
+                serde_json::json!({"patchText":"*** Begin Patch\n*** Add File: formatted.txt\n+lowercase\n*** Add File: second.txt\n+lowercase\n*** End Patch"})
+            }
+        };
+        let (base, _) = Fake::start(
+            vec![
+                sse_tool_call("formatted", tool, &args) + &sse_completed(),
+                sse_completed(),
+            ],
+            Duration::ZERO,
+        );
+        let turn = if tool == "apply_patch" {
+            params(
+                "formatter",
+                "mutate",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            )
+        } else {
+            text_params("formatter", &harness, provider_of(&base), &NO_CANCEL)
+        };
+        let report = runtime.run_turn(turn).await.unwrap();
+        assert_eq!(report.status, TurnStatus::Completed);
+        assert_eq!(report.calls.len(), 1);
+        assert_eq!(report.calls[0].name, tool);
+        let marker = harness._project.path().join("formatter-ran");
+        if denied {
+            assert_eq!(report.calls[0].state, "failed");
+            assert!(!marker.exists());
+            assert!(!harness._project.path().join("formatted.txt").exists());
+        } else {
+            assert_eq!(
+                report.calls[0].state, "completed",
+                "{}",
+                report.calls[0].output
+            );
+            let expected = b"CAPTURED_LOWERCASE\n";
+            assert_eq!(
+                std::fs::read(harness._project.path().join("formatted.txt")).unwrap(),
+                expected
+            );
+            if tool == "apply_patch" {
+                assert_eq!(
+                    std::fs::read(harness._project.path().join("second.txt")).unwrap(),
+                    expected
+                );
+            }
+            if tool == "apply_patch" {
+                assert!(
+                    report.calls[0]
+                        .output
+                        .contains(&format!("{:x}", Sha256::digest(expected)))
+                );
+            }
+            assert_eq!(
+                std::fs::read_to_string(&marker).unwrap().lines().count(),
+                if tool == "apply_patch" { 2 } else { 1 }
+            );
+            let raw = harness.db.turn_result(&report.turn_id).unwrap().1.unwrap();
+            assert!(!raw.contains("FORMATTER_STDOUT_CANARY"));
+            let operation = harness.db.list_tool_ops("formatter").unwrap().remove(0).op;
+            let full = harness
+                .db
+                .read_session_tool_output("formatter", &operation, 0, 64 * 1024)
+                .unwrap();
+            assert!(
+                full.0.contains("+CAPTURED_LOWERCASE"),
+                "Cards must read the confirmed diff, not its status/reference"
+            );
+            assert!(!full.0.contains("FORMATTER_STDOUT_CANARY"));
+            let before = std::fs::read(&marker).unwrap();
+            drop(runtime);
+            drop(harness.db);
+            let reopened = Db::open(harness._data.path()).unwrap();
+            assert_eq!(
+                reopened.turn_result(&report.turn_id).unwrap().1.unwrap(),
+                raw
+            );
+            assert_eq!(std::fs::read(&marker).unwrap(), before);
+            assert_eq!(
+                reopened
+                    .read_session_tool_output("formatter", &operation, 0, 64 * 1024)
+                    .unwrap(),
+                full
+            );
+            let connection = rusqlite::Connection::open_with_flags(
+                reopened.root().join("oc.sqlite"),
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+            )
+            .unwrap();
+            let shell_events: i64 = connection.query_row(
+                "SELECT count(*) FROM events WHERE kind IN ('shell_terminal','shell_foreground','shell_background')", [], |row| row.get(0),
+            ).unwrap();
+            assert_eq!(shell_events, 0);
+            let location: String = connection
+                .query_row(
+                    "SELECT value FROM prefs WHERE key='tui.session_location.formatter'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            drop(connection);
+            reopened.delete_root_family("formatter", &location).unwrap();
+        }
+    }
+}
+
+#[tokio::test]
+async fn w10_formatter_keeps_logical_extension_and_committed_symlink_move_state() {
+    use sha2::{Digest as _, Sha256};
+    let mut failures = Vec::new();
+    for moved in [false, true] {
+        let (harness, _) = text_harness(allow_all());
+        let project = harness._project.path();
+        std::fs::write(project.join("target.bin"), "before\n").unwrap();
+        std::os::unix::fs::symlink("target.bin", project.join("link.txt")).unwrap();
+        let source = oc_adapters::config::Source {
+            path: project.join("opencode.json").to_string_lossy().into_owned(),
+            trusted: true,
+            text: serde_json::json!({
+                "permissions":[{"action":"*","resource":"*","effect":"allow"},
+                    {"action":"shell","resource":"*","effect":"deny"}],
+                "formatter":{"fixture":{"command":["/usr/bin/python3","-I","-c",
+                    "import pathlib,sys; p=pathlib.Path(sys.argv[1]); p.write_bytes(p.read_bytes().upper())", "$FILE"],
+                    "extensions":[".txt"]}}
+            }).to_string(),
+        };
+        let mut generation =
+            oc_adapters::config::assemble(&[source], &BTreeMap::new(), None).unwrap();
+        generation.compaction.auto = false;
+        let runtime = runtime_of(&harness, generation, vec![]);
+        runtime.create_session("formatter-link").unwrap();
+        let tool = if moved { "apply_patch" } else { "write" };
+        let arguments = if moved {
+            serde_json::json!({"patchText":"*** Begin Patch\n*** Update File: link.txt\n*** Move to: moved.txt\n@@\n-before\n+after\n*** Add File: following.txt\n+next\n*** End Patch"})
+        } else {
+            serde_json::json!({"path":"link.txt","content":"after\n"})
+        };
+        let (base, _) = Fake::start(
+            vec![
+                sse_tool_call("link", tool, &arguments) + &sse_completed(),
+                sse_completed(),
+            ],
+            Duration::ZERO,
+        );
+        let turn = if moved {
+            params(
+                "formatter-link",
+                "mutate",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            )
+        } else {
+            text_params("formatter-link", &harness, provider_of(&base), &NO_CANCEL)
+        };
+        let report = runtime.run_turn(turn).await.unwrap();
+        if report.status != TurnStatus::Completed || report.calls[0].state != "completed" {
+            failures.push(format!(
+                "move={moved}: {:?}: {}",
+                report.status, report.calls[0].output
+            ));
+        }
+        let target = if moved { "moved.txt" } else { "target.bin" };
+        if std::fs::read(project.join(target)).unwrap() != b"AFTER\n" {
+            failures.push(format!(
+                "move={moved}: logical .txt formatter did not format the destination"
+            ));
+        }
+        if moved {
+            assert!(!project.join("link.txt").exists());
+            assert_eq!(
+                std::fs::read(project.join("target.bin")).unwrap(),
+                b"before\n"
+            );
+            if std::fs::read(project.join("following.txt")).ok().as_deref() != Some(b"NEXT\n") {
+                failures.push("confirmed symlink move stopped the following operation".into());
+            }
+            if !report.calls[0]
+                .output
+                .contains(&format!("{:x}", Sha256::digest(b"AFTER\n")))
+            {
+                failures.push("confirmed formatted move lost its actual hash".into());
+            }
+        } else {
+            assert!(project.join("link.txt").is_symlink());
+        }
+    }
+    assert!(failures.is_empty(), "{failures:#?}");
+}
+
+#[tokio::test]
+async fn w10_cancelled_formatter_is_joined_before_return_without_replay() {
+    let (harness, _) = text_harness(allow_all());
+    let source = oc_adapters::config::Source {
+        path: "formatter-cancellation".into(), trusted: true,
+        text: serde_json::json!({"permissions":[{"action":"*","resource":"*","effect":"allow"}],
+            "formatter":{"held":{"command":["/usr/bin/python3","-I","-c",
+                "import os,pathlib,time; pathlib.Path('formatter-started').write_text(str(os.getpid())); time.sleep(300); pathlib.Path('forbidden').write_text('BAD')"],"extensions":[".txt"]}}}).to_string(),
+    };
+    let generation = oc_adapters::config::assemble(&[source], &BTreeMap::new(), None).unwrap();
+    let runtime = runtime_of(&harness, generation, vec![]);
+    runtime.create_session("formatter-cancel").unwrap();
+    let (base, hits) = Fake::start(
+        vec![
+            sse_tool_call(
+                "write",
+                "write",
+                &serde_json::json!({"path":"written.txt","content":"native write\n"}),
+            ) + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let cancel = AtomicBool::new(false);
+    let started = harness._project.path().join("formatter-started");
+    let cancellation = async {
+        let observed = tokio::time::timeout(Duration::from_secs(4), async {
+            while !started.exists() {
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .is_ok();
+        cancel.store(true, Ordering::Release);
+        observed
+    };
+    let (report, observed) = tokio::join!(
+        runtime.run_turn(text_params(
+            "formatter-cancel",
+            &harness,
+            provider_of(&base),
+            &cancel
+        )),
+        cancellation
+    );
+    let report = report.unwrap();
+    assert!(observed, "formatter did not reach its owned process");
+    assert_eq!(report.status, TurnStatus::Cancelled);
+    let pid: i32 = std::fs::read_to_string(&started).unwrap().parse().unwrap();
+    // SAFETY: signal 0 observes only the PID written by this isolated formatter.
+    assert_eq!(
+        // SAFETY: signal zero only observes the isolated formatter PID; no pointer is passed.
+        unsafe { libc::kill(pid, 0) },
+        -1,
+        "formatter was not joined"
+    );
+    assert_eq!(*hits.lock().unwrap(), 1);
+    assert!(!harness._project.path().join("forbidden").exists());
+    assert_eq!(
+        std::fs::read(harness._project.path().join("written.txt")).unwrap(),
+        b"native write\n"
+    );
+    drop(runtime);
+    drop(harness.db);
+    let reopened = Db::open(harness._data.path()).unwrap();
+    assert!(reopened.turn_result(&report.turn_id).unwrap().1.is_some());
+    assert!(!harness._project.path().join("forbidden").exists());
+}
+
+#[tokio::test]
+async fn w10_unsafe_formatter_readback_keeps_confirmed_effect_without_reading_data_root() {
+    let (harness, _) = text_harness(allow_all());
+    let secret = harness._data.path().join("formatter-private");
+    std::fs::write(&secret, "W10_PRIVATE_DATA_CANARY").unwrap();
+    let source = oc_adapters::config::Source {
+        path: "formatter-readback".into(), trusted: true,
+        text: serde_json::json!({"permissions":[{"action":"*","resource":"*","effect":"allow"}],
+            "formatter":{"unsafe":{"command":["/usr/bin/python3","-I","-c",
+                "import os,pathlib,sys; p=pathlib.Path(sys.argv[1]); p.unlink(); p.symlink_to(os.environ['PRIVATE_PATH']); pathlib.Path('formatter-ran').write_text('once')", "$FILE"],
+                "environment":{"PRIVATE_PATH":secret.to_str().unwrap()},"extensions":[".txt"]}}}).to_string(),
+    };
+    let generation = oc_adapters::config::assemble(&[source], &BTreeMap::new(), None).unwrap();
+    let runtime = runtime_of(&harness, generation, vec![]);
+    runtime.create_session("formatter-unknown").unwrap();
+    let (base, hits) = Fake::start(
+        vec![
+            sse_tool_call(
+                "patch",
+                "apply_patch",
+                &serde_json::json!({"patchText":"*** Begin Patch\n*** Add File: result.txt\n+native change\n*** Add File: sibling.txt\n+must not commit\n*** End Patch"}),
+            ) + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "formatter-unknown",
+            "mutate",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Failed);
+    assert_eq!(report.calls[0].state, "unknown");
+    assert_eq!(*hits.lock().unwrap(), 1);
+    assert!(
+        std::fs::symlink_metadata(harness._project.path().join("result.txt"))
+            .unwrap()
+            .is_symlink()
+    );
+    assert!(!harness._project.path().join("sibling.txt").exists());
+    let raw = harness.db.turn_result(&report.turn_id).unwrap().1.unwrap();
+    assert!(!raw.contains("W10_PRIVATE_DATA_CANARY"));
+    assert!(raw.contains("formatter-result-unknown"));
+    let records = harness.db.list_tool_ops("formatter-unknown").unwrap();
+    let effects = records[0].patch_effects.as_ref().unwrap();
+    assert_eq!(effects.total_files, 1);
+    assert!(effects.truncated && effects.files[0].truncated);
+    assert!(effects.files[0].hunks.is_empty());
+    assert_eq!(
+        std::fs::read_to_string(&secret).unwrap(),
+        "W10_PRIVATE_DATA_CANARY"
+    );
+    drop(runtime);
+    drop(harness.db);
+    let reopened = Db::open(harness._data.path()).unwrap();
+    assert_eq!(
+        reopened.turn_result(&report.turn_id).unwrap().1.unwrap(),
+        raw
+    );
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("formatter-ran")).unwrap(),
+        "once"
+    );
+}
+
+#[tokio::test]
 async fn w2_internal_symlink_file_tools_use_lexical_permissions_without_external_grants() {
     for tool in ["read", "write", "edit", "apply_patch"] {
         let mut permissions = allow_all();

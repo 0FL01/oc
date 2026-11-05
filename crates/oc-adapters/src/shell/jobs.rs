@@ -34,6 +34,12 @@ pub(crate) struct Provenance {
     pub command: String,
     pub cwd: String,
     pub selected_shell: String,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub formatter: bool,
+}
+
+fn is_false(value: &bool) -> bool {
+    !value
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -459,6 +465,82 @@ pub(crate) struct Jobs {
 }
 
 impl Jobs {
+    /// Runs inside the owned mutation worker. This completion owns the process
+    /// and durable PID lifecycle, not settlement of the mutation operation.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn format(
+        &self,
+        shell: &Shell,
+        env: &BTreeMap<String, String>,
+        argv: &[String],
+        approved: &PinnedCwd,
+        provenance: Provenance,
+        slot: tokio::sync::OwnedSemaphorePermit,
+        cancel: Arc<AtomicBool>,
+    ) -> Result<Outcome, StorageError> {
+        self.db.admit_formatter(&provenance)?;
+        let id = provenance.operation.clone();
+        let control = Arc::new(Mutex::new(Control {
+            wait_done: true,
+            ..Control::default()
+        }));
+        let (finished, receipt) = tokio::sync::oneshot::channel();
+        let completion = async move { receipt.await.unwrap_or(false) }
+            .boxed()
+            .shared();
+        self.work.lock().expect("shell jobs").insert(
+            id.clone(),
+            Work {
+                _slot: slot,
+                session: provenance.session.clone(),
+                cancel: cancel.clone(),
+                timeout_cleared: Arc::new(AtomicBool::new(false)),
+                completion,
+                provenance: Some(provenance),
+                capture: Capture::new(self.wake.clone()),
+                control: control.clone(),
+                converted: Arc::new(tokio::sync::Notify::new()),
+                parent_wake: None,
+            },
+        );
+        let outcome = Outcome::from_result(shell.execute_pinned_started(
+            env,
+            argv,
+            ".",
+            None,
+            ShellLimits {
+                timeout: Duration::from_secs(120),
+                kill_grace: Duration::from_millis(500),
+                retain_cap: 0,
+            },
+            &cancel,
+            None,
+            Some(approved),
+            true,
+            true,
+            None,
+            |pid| {
+                let identity = ProcessIdentity::read(pid, self.db.root())
+                    .ok_or(ShellError::AdmissionFailed)?;
+                self.db
+                    .start_shell_job(&id, &identity)
+                    .map_err(|_| ShellError::AdmissionFailed)?;
+                control.lock().expect("formatter control").pid = Some(pid);
+                Ok(())
+            },
+        ));
+        self.db.finish_shell_job(&id, &outcome)?;
+        control.lock().expect("formatter control").finished = true;
+        // Normal removal follows the joined group and releases capacity before
+        // the next file. Abnormal receipt-drop stays eligible for owner cleanup.
+        self.work.lock().expect("shell jobs").remove(&id);
+        // Publish readiness only after removal, so owner delivery cannot collect
+        // this id and then remove a newly rearmed formatter for the same op.
+        let _ = finished.send(true);
+        self.wake.notify_one();
+        Ok(outcome)
+    }
+
     /// Command interpolation shares the process supervisor and global slots,
     /// but has no session FK, background conversion, artifact or user-shell card.
     #[allow(clippy::too_many_arguments)]
@@ -506,6 +588,7 @@ impl Jobs {
                 None,
                 Some(&approved),
                 true,
+                false,
                 None,
                 |pid| {
                     let identity =
@@ -720,6 +803,7 @@ impl Jobs {
                 Some(&owned_timeout_cleared),
                 Some(&approved),
                 true,
+                false,
                 Some(&owned_capture),
                 |pid| {
                     let identity =
@@ -919,6 +1003,9 @@ impl Jobs {
                 continue;
             }
             if let Some(p) = &job.provenance {
+                if p.formatter {
+                    continue;
+                }
                 let mut output = job.capture.presentation();
                 if let Some(facts) = &mut output.shell {
                     facts.background = control.background;
@@ -946,6 +1033,9 @@ impl Jobs {
         let Some(job) = work.get(id).filter(|job| job.session == session) else {
             return Ok(false);
         };
+        if job.provenance.as_ref().is_some_and(|p| p.formatter) {
+            return Ok(false);
+        }
         let mut control = job.control.lock().expect("shell control");
         if control.finished || job.cancel.load(Ordering::Acquire) {
             return Ok(false);

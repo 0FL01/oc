@@ -52,7 +52,7 @@ MCP inheritance follows the captured-environment contract below.
 | Runtime | `opencode.json` / `opencode.jsonc`: provider/model selection, MCP, permission rules, agent/command definitions, instructions and DCP inputs. |
 | CLI preferences | `cli.json` / `cli.jsonc`, watched and automatically applied through the same admitted-root reader, JSON before JSONC and later roots winning supplied preferences (keybinds/chrome/session permissions; `--auto` takes priority). These are not runtime-provider fields. Start with `G/cli.jsonc` for user-wide preferences; an admitted Location/`.opencode` CLI file may override them natively. |
 | Definitions | Built-ins → inline `G` → Markdown `G` → inline Location → inline Location `.opencode` → Markdown Location `.opencode`. Markdown roots are `G` and Location `.opencode`, not a separate `G/.opencode` or bare Location directory. Singular directories load before plural at the same source. |
-| Instructions | `AGENTS.md`: guidance, **not** a config override or a permission grant. Config `instructions` lists and `.claude`/`.agents` roots are not loaded. Native canonical Location/source boundaries still apply. |
+| Instructions | `AGENTS.md` and admitted config `instructions` paths/globs/HTTP(S): captured guidance, **not** a config override or permission grant. Explicit sources do not expand Files/read/Nested roots; native data-root exclusion still applies. |
 | DCP | Inline `dcp`, then optional `dcp.json`, then `dcp.jsonc` within the existing global → Location → `.opencode` layers. No automatic config file creation. |
 | Native profile | `oc-rs.toml` reference/examples are Proposed, not an application-input/support guarantee. Use only consumer-qualified controls; parser acceptance and `examples/oc-rs.toml` are not a shipped-feature inventory. |
 
@@ -303,9 +303,15 @@ body prose does not sandbox MCP or
 grant writes. Model/variant pins must be exact supported references. Do not
 invent an artificial successful-round limit or automatic agent fallback.
 
-Skills are informational Markdown, never executable plugins. Both
-`{skill,skills}/<id>/SKILL.md` and flat `{skill,skills}/<id>.md` are admitted under
-the definition roots. IDs come from the directory/file stem. `name` and
+Skills are informational Markdown, never executable plugins. Recursive
+`{skill,skills}/**/SKILL.md` and root-level flat Markdown are admitted under
+the definition roots. Compatibility `.claude/skills`, then `.agents/skills`
+(captured HOME and checkout-to-Location), then local `skills: ["extra-skills"]`
+roots overlay these. Configured paths resolve against Location, with `~/` and
+absolute local roots supported; URLs/package sources are not. The depth6 scanner
+ignores hidden/dependency directories and stops below a directory with `SKILL.md`.
+Source admission, own-data-root exclusion and in-root symlink containment remain.
+IDs come from the immediate parent directory/file stem. `name` and
 `description` are metadata; `metadata."opencode/autoinvoke":false` hides automatic preview only,
 not explicit loading. For example `.opencode/skills/project-guide/SKILL.md`:
 

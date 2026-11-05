@@ -211,6 +211,7 @@ fn make_harness() -> (Harness, Generation) {
         .collect(),
     };
     let generation = Generation {
+        formatters: Vec::new(),
         command_shell: None,
         tool_output: Default::default(),
         compaction: Default::default(),
@@ -521,6 +522,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
     let refused = tokio::net::TcpSocket::new_v4().unwrap();
     refused.bind("127.0.0.1:0".parse().unwrap()).unwrap();
     let bad = Generation {
+        formatters: Vec::new(),
         command_shell: None,
         tool_output: Default::default(),
         compaction: Default::default(),

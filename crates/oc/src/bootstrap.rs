@@ -109,24 +109,46 @@ pub async fn run(args: Args) -> ExitCode {
         }
         Some(Command::Auth { .. }) => unreachable!("auth-only dispatch precedes runtime"),
         Some(Command::Models) => unreachable!("catalog-only dispatch precedes storage"),
-        None => crate::tui_cmd::run_tui(&data_dir, None, args.auto).await,
+        None => {
+            crate::tui_cmd::run_tui(
+                &data_dir,
+                args.session,
+                args.continue_session,
+                args.prompt,
+                args.auto,
+            )
+            .await
+        }
         Some(Command::Run {
             prompt,
             session,
             agent,
             json,
             image,
+            continue_session,
+            model,
+            files,
         }) => {
             if image.is_some() {
                 eprintln!(
-                    "error: unsupported modality: image input; this application profile accepts text only"
+                    "error: unsupported modality: image input via --image; use --file for a local image"
                 );
                 return ExitCode::from(2);
             }
             let mut out = stdout().lock();
             let mut err = stderr().lock();
             headless::run_once_to_writers(
-                prompt, session, agent, json, args.auto, &data_dir, &mut out, &mut err,
+                prompt,
+                session,
+                continue_session,
+                model,
+                files,
+                agent,
+                json,
+                args.auto,
+                &data_dir,
+                &mut out,
+                &mut err,
             )
             .await
         }
@@ -138,7 +160,14 @@ pub async fn run(args: Args) -> ExitCode {
             }
         },
         Some(Command::Tui { session }) => {
-            crate::tui_cmd::run_tui(&data_dir, session, args.auto).await
+            crate::tui_cmd::run_tui(
+                &data_dir,
+                session.or(args.session),
+                args.continue_session,
+                args.prompt,
+                args.auto,
+            )
+            .await
         }
     }
 }

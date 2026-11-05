@@ -1,6 +1,40 @@
 use super::*;
 
 #[test]
+fn w10_run_accepts_separate_words_stdin_and_short_options() {
+    for argv in [
+        vec![
+            "oc",
+            "run",
+            "one",
+            "two",
+            "-m",
+            "fixture/m#fast",
+            "-c",
+            "-f",
+            "file.md",
+        ],
+        vec!["oc", "run"],
+    ] {
+        assert!(Args::try_parse_from(argv).is_ok());
+    }
+}
+
+#[test]
+fn w10_root_startup_flags_remain_an_interactive_command() {
+    let parsed = Args::try_parse_from([
+        "oc",
+        "--continue",
+        "--session",
+        "saved",
+        "--prompt",
+        "startup prompt",
+    ])
+    .unwrap();
+    assert!(parsed.command.is_none());
+}
+
+#[test]
 fn vis36_cli_auto_aliases_share_the_global_flag_and_remain_hidden_from_help() {
     use clap::CommandFactory;
 
@@ -20,7 +54,7 @@ fn vis36_cli_auto_aliases_share_the_global_flag_and_remain_hidden_from_help() {
                 Some(Command::Run {
                     prompt, session, ..
                 }) => {
-                    assert_eq!(prompt, "prompt words");
+                    assert_eq!(prompt, ["prompt words"]);
                     assert_eq!(session.as_deref(), Some("saved"));
                 }
                 _ => panic!("unexpected command"),
@@ -31,7 +65,7 @@ fn vis36_cli_auto_aliases_share_the_global_flag_and_remain_hidden_from_help() {
         let Some(Command::Run { prompt, .. }) = parsed.command else {
             panic!("run");
         };
-        assert_eq!(prompt, flag, "literal prompt is not an auto mode flag");
+        assert_eq!(prompt, [flag], "literal prompt is not an auto mode flag");
     }
     for argv in [vec!["oc"], vec!["oc", "tui"], vec!["oc", "run", "prompt"]] {
         assert!(!Args::try_parse_from(argv).unwrap().auto);
@@ -88,11 +122,12 @@ fn run_agent_preserves_positional_session_and_global_flags() {
             agent,
             json,
             image,
+            ..
         }) = parsed.command
         else {
             panic!("run");
         };
-        assert_eq!(prompt, "prompt words");
+        assert_eq!(prompt, ["prompt words"]);
         assert_eq!(session.as_deref(), Some("saved"));
         assert_eq!(agent.as_deref(), Some("plan"));
         assert!(json);
@@ -110,7 +145,7 @@ fn run_agent_preserves_positional_session_and_global_flags() {
     let Some(Command::Run { prompt, agent, .. }) = parsed.command else {
         panic!("run");
     };
-    assert_eq!(prompt, "--agent plan is user text");
+    assert_eq!(prompt, ["--agent plan is user text"]);
     assert!(agent.is_none());
     assert!(Args::try_parse_from(["oc", "run", "--agent"]).is_err());
 }

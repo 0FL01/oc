@@ -5922,6 +5922,7 @@ impl<'a> Runtime<'a> {
             let mut shell_presentation = None;
             let mut execute_presentation = None;
             let mut execute_prepared = None;
+            let mut mutation_prepared = None;
             let mut read_directory = false;
             let read_path = match &guarded {
                 Assembled::Call(call) if call.name == "read" => {
@@ -6200,6 +6201,53 @@ impl<'a> Runtime<'a> {
                             }
                         }
                     }
+                    Assembled::Call(call)
+                        if matches!(call.name.as_str(), "apply_patch" | "edit" | "write")
+                            && !published.config.formatters.is_empty() =>
+                    {
+                        let Assembled::Call(prepared_call) = &guarded else {
+                            unreachable!("admitted mutation")
+                        };
+                        let provenance = crate::shell::jobs::Provenance {
+                            version: 1,
+                            session: session.into(),
+                            turn: turn_id.into(),
+                            operation: op.clone(),
+                            location: self.location.clone(),
+                            generation: issuing.id,
+                            output_limits: published.config.tool_output,
+                            output_source: source.clone(),
+                            agent: turn_log.display["agent"].as_str().map(str::to_owned),
+                            agent_digest: turn_log.active_agent_digest().map(str::to_owned),
+                            model: turn_log.requests.last().map_or_else(
+                                || turn_log.model.clone(),
+                                |request| request.model.id.clone(),
+                            ),
+                            provider: turn_log.requests.last().map_or_else(
+                                || turn_log.provider.clone(),
+                                |request| request.model.provider.clone(),
+                            ),
+                            // Arguments/environment can contain config secrets. PID
+                            // recovery needs identity, not a replayable command.
+                            command: "configured formatter".into(),
+                            cwd: self.roots.project.to_string_lossy().into_owned(),
+                            selected_shell: "configured formatter".into(),
+                            formatter: true,
+                        };
+                        let (state, prepared, effects) = self
+                            .formatted_mutation(
+                                ctx,
+                                invocation_policy,
+                                prepared_call,
+                                &preparation,
+                                &published.config.formatters,
+                                provenance,
+                            )
+                            .await?;
+                        patch_effects = effects;
+                        mutation_prepared = Some(prepared);
+                        (state, String::new())
+                    }
                     Assembled::Call(call) if call.name == "apply_patch" => {
                         let Assembled::Call(prepared_call) = &guarded else {
                             unreachable!("admitted patch")
@@ -6436,6 +6484,7 @@ impl<'a> Runtime<'a> {
                                     }),
                                 cwd: pinned.path.to_string_lossy().into(),
                                 selected_shell: invocation.argv[0].clone(),
+                                formatter: false,
                             };
                             match self
                                 .shell_jobs
@@ -6558,9 +6607,15 @@ impl<'a> Runtime<'a> {
             if matches!(name, "shell" | "bash") {
                 artifact_source = self.db.output_for_operation(&op)?;
             }
-            let (output, logging_failed, mut output_presentation) = if let Some(presentation) =
-                execute_prepared
+            let (output, logging_failed, mut output_presentation) = if let Some(prepared) =
+                mutation_prepared
             {
+                (
+                    prepared.text,
+                    prepared.logging_failed,
+                    prepared.presentation,
+                )
+            } else if let Some(presentation) = execute_prepared {
                 (output, false, presentation)
             } else if let Some(native) = native_mcp_result.as_mut() {
                 match native.prepare_common(&preparation) {
@@ -6740,6 +6795,7 @@ impl<'a> Runtime<'a> {
                 let path = read_path.as_deref().expect("validated read path");
                 let admitted = crate::instructions::after_read(
                     roots,
+                    &issuing.workspace.configured_instructions,
                     &invocation_files,
                     path,
                     read_directory,

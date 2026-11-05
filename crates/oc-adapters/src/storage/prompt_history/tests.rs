@@ -116,6 +116,7 @@ fn vis12_user_shell_admission_is_atomic_without_model_turn_and_recovers_without_
         command: "printf user-effect".into(),
         cwd: "/project".into(),
         selected_shell: "/bin/sh".into(),
+        formatter: false,
     };
     let admission = db.admit_user_shell_job(&p, true, None).unwrap();
     assert_eq!(admission.provenance().operation, "user-op");
@@ -311,6 +312,7 @@ fn direct_user_shell_projection_bounds_streams_without_reinterpreting_prepared_e
         command: "Ω界".repeat(1000),
         cwd: "/project".into(),
         selected_shell: "/bin/sh".into(),
+        formatter: false,
     };
     drop(db.admit_user_shell_job(&p, true, None).unwrap());
     let mut result = crate::shell::jobs::Outcome::unknown("safe Ω界 diagnostic");

@@ -75,7 +75,7 @@ trusted effective endpoint; другой model/variant endpoint не насле�
 Поздний harmless overlay не повышает trust прежней декларации.
 
 `snapshots: true` принимается с named ignored-setting warning, без filesystem snapshots.
-`share`, `username`, `watcher` и пока не реализованный `formatter` дают отдельные
+`share`, `username` и `watcher` дают отдельные
 warnings с именами, без значений; malformed snapshots type остаётся ошибкой.
 
 ## Source loading
@@ -658,9 +658,67 @@ TOOL21 qualifies config → bounded provider result → filesystem → authorize
 continuation, reusing TOOL13/TOOL16/AUD34/LOAD02/STORE04. Parser success, a UI2048-byte
 preview and old SQLite continuation alone do not qualify this behavior.
 
+## Configured formatters
+
+`formatter` accepts named entries with `command` (direct argv), `environment`,
+`extensions` (including the leading dot), and `disabled`. Entries retain source
+order; overlays update an existing entry in place. A matching formatter runs
+after an authorized `write`, `edit`, or committed non-delete patch operation.
+The first `$FILE` in each argument is replaced by the admitted destination.
+The cwd is the Location; environment extends the captured native-owner env.
+Known spawn/nonzero failures try the next matching program; the first exit 0
+stops that sequence. Boolean values reset the configured list; no automatic
+builtin formatter/program discovery is supplied.
+
+```jsonc
+"formatter": {
+  "project": {
+    "command": ["/path/to/formatter", "$FILE"],
+    "environment": {"FORMAT_MODE": "project"},
+    "extensions": [".txt"],
+    "disabled": false
+  }
+}
+```
+
+Formatter commands require an admitted trusted config source and remain captured
+for the issuing request/batch. They are a continuation of the original mutation,
+not a model `shell` call or a new permission grant. Native mutation Deny, Plan and
+child narrowing, approved preimage and resolved data-root checks still apply
+before effects. **The trusted program itself runs with host process rights:
+Shell Deny and Plan do not sandbox its arbitrary side effects**, including any
+interpretation of model-written content chosen by that program.
+
+Execution uses existing bounded process slots, durable PID-before-exec admission
+and joined group cleanup; a started/unknown formatter is not replayed. Formatter
+stdout/stderr are drained and discarded, not turned into Shell cards/artifacts.
+After completion, descriptor-guarded bounded readback supplies actual hashes and
+diff/effects (including an admitted BOM). If the result cannot be verified, the
+already committed native effect remains recorded without a fabricated final hash
+or planned-content diff; the operation becomes unknown and automatic continuation
+stops. Cancellation does not roll back the preceding native write.
+
 ## Instructions и definitions
 
-`AGENTS.md` — не config override. Effective instructions состоят из canonical-deduplicated `G/AGENTS.md`, затем applicable Location files в pinned nearest-working-directory-to-root order; distinct sentinel каждого admitted файла входит ровно один раз с provenance. Unreadable/disappeared file даёт diagnostic и не сохраняет текст из старой candidate. Reload возможен только между turns.
+`AGENTS.md` — не config override. Effective instructions состоят из canonical-deduplicated `G/AGENTS.md`, затем applicable Location files в pinned nearest-working-directory-to-root order; distinct sentinel каждого admitted файла входит ровно один раз с provenance. Unreadable/disappeared local file не сохраняет старый текст. Configured sources принадлежат captured generation и не перечитываются посреди её request/tool batch; successful-read Nested sources сохраняют отдельный существующий lifecycle.
+
+`instructions: ["rules/*.md", "~/shared.md", "https://example.com/rules.md"]`
+объединяется в порядке admitted config documents с удалением повторных деклараций
+и canonical file paths. Relative paths/globs ищутся от Location вверх до enclosing
+worktree boundary; совпадения каждого pattern сортируются, включая dotfiles.
+Absolute и `~/` paths получают отдельную instruction-only admission с captured HOME,
+regular/no-follow чтением и исключением actual native data root до чтения,
+включая descendants/aliases. Это **не** расширяет Files/read/Nested roots.
+Сохраняются bounds128 sources,128KiB/file,512KiB total; glob walk ограничен
+4096 entries/depth32.
+
+HTTP(S) sources загружаются асинхронно как raw UTF-8, без HTML conversion и
+credential headers, с default TLS/userinfo checks,5s deadline и concurrency4.
+Fetch происходит при startup, semantic config-document update или explicit reload,
+не при каждом local file rescan. При временном отказе сохраняется last-good body
+только всё ещё объявленного URL; удалённая декларация не возвращается из fallback.
+В model/history source label хранится hash URL, не query-bearing address.
+Это captured config-source GET, не permission grant модельному `webfetch`.
 
 T45/R10 target adds the OC2 initial baseline/chronological changed or removed
 instructions and successful-read nested AGENTS lifecycle. Reconcile after
@@ -668,9 +726,15 @@ compaction/Revert/reopen, without stale content or mixed in-flight generations.
 Trust/canonical Location boundaries remain native differences from broader donor
 walks; this is not permission to read arbitrary ancestors/home directories.
 
-Automatic definitions читаются только из `G` и admitted `.opencode` roots: `{skill,skills}/<id>/SKILL.md` либо flat `{skill,skills}/<id>.md`, `{agent,agents}/<id>.md`, `{command,commands}/<id>.md`. Singular root обрабатывается перед plural в одной source directory; inline JSON/JSONC declaration — перед Markdown definitions этого root. Exact order/collisions закрепляются fixture, а не filesystem enumeration. T45/R6 admits recursive agent/agents IDs and one-level compatibility mode/modes per pinned importer; legacy-mode exclusion is superseded only for these profiles. `.claude`/`.agents`, URL/remote/package skills и symlink escape remain unsupported.
+Definitions из `G` и admitted `.opencode` roots: `{skill,skills}/**/SKILL.md` либо flat `{skill,skills}/<id>.md`, `{agent,agents}/**/<id>.md`, `{command,commands}/<id>.md`. Singular root обрабатывается перед plural в одной source directory; inline JSON/JSONC declaration — перед Markdown definitions этого root. Skills затем дополняются из `.claude/skills`, после них `.agents/skills`: captured HOME, затем предки от admitted checkout root до Location. Вне checkout автоматический ancestor walk не расширяется. Последними идут локальные roots из `skills: ["extra-skills", "~/shared-skills", "/absolute/skills"]` всех admitted документов; relative paths считаются от Location, каждый путь — сам skill root. Явно выбранные roots проходят admission/data-root guard, а не становятся automatic read grants. URL/remote/package skills и symlink escape за admitted skill root не поддерживаются.
 
-Skill ID выводится из directory ID либо stem flat Markdown-файла; supported frontmatter — bounded `name`/`description`, body — instructions. Later source целиком заменяет duplicate ID с shadowing provenance. При построении generation body проверяется как regular no-follow file, bounded и snapshot-ится вместе с digest; model catalog получает только bounded id/name/description. После publication файл повторно не открывается.
+Skill scanner детерминированно сортирует пути, ищет до depth6, пропускает hidden directories, `node_modules`, `venv`, `__pycache__`; каталог с `SKILL.md` — leaf, его потомки не сканируются. Flat Markdown читается только непосредственно из skill root. Все посещённые каталоги и missing selected roots наблюдаются для atomic reload. Agent IDs остаются recursive, mode/modes — one-level compatibility.
+
+Skill ID выводится из непосредственного parent `SKILL.md` (в том числе root самого skill) либо stem flat Markdown-файла; supported frontmatter — bounded `name`/`description`, body — instructions. Later source целиком заменяет duplicate ID с shadowing provenance. При построении generation body проверяется как regular no-follow file, bounded и snapshot-ится вместе с digest; model catalog получает только bounded id/name/description. После publication файл повторно не открывается.
+
+Built-in `/init [focus]` запускает guided `AGENTS.md` setup как обычный model prompt рядом с `/review`; сам по себе не пишет файл и не обходит mutation permissions. Workspace command с тем же ID заменяет fallback.
+
+`oc2 run [words…]` соединяет аргументы пробелом, сохраняя прежний literal single-prompt contract без добавления кавычек; non-TTY UTF-8 stdin добавляется через newline. Пустой итог отклоняется. `-m provider/model#variant` явно выбирает модель/variant, `-c` продолжает последнюю root session текущей Location, явный `--session` имеет приоритет. Повторяемый `-f path` прикладывает обычные UTF-8 text files как `<file name="basename">` blocks; PNG/JPEG/GIF/WebP проходят bounded validation и используют существующий PNG input (не-PNG перекодируется из первого image frame). До100 files, до10MiB исходный файл; общий native prompt2MiB и image20/40MiB caps остаются. Own data root и special files отклоняются, PDF/прочие неподдержанные media — явный отказ. Корневые `--continue`/`-c`, `--session`/`-s`, `--prompt` принадлежат TUI: initial prompt отправляется один раз через обычный admission после восстановления route/selection. Без terminal bare invocation по-прежнему не превращается в headless.
 
 Approved T45/R6 target replaces the old primary-only subset: Build/Plan/General/Explore,
 custom Markdown primary/subagent/all and typed system/model/variant/request/steps/color

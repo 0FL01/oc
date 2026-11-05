@@ -432,20 +432,18 @@ fn matches_input(inputs: &WatchInputs, path: &Path, directory: bool) -> bool {
         };
         match target.kind {
             InputKind::File => false,
+            InputKind::InstructionDirectory => relative.components().count() == 1,
             InputKind::AgentTree => directory || path.extension().is_some_and(|ext| ext == "md"),
             InputKind::MarkdownDirectory => {
                 relative.components().count() == 1
                     && !directory
                     && path.extension().is_some_and(|ext| ext == "md")
             }
-            InputKind::Skills => match relative.components().count() {
-                1 => directory || path.extension().is_some_and(|ext| ext == "md"),
-                2 => path.file_name().is_some_and(|name| name == "SKILL.md"),
-                _ => false,
-            },
-            InputKind::SkillDirectory => {
-                relative.components().count() == 1
-                    && path.file_name().is_some_and(|name| name == "SKILL.md")
+            InputKind::Skills => {
+                directory
+                    || path.file_name().is_some_and(|name| name == "SKILL.md")
+                    || relative.components().count() == 1
+                        && path.extension().is_some_and(|ext| ext == "md")
             }
         }
     })

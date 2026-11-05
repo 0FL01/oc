@@ -18,6 +18,7 @@ use oc_core::queries::{
     ServiceDiagnostic, ServiceKind, ServiceStage, StartupNotice,
 };
 mod catalog;
+mod configured_instructions;
 pub(crate) mod custom_connections;
 
 #[cfg(test)]
@@ -71,6 +72,7 @@ pub struct Composition {
     /// Ordered global + Location instructions for a fixed request lane.
     pub instructions: String,
     pub(crate) instruction_roots: Vec<crate::instructions::Root>,
+    pub(crate) configured_instructions: crate::instructions::Configured,
     /// Selected primary-agent prompt, if configured.
     pub agent_prompt: Option<String>,
     /// Digest of the selected primary profile.
@@ -141,6 +143,7 @@ impl Composition {
             parent_env: self.parent_env.clone(),
             instructions: self.instructions.clone(),
             instruction_roots: self.instruction_roots.clone(),
+            configured_instructions: self.configured_instructions.clone(),
             agent_prompt: self.agent_prompt.clone(),
             agent_digest: self.agent_digest.clone(),
             variant: self.variant.clone(),
@@ -247,9 +250,10 @@ pub(crate) async fn load_with_env_diagnostic(
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
     let result = async {
-        let (mut composition, _) = load_stages(project, parent_env, false).await?;
+        let (mut composition, _) = load_stages(project, parent_env, false, None).await?;
         composition.retain_local_inputs()?;
         composition.refresh_provider().await?;
+        composition.refresh_instruction_urls(None, false).await?;
         Ok(composition)
     }
     .await;
@@ -264,24 +268,35 @@ pub(crate) async fn load_with_env_diagnostic(
 }
 
 /// Admit the complete local generation before any optional discovery work.
+#[cfg(test)]
 pub(crate) async fn load_local_with_env(
     project: &Path,
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
-    let (mut composition, provider_policy) = load_stages(project, parent_env, false).await?;
-    composition.admit_provider_views(&provider_policy)?;
-    composition.retain_local_inputs()?;
-    Ok(composition)
+    load_local_inputs(project, parent_env, false, None).await
 }
 
 /// Reload is an all-or-nothing mandatory-input admission. Startup may display an
 /// unavailable optional definition; a malformed replacement may not retire the
 /// working generation, even when that particular definition is not selected.
+#[cfg(test)]
 pub(crate) async fn load_reload_local_with_env(
     project: &Path,
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
-    let (mut composition, provider_policy) = load_stages(project, parent_env, true).await?;
+    load_local_inputs(project, parent_env, true, None).await
+}
+
+/// The native owner supplies its actual data-root authority before source IO.
+/// Standalone composition utilities have no Db authority to infer from env.
+pub(crate) async fn load_local_inputs(
+    project: &Path,
+    parent_env: BTreeMap<String, String>,
+    reload: bool,
+    data_root: Option<&Path>,
+) -> Result<Composition, LoadFailure> {
+    let (mut composition, provider_policy) =
+        load_stages(project, parent_env, reload, data_root).await?;
     composition.admit_provider_views(&provider_policy)?;
     composition.retain_local_inputs()?;
     Ok(composition)
@@ -889,6 +904,7 @@ async fn load_stages(
     project: &Path,
     parent_env: BTreeMap<String, String>,
     reload: bool,
+    data_root: Option<&Path>,
 ) -> Result<(Composition, catalog::ProviderPolicy), LoadFailure> {
     let AdmittedSources {
         project,
@@ -901,6 +917,14 @@ async fn load_stages(
     } = admit_sources(project, &parent_env)?;
     let watch_inputs =
         std::cell::RefCell::new(watch_inputs::WatchInputs::admitted(&roots, &admitted_roots));
+    let data_scope = data_root
+        .map(|data| {
+            let data =
+                std::path::absolute(data).map_err(|_| invalid("native sources", &["data_root"]))?;
+            crate::files::Files::new(&project, &data)
+                .map_err(|_| invalid("native sources", &["data_root"]))
+        })
+        .transpose()?;
     for source in &sources {
         watch_inputs.borrow_mut().file(Path::new(&source.path));
     }
@@ -961,6 +985,7 @@ async fn load_stages(
                 },
                 &admitted.dir,
                 Some(&observe_definition),
+                data_scope.as_ref(),
             );
         }
     }
@@ -981,8 +1006,18 @@ async fn load_stages(
             },
             &admitted.dir,
             Some(&observe_definition),
+            data_scope.as_ref(),
         );
     }
+    merge_skill_sources(
+        &mut loaded_defs,
+        &project,
+        &parent_env,
+        &sources,
+        data_scope.as_ref(),
+        &watch_inputs,
+        &observe_definition,
+    )?;
     if !loaded_defs.unknown_keys.is_empty() {
         let global_origin = global
             .as_ref()
@@ -1017,7 +1052,7 @@ async fn load_stages(
             let file = root.path.join("AGENTS.md");
             let baseline = if let Some(admitted) = admit_instruction(&file, &root.path)? {
                 watch_inputs.borrow_mut().file(&admitted);
-                let text = read_instruction(root, &admitted);
+                let text = read_instruction(root, &admitted, data_scope.as_ref());
                 let baseline = text.as_ref().ok().map(|text| {
                     std::sync::Arc::new(crate::instructions::Source::baseline(
                         &admitted,
@@ -1052,6 +1087,19 @@ async fn load_stages(
             origin: crate::instructions::Origin::Project,
             baseline: None,
         });
+    }
+    let configured_instructions = configured_instructions::load(
+        &project,
+        &parent_env,
+        &sources,
+        &instruction_roots,
+        data_scope.as_ref(),
+        &watch_inputs,
+    )?;
+    for source in &configured_instructions.sources {
+        if let Some(content) = &source.content {
+            instruction_files.push((source.path.clone(), Ok(content.clone())));
+        }
     }
     let (instructions, instruction_diagnostics) = defs::load_instruction_texts(&instruction_files);
 
@@ -1393,6 +1441,19 @@ async fn load_stages(
         .map(|command| (command.id.clone(), command.description.clone()))
         .collect();
     let builtin_review = !commands.contains_key("review");
+    if !commands.contains_key("init") {
+        let directory = crate::files::Files::enclosing_worktree(&project)
+            .map_or_else(|| project.clone(), |(path, _)| path);
+        commands.insert(
+            "init".into(),
+            include_str!("../assets/upstream/v2/initialize.txt").replacen(
+                "${path}",
+                &directory.to_string_lossy(),
+                1,
+            ),
+        );
+        command_descriptions.insert("init".into(), "guided AGENTS.md setup".into());
+    }
     if builtin_review {
         commands.insert(
             "review".into(),
@@ -1770,6 +1831,7 @@ async fn load_stages(
         parent_env,
         instructions,
         instruction_roots,
+        configured_instructions,
         agent_prompt: selected_agent.as_ref().map(|agent| agent.body.clone()),
         agent_digest: selected_agent.as_ref().map(defs::agent_digest),
         variant: selected_variant,
@@ -2164,12 +2226,21 @@ pub(crate) fn save_permission_mode(
     result
 }
 
-fn read_instruction(root: &AdmittedRoot, path: &Path) -> Result<String, String> {
+fn read_instruction(
+    root: &AdmittedRoot,
+    path: &Path,
+    data_scope: Option<&crate::files::Files>,
+) -> Result<String, String> {
     let relative = path
         .strip_prefix(&root.path)
         .map_err(|_| "outside admitted root".to_string())?;
     let mut file = admitted_fs::open_beneath_no_symlinks(&root.dir, relative, libc::O_RDONLY)
         .map_err(|_| "unreadable".to_string())?;
+    if let Some(scope) = data_scope {
+        scope
+            .check_data_file(&file)
+            .map_err(|_| "data-root source refused".to_string())?;
+    }
     let meta = file.metadata().map_err(|_| "unreadable".to_string())?;
     if !meta.is_file() {
         return Err("not a regular file".to_string());
@@ -2260,6 +2331,109 @@ fn merge_config_sources(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
+fn merge_skill_sources(
+    definitions: &mut defs::LoadedDefs,
+    project: &Path,
+    env: &BTreeMap<String, String>,
+    sources: &[config::Source],
+    data: Option<&crate::files::Files>,
+    watch: &std::cell::RefCell<watch_inputs::WatchInputs>,
+    observe: &defs::InputObserver<'_>,
+) -> Result<(), LoadFailure> {
+    let boundary = crate::files::Files::enclosing_worktree(project)
+        .map_or_else(|| project.to_path_buf(), |(path, _)| path);
+    let ancestors: Vec<_> = project
+        .ancestors()
+        .take_while(|path| path.starts_with(&boundary))
+        .collect();
+    let mut roots = Vec::new();
+    for name in [".claude", ".agents"] {
+        if let Some(home) = env.get("HOME").filter(|home| !home.is_empty()) {
+            roots.push((Path::new(home).join(name).join("skills"), None));
+        }
+        for ancestor in ancestors.iter().rev() {
+            roots.push((ancestor.join(name).join("skills"), Some(boundary.as_path())));
+        }
+    }
+    for source in sources {
+        let value =
+            config::parse_jsonc(&source.text, &source.path).map_err(|_| document(&source.path))?;
+        let Some(entries) = value.get("skills") else {
+            continue;
+        };
+        if !source.trusted {
+            return Err(failure(
+                &source.path,
+                &["skills"],
+                ServiceStage::Admission,
+                ServiceCode::TrustRefused,
+            ));
+        }
+        for entry in entries
+            .as_array()
+            .ok_or_else(|| invalid(&source.path, &["skills"]))?
+        {
+            let entry = entry
+                .as_str()
+                .ok_or_else(|| invalid(&source.path, &["skills"]))?;
+            if roots.len() >= 4096 {
+                return Err(failure(
+                    &source.path,
+                    &["skills"],
+                    ServiceStage::Admission,
+                    ServiceCode::CapacityExceeded,
+                ));
+            }
+            if reqwest::Url::parse(entry).is_ok_and(|url| matches!(url.scheme(), "http" | "https"))
+            {
+                return Err(invalid(&source.path, &["skills", "unsupported_url"]));
+            }
+            let path = if let Some(relative) = entry.strip_prefix("~/") {
+                let home = env
+                    .get("HOME")
+                    .ok_or_else(|| invalid(&source.path, &["skills"]))?;
+                Path::new(home).join(relative)
+            } else {
+                project.join(entry)
+            };
+            roots.push((path, None));
+        }
+    }
+    let mut seen = BTreeSet::new();
+    for (path, local_boundary) in roots {
+        watch.borrow_mut().skills(&path);
+        let Some(root) = admit_root(
+            &path,
+            local_boundary.unwrap_or(project),
+            local_boundary.is_some(),
+        )?
+        else {
+            continue;
+        };
+        if let Some(data) = data {
+            data.io_target(&path)
+                .map_err(|_| invalid("skills", &["data_root"]))?;
+            data.check_data_file(&root.dir)
+                .map_err(|_| invalid("skills", &["data_root"]))?;
+        }
+        if !seen.insert(root.path.clone()) {
+            continue;
+        }
+        defs::merge_skill_root_admitted(
+            definitions,
+            &defs::DefRoot {
+                origin: path.to_string_lossy().into_owned(),
+                dir: root.path,
+            },
+            &root.dir,
+            observe,
+            data,
+        );
+    }
+    Ok(())
+}
+
 /// Canonical `plugins`: package strings or `{package, options}`. Compiled native
 /// modules take no options; they are accepted but have no effect.
 fn plugin_packages(value: &serde_json::Value, source: &str) -> Result<Vec<String>, LoadFailure> {
@@ -2286,6 +2460,76 @@ mod tests {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     #[tokio::test]
+    async fn w10_skill_sources_recurse_with_leaf_ids_order_and_captured_bodies() {
+        let dir = tempfile::tempdir().unwrap();
+        let project = dir.path().join("project");
+        let home = dir.path().join("home");
+        for (path, body) in [
+            (home.join(".claude/skills/demo/SKILL.md"), "home"),
+            (
+                project.join(".opencode/skills/nested/native/SKILL.md"),
+                "native",
+            ),
+            (project.join(".claude/skills/deep/demo/SKILL.md"), "claude"),
+            (project.join(".agents/skills/deep/demo/SKILL.md"), "agents"),
+            (project.join("extra/nested/demo/SKILL.md"), "configured"),
+            (
+                project.join("extra/nested/demo/ignored/SKILL.md"),
+                "ignored",
+            ),
+            (project.join("extra/.hidden/SKILL.md"), "hidden"),
+            (project.join("extra/node_modules/pkg/SKILL.md"), "package"),
+            (project.join("extra/flat.md"), "flat"),
+            (project.join("extra/nested/not-a-skill.md"), "not-a-skill"),
+            (home.join("direct/SKILL.md"), "direct"),
+        ] {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, format!("---\ndescription: {body}\n---\n{body}")).unwrap();
+        }
+        std::fs::write(project.join("opencode.json"), r#"{"model":"fixture/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}},"skills":["extra","~/direct"]}"#).unwrap();
+        let env = BTreeMap::from([
+            ("HOME".into(), home.to_string_lossy().into_owned()),
+            (
+                "XDG_CONFIG_HOME".into(),
+                dir.path().join("config").to_string_lossy().into_owned(),
+            ),
+        ]);
+        let loaded = load_with_env(&project, env.clone()).await.unwrap();
+        let skills: BTreeMap<_, _> = loaded.skills.iter().cloned().collect();
+        assert_eq!(
+            skills.keys().map(String::as_str).collect::<Vec<_>>(),
+            ["customize-opencode", "demo", "direct", "flat", "native"]
+        );
+        assert_eq!(
+            skills["demo"],
+            "---\ndescription: configured\n---\nconfigured"
+        );
+        let path = project.join("extra/nested/demo/SKILL.md");
+        assert!(
+            loaded
+                .watch_inputs
+                .targets
+                .iter()
+                .any(|target| target.path == path)
+        );
+        std::fs::write(&path, "changed").unwrap();
+        assert_eq!(
+            skills["demo"],
+            "---\ndescription: configured\n---\nconfigured"
+        );
+        let reloaded = load_with_env(&project, env).await.unwrap();
+        assert_eq!(
+            reloaded
+                .skills
+                .iter()
+                .find(|(id, _)| id == "demo")
+                .unwrap()
+                .1,
+            "changed"
+        );
+    }
+
+    #[tokio::test]
     async fn bundled_review_is_a_fallback_to_admitted_workspace_definition() {
         let dir = tempfile::tempdir().expect("fixture");
         let project = dir.path().join("project");
@@ -2306,12 +2550,12 @@ mod tests {
             .expect("fallback");
         assert_eq!(fallback.project, project.canonicalize().expect("canonical"));
         assert!(fallback.builtin_review);
-        assert_eq!(fallback.commands.len(), 1);
+        assert_eq!(fallback.commands.len(), 2);
         assert_eq!(
             fallback.commands["review"],
             include_str!("../assets/upstream/v2/review.txt")
         );
-        assert_eq!(fallback.command_descriptions.len(), 1);
+        assert_eq!(fallback.command_descriptions.len(), 2);
         assert_eq!(
             fallback.command_descriptions["review"],
             "review changes [commit|branch|pr], defaults to uncommitted"
@@ -2769,6 +3013,101 @@ mod tests {
         );
         assert_eq!(loaded.agents["global"].body, "global agent");
         assert_eq!(loaded.agents["global"].origin, global.to_string_lossy());
+    }
+
+    #[tokio::test]
+    async fn w10_configured_instruction_paths_and_globs_are_captured_without_new_read_roots() {
+        let root = tempfile::tempdir().unwrap();
+        let checkout = root.path().join("checkout");
+        let project = checkout.join("nested");
+        let global = root.path().join("global");
+        let home = root.path().join("home");
+        for directory in [
+            &project,
+            &global,
+            &home,
+            &checkout.join(".git"),
+            &checkout.join("rules"),
+            &project.join("rules"),
+        ] {
+            std::fs::create_dir_all(directory).unwrap();
+        }
+        for (path, body) in [
+            (project.join("AGENTS.md"), "W10_BASELINE"),
+            (project.join("local.md"), "W10_LOCAL_LITERAL"),
+            (project.join("global-rule.md"), "W10_GLOBAL_DECLARATION"),
+            (checkout.join("rules/outer.md"), "W10_ANCESTOR_GLOB"),
+            (project.join("rules/.hidden.md"), "W10_HIDDEN_GLOB"),
+            (project.join("rules/inner.md"), "W10_LOCAL_GLOB"),
+            (project.join("rules/common.txt"), "W10_MATCHED_ALIAS"),
+            (home.join("absolute.md"), "W10_ABSOLUTE"),
+            (home.join("home.md"), "W10_HOME"),
+        ] {
+            std::fs::write(path, body).unwrap();
+        }
+        std::fs::write(project.join("notes.txt"), "UNMATCHED_INSTRUCTION_NOISE").unwrap();
+        std::os::unix::fs::symlink("../notes.txt", project.join("rules/noise.txt")).unwrap();
+        std::os::unix::fs::symlink("common.txt", project.join("rules/team.md")).unwrap();
+        std::fs::write(
+            global.join("opencode.json"),
+            r#"{"instructions":["global-rule.md","local.md"]}"#,
+        )
+        .unwrap();
+        std::fs::write(project.join("opencode.json"), serde_json::json!({
+            "model":"fixture/m", "providers":{"fixture":{"package":"@ai-sdk/openai",
+                "settings":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}},
+            "instructions":["rules/*.md","local.md",home.join("absolute.md"),"~/home.md","AGENTS.md","missing.md"]
+        }).to_string()).unwrap();
+        let loaded = load_with_env(
+            &project,
+            BTreeMap::from([
+                ("HOME".into(), home.to_string_lossy().into_owned()),
+                (
+                    "OPENCODE_CONFIG_DIR".into(),
+                    global.to_string_lossy().into_owned(),
+                ),
+            ]),
+        )
+        .await
+        .unwrap();
+        for marker in [
+            "W10_BASELINE",
+            "W10_GLOBAL_DECLARATION",
+            "W10_LOCAL_LITERAL",
+            "W10_ANCESTOR_GLOB",
+            "W10_HIDDEN_GLOB",
+            "W10_LOCAL_GLOB",
+            "W10_MATCHED_ALIAS",
+            "W10_ABSOLUTE",
+            "W10_HOME",
+        ] {
+            assert_eq!(loaded.instructions.matches(marker).count(), 1, "{marker}");
+        }
+        // TS sorts absolute matches for each declaration, not by ancestor depth:
+        // checkout/nested/rules sorts before checkout/rules.
+        assert!(
+            loaded.instructions.find("W10_HIDDEN_GLOB")
+                < loaded.instructions.find("W10_LOCAL_GLOB")
+        );
+        assert!(
+            loaded.instructions.find("W10_LOCAL_GLOB")
+                < loaded.instructions.find("W10_ANCESTOR_GLOB")
+        );
+        assert!(
+            loaded.instructions.find("W10_LOCAL_GLOB")
+                < loaded.instructions.find("W10_MATCHED_ALIAS")
+        );
+        assert!(
+            loaded.instructions.find("W10_MATCHED_ALIAS")
+                < loaded.instructions.find("W10_ANCESTOR_GLOB")
+        );
+        assert!(
+            !loaded
+                .instruction_roots
+                .iter()
+                .any(|source| source.path == home)
+        );
+        assert_eq!(loaded.model_id, "m");
     }
 
     #[tokio::test]

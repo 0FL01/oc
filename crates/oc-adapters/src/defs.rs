@@ -1,7 +1,7 @@
 //! Workspace definitions and instructions loading (T25, CFG06/CFG07).
 //!
-//! Disk discovery for admitted `.opencode` roots only: skills
-//! (`{skill,skills}/<id>/SKILL.md` and flat `{skill,skills}/<id>.md`),
+//! Disk discovery for admitted definition roots and selected local skill roots:
+//! skills (`{skill,skills}/**/SKILL.md` and root-level flat Markdown),
 //! agents (`{agent,agents}/**/<id>.md`, compatibility `{mode,modes}/<id>.md`),
 //! commands (`{command,commands}/<id>.md`).
 //! Singular roots load before plural within one source directory; later
@@ -447,7 +447,7 @@ pub(crate) enum InputKind {
     AgentTree,
     MarkdownDirectory,
     Skills,
-    SkillDirectory,
+    InstructionDirectory,
 }
 
 pub(crate) type InputObserver<'a> = dyn Fn(&Path, &File, InputKind) + 'a;
@@ -588,6 +588,7 @@ pub fn merge_definition_root(defs: &mut LoadedDefs, root: &DefRoot) {
         },
         &dir,
         None,
+        None,
     );
 }
 
@@ -597,6 +598,7 @@ pub(crate) fn merge_definition_root_admitted(
     root: &DefRoot,
     dir: &File,
     observe: Option<&InputObserver<'_>>,
+    data: Option<&crate::files::Files>,
 ) {
     let total_bytes = existing_definition_bytes(defs);
     let mut out = Collector {
@@ -604,7 +606,24 @@ pub(crate) fn merge_definition_root_admitted(
         total_bytes,
         observe,
     };
-    load_root(&mut out, root, dir);
+    load_root(&mut out, root, dir, data);
+    *defs = out.defs;
+}
+
+/// A selected local skill source is itself the scan root, not a config root.
+pub(crate) fn merge_skill_root_admitted(
+    defs: &mut LoadedDefs,
+    root: &DefRoot,
+    dir: &File,
+    observe: &InputObserver<'_>,
+    data: Option<&crate::files::Files>,
+) {
+    let mut out = Collector {
+        total_bytes: existing_definition_bytes(defs),
+        defs: std::mem::take(defs),
+        observe: Some(observe),
+    };
+    load_skills(&mut out, root, dir, &root.dir, data);
     *defs = out.defs;
 }
 
@@ -1064,7 +1083,15 @@ fn open_admitted(root: &DefRoot, dir: &File, candidate: &Path, flags: i32) -> io
             "symlink resolves outside admitted root",
         )
     })?;
-    admitted_fs::open_beneath(dir, relative, flags)
+    admitted_fs::open_beneath(
+        dir,
+        if relative.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            relative
+        },
+        flags,
+    )
 }
 
 fn definition_candidate(
@@ -1098,8 +1125,15 @@ fn definition_candidate(
     }
 }
 
-fn load_root(out: &mut Collector<'_>, root: &DefRoot, dir: &File) {
-    load_kind(out, root, dir, "skill", &["skill", "skills"]);
+fn load_root(
+    out: &mut Collector<'_>,
+    root: &DefRoot,
+    dir: &File,
+    data: Option<&crate::files::Files>,
+) {
+    for sub in ["skill", "skills"] {
+        load_skills(out, root, dir, &root.dir.join(sub), data);
+    }
     load_kind(
         out,
         root,
@@ -1150,15 +1184,7 @@ fn load_kind(out: &mut Collector<'_>, root: &DefRoot, admitted: &File, kind: &st
                 continue;
             }
         };
-        out.observed(
-            &dir,
-            &pinned,
-            if kind == "skill" {
-                InputKind::Skills
-            } else {
-                InputKind::MarkdownDirectory
-            },
-        );
+        out.observed(&dir, &pinned, InputKind::MarkdownDirectory);
         // read_dir reopens only this pinned descriptor, never the pathname that
         // may be concurrently replaced with an external symlink.
         let entries = match std::fs::read_dir(format!("/proc/self/fd/{}", pinned.as_raw_fd())) {
@@ -1174,16 +1200,11 @@ fn load_kind(out: &mut Collector<'_>, root: &DefRoot, admitted: &File, kind: &st
             }
         };
         // Bound relevant entries before sorting or opening definition bodies.
-        // Skill directories and aliases still pass through open_admitted.
         let names: Vec<String> = entries
             .filter_map(|e| e.ok())
             .filter(|entry| {
-                if kind == "skill" {
-                    definition_candidate(root, admitted, entry, true)
-                } else {
-                    let name = entry.file_name();
-                    name.len() > 3 && name.to_string_lossy().ends_with(".md")
-                }
+                let name = entry.file_name();
+                name.len() > 3 && name.to_string_lossy().ends_with(".md")
             })
             .take(4097)
             .map(|e| e.file_name().to_string_lossy().to_string())
@@ -1210,6 +1231,177 @@ fn load_kind(out: &mut Collector<'_>, root: &DefRoot, admitted: &File, kind: &st
                 return;
             }
             load_entry(out, root, admitted, kind, &dir, &name);
+        }
+    }
+}
+
+fn load_skills(
+    out: &mut Collector<'_>,
+    root: &DefRoot,
+    admitted: &File,
+    base: &Path,
+    data: Option<&crate::files::Files>,
+) {
+    let mut paths = Vec::new();
+    collect_skill_paths(out, root, admitted, base, 0, &mut 4096, &mut paths, data);
+    paths.sort();
+    for path in paths {
+        let file = match open_admitted(root, admitted, &path, libc::O_RDONLY | libc::O_NONBLOCK) {
+            Ok(file) => file,
+            Err(_) => {
+                out.defs
+                    .diagnostics
+                    .push(diag(&path, "skill", "source unavailable"));
+                continue;
+            }
+        };
+        if data.is_some_and(|scope| scope.check_data_file(&file).is_err()) {
+            out.defs.diagnostics.push(diag_code(
+                &path,
+                "skill",
+                "own data root",
+                oc_core::queries::ServiceCode::TrustRefused,
+            ));
+            continue;
+        }
+        out.observed(&path, &file, InputKind::File);
+        let id = if path.file_name().is_some_and(|name| name == "SKILL.md") {
+            path.parent().and_then(Path::file_name)
+        } else {
+            path.file_stem()
+        }
+        .unwrap_or_default()
+        .to_string_lossy()
+        .into_owned();
+        if !valid_id(&id) {
+            out.defs
+                .diagnostics
+                .push(diag(&path, "skill", "invalid id"));
+            continue;
+        }
+        match read_plain(file) {
+            Ok(text) => insert_skill_text(out, root, id, String::new(), text, &path),
+            Err((reason, code)) => out
+                .defs
+                .diagnostics
+                .push(diag_code(&path, "skill", &reason, code)),
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_skill_paths(
+    out: &mut Collector<'_>,
+    root: &DefRoot,
+    admitted: &File,
+    path: &Path,
+    depth: usize,
+    remaining: &mut usize,
+    paths: &mut Vec<PathBuf>,
+    data: Option<&crate::files::Files>,
+) {
+    let pinned = match open_admitted(root, admitted, path, libc::O_RDONLY | libc::O_DIRECTORY) {
+        Ok(file) => file,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return,
+        Err(_) => {
+            out.defs.diagnostics.push(diag_code(
+                path,
+                "skill",
+                "directory unavailable or outside admitted root",
+                oc_core::queries::ServiceCode::TrustRefused,
+            ));
+            return;
+        }
+    };
+    if data.is_some_and(|scope| scope.check_data_file(&pinned).is_err()) {
+        out.defs.diagnostics.push(diag_code(
+            path,
+            "skill",
+            "own data root",
+            oc_core::queries::ServiceCode::TrustRefused,
+        ));
+        return;
+    }
+    out.observed(path, &pinned, InputKind::Skills);
+    let skill = path.join("SKILL.md");
+    match open_admitted(root, admitted, &skill, libc::O_RDONLY | libc::O_NONBLOCK) {
+        Ok(file) if file.metadata().is_ok_and(|meta| meta.is_file()) => {
+            paths.push(skill);
+            return; // A skill directory is a leaf, even if it has subdirectories.
+        }
+        Err(error) if error.kind() != io::ErrorKind::NotFound => {
+            out.defs.diagnostics.push(diag(
+                &skill,
+                "skill",
+                "source unavailable or outside admitted root",
+            ));
+            return;
+        }
+        _ => {}
+    }
+    let Ok(entries) = std::fs::read_dir(format!("/proc/self/fd/{}", pinned.as_raw_fd())) else {
+        out.defs
+            .diagnostics
+            .push(diag(path, "skill", "unreadable directory"));
+        return;
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if name.starts_with('.') || matches!(name.as_ref(), "node_modules" | "venv" | "__pycache__")
+        {
+            continue;
+        }
+        let candidate = path.join(name.as_ref());
+        let kind = entry.file_type();
+        if !(kind
+            .as_ref()
+            .is_ok_and(|kind| kind.is_dir() || kind.is_symlink())
+            || depth == 0 && name.ends_with(".md"))
+        {
+            continue;
+        }
+        if *remaining == 0 {
+            out.defs.diagnostics.push(diag_code(
+                path,
+                "skill",
+                "too many directory entries",
+                oc_core::queries::ServiceCode::CapacityExceeded,
+            ));
+            return;
+        }
+        *remaining -= 1;
+        let file = match open_admitted(
+            root,
+            admitted,
+            &candidate,
+            libc::O_RDONLY | libc::O_NONBLOCK,
+        ) {
+            Ok(file) => file,
+            Err(_) => {
+                out.defs.diagnostics.push(diag(
+                    &candidate,
+                    "skill",
+                    "source unavailable or outside admitted root",
+                ));
+                continue;
+            }
+        };
+        if file.metadata().is_ok_and(|meta| meta.is_dir()) {
+            if depth < 6 {
+                collect_skill_paths(
+                    out,
+                    root,
+                    admitted,
+                    &candidate,
+                    depth + 1,
+                    remaining,
+                    paths,
+                    data,
+                );
+            }
+        } else if depth == 0 && name.ends_with(".md") {
+            paths.push(candidate);
         }
     }
 }
@@ -1615,79 +1807,6 @@ fn load_entry(
 ) {
     let path = dir.join(name);
     match kind {
-        "skill" => {
-            let entry = match open_admitted(root, admitted, &path, libc::O_RDONLY) {
-                Ok(entry) => entry,
-                Err(error) => {
-                    out.defs
-                        .diagnostics
-                        .push(diag(&path, kind, &error.to_string()));
-                    return;
-                }
-            };
-            let meta = match entry.metadata() {
-                Ok(meta) => meta,
-                Err(_) => {
-                    out.defs.diagnostics.push(diag(&path, kind, "unreadable"));
-                    return;
-                }
-            };
-            if meta.is_file() {
-                // Flat `skills/<id>.md` is a skill (upstream scans `*.md`).
-                if !name.ends_with(".md") {
-                    return;
-                }
-                out.observed(&path, &entry, InputKind::File);
-                let id = name.trim_end_matches(".md").to_string();
-                if !valid_id(&id) {
-                    out.defs.diagnostics.push(diag(&path, kind, "invalid id"));
-                    return;
-                }
-                let text = match read_plain(entry) {
-                    Ok(text) => text,
-                    Err((reason, code)) => {
-                        out.defs
-                            .diagnostics
-                            .push(diag_code(&path, kind, &reason, code));
-                        return;
-                    }
-                };
-                insert_skill_text(out, root, id, String::new(), text, &path);
-                return;
-            }
-            if !meta.is_dir() {
-                return; // Foreign entry; upstream ignores anything else.
-            }
-            if !valid_id(name) {
-                out.defs.diagnostics.push(diag(&path, kind, "invalid id"));
-                return;
-            }
-            out.observed(&path, &entry, InputKind::SkillDirectory);
-            let file = path.join("SKILL.md");
-            let admitted_file = match open_admitted(root, admitted, &file, libc::O_RDONLY) {
-                // A directory without `SKILL.md` is silently skipped
-                // (upstream scans `**/SKILL.md`, not every file).
-                Err(error) if error.kind() == io::ErrorKind::NotFound => return,
-                Err(error) => {
-                    out.defs
-                        .diagnostics
-                        .push(diag(&file, kind, &error.to_string()));
-                    return;
-                }
-                Ok(file) => file,
-            };
-            out.observed(&file, &admitted_file, InputKind::File);
-            let text = match read_plain(admitted_file) {
-                Ok(text) => text,
-                Err((reason, code)) => {
-                    out.defs
-                        .diagnostics
-                        .push(diag_code(&file, kind, &reason, code));
-                    return;
-                }
-            };
-            insert_skill_text(out, root, name.to_string(), String::new(), text, &file);
-        }
         "agent" | "command" => {
             if !(name.ends_with(".md") && name.len() > 3) {
                 return; // Ignore foreign files; config domains merge explicitly.

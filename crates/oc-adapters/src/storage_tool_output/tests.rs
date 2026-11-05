@@ -321,6 +321,7 @@ fn model_shell_frozen_presentation_survives_logical_result_order_reopen_and_fork
             command: "printf original".into(),
             cwd: "/p".into(),
             selected_shell: "/bin/sh".into(),
+            formatter: false,
         };
         db.admit_shell_job_mode(&provenance, false).unwrap();
         let body = "literal [stderr]\nfinal frozen flush\n";

@@ -1159,6 +1159,7 @@ for line in sys.stdin:
 
     runtime
         .reload(Generation {
+            formatters: Vec::new(),
             command_shell: None,
             tool_output: Default::default(),
             compaction: Default::default(),

@@ -1449,6 +1449,7 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
     // Reload between turns publishes id 2 with read allowed.
     let id = runtime
         .reload(Generation {
+            formatters: Vec::new(),
             command_shell: None,
             tool_output: Default::default(),
             compaction: Default::default(),
@@ -1491,6 +1492,7 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
             tokio::time::sleep(Duration::from_millis(300)).await;
             runtime
                 .reload(Generation {
+                    formatters: Vec::new(),
                     command_shell: None,
                     tool_output: Default::default(),
                     compaction: Default::default(),

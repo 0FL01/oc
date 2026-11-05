@@ -2,6 +2,123 @@
 use super::*;
 
 #[tokio::test]
+async fn w10_configured_nested_path_stays_captured_across_reads_and_old_nested_facts() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    std::fs::create_dir(project.path().join("nested")).unwrap();
+    std::fs::write(project.path().join("nested/file.txt"), "read result").unwrap();
+    let path = project.path().join("nested/AGENTS.md");
+    std::fs::write(&path, "W10_NESTED_BEFORE_CAPTURE").unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    let mut generation = Generation::default();
+    generation
+        .permissions
+        .insert("read".into(), Permission::Allow);
+    generation.compaction.auto = false;
+    let runtime = runtime(&db, project.path(), generation);
+    runtime.update_execution(|view| {
+        view.workspace.instruction_roots = vec![crate::instructions::Root {
+            path: project.path().into(),
+            dir: Arc::new(std::fs::File::open(project.path()).unwrap()),
+            origin: crate::instructions::Origin::Project,
+            baseline: None,
+        }];
+    });
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    let requests = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let captured = requests.clone();
+    let peer = tokio::spawn(async move {
+        for request_index in 0..4 {
+            let (mut socket, request) = read_request(&listener).await;
+            captured.lock().unwrap().push(request);
+            let script = if request_index % 2 == 0 {
+                let item = serde_json::json!({"type":"function_call","id":format!("read-{request_index}"),
+                    "call_id":format!("read-{request_index}"),"name":"read",
+                    "arguments":"{\"path\":\"nested/file.txt\",\"limit\":2}","status":"completed"});
+                [serde_json::json!({"type":"response.output_item.added","item":item}),
+                    serde_json::json!({"type":"response.output_item.done","item":item}),
+                    serde_json::json!({"type":"response.completed","response":{"status":"completed","output":[item]}})]
+                    .iter().map(|event|format!("data: {event}\n\n")).collect::<String>()
+            } else {
+                sse("done")
+            };
+            respond(&mut socket, &script).await;
+        }
+    });
+    let catalog = catalog();
+    let cancel = AtomicBool::new(false);
+    let mut reports = Vec::new();
+    for phase in 0..2 {
+        if phase == 1 {
+            runtime.update_execution(|view| {
+                view.workspace.configured_instructions =
+                    vec![crate::instructions::Source::baseline(
+                        &path,
+                        project.path(),
+                        crate::instructions::Origin::Project,
+                        "W10_CAPTURED_SOURCE",
+                    )];
+            });
+            std::fs::write(&path, "W10_UNCAPTURED_DISK_CHANGE").unwrap();
+        }
+        let prompt = format!("read phase {phase}");
+        reports.push(
+            tokio::time::timeout(
+                Duration::from_secs(4),
+                runtime.run_turn(TurnParams {
+                    session: "s".into(),
+                    prompt: prompt.into(),
+                    invocation: None,
+                    catalog: &catalog,
+                    model_id: "m".into(),
+                    variant: None,
+                    max_output: 1024,
+                    provider: provider.clone(),
+                    cancel: &cancel,
+                }),
+            )
+            .await,
+        );
+    }
+    peer.abort();
+    let _ = peer.await;
+    for report in reports {
+        assert_eq!(report.unwrap().unwrap().status, TurnStatus::Completed);
+    }
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests.len(), 4);
+    for request in &requests[2..] {
+        assert_eq!(
+            request["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|item| item["role"] == "developer"
+                    && item["content"].to_string().contains("W10_CAPTURED_SOURCE"))
+                .count(),
+            1
+        );
+        assert!(
+            !request["input"]
+                .to_string()
+                .contains("W10_UNCAPTURED_DISK_CHANGE")
+        );
+    }
+    let (_, facts) = db.instruction_view("s").unwrap();
+    let current = facts
+        .iter()
+        .filter(|fact| fact.source.path == path.to_string_lossy())
+        .collect::<Vec<_>>();
+    assert_eq!(current.len(), 1);
+    assert_eq!(
+        current[0].source.content.as_deref(),
+        Some("W10_CAPTURED_SOURCE")
+    );
+}
+
+#[tokio::test]
 async fn cfg17_saved_allow_cannot_bypass_final_configured_deny() {
     for denied in [false, true] {
         let data = tempfile::tempdir().unwrap();

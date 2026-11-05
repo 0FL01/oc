@@ -221,7 +221,14 @@ pub async fn serve(data: &Path, startup: StdStream) -> Result<(), SpawnDiagnosti
     let env: BTreeMap<String, String> = std::env::vars().collect();
     let admitted = match (intent.lease, intent.project) {
         (Lease::Tui | Lease::Run, Some(project)) => {
-            match crate::composition::load_local_with_env(Path::new(&project), env.clone()).await {
+            match crate::composition::load_local_inputs(
+                Path::new(&project),
+                env.clone(),
+                false,
+                Some(data),
+            )
+            .await
+            {
                 Ok(composition) => Some(composition),
                 Err(error) => {
                     let failure = SpawnDiagnostic::configuration(error);

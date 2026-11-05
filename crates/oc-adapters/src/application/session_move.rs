@@ -105,11 +105,15 @@ pub(crate) async fn prepare_owned(
             .map_err(|_| "move destination session admission failed")?
             .composition
     } else {
-        composition::load_local_with_env(Path::new(&record.directory), env)
+        composition::load_local_inputs(Path::new(&record.directory), env, false, Some(db.root()))
             .await
             .map_err(|_| "move destination admission failed")?
     };
     if destination.is_none() {
+        composition
+            .refresh_instruction_urls(None, false)
+            .await
+            .map_err(|_| "move destination instruction admission failed")?;
         composition
             .attach_custom_connections(db)
             .map_err(|_| "move destination connection admission failed")?;

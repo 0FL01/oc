@@ -31,6 +31,7 @@ fn tool18_lookup_group_family_page_merge_and_public_field_allowlist() {
     use super::*;
     use serde_json::json;
     let mut generation = crate::config::Generation {
+        formatters: Vec::new(),
         tool_output: Default::default(),
         providers: BTreeMap::new(),
         public_go_enabled: false,

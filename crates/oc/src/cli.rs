@@ -26,6 +26,15 @@ pub struct Args {
     /// Print linked crate versions and exit without side effects.
     #[arg(long, default_value_t = false)]
     pub smoke: bool,
+    /// Continue the latest root session in this Location (interactive TUI).
+    #[arg(long = "continue", short = 'c')]
+    pub continue_session: bool,
+    /// Open this session in the interactive TUI.
+    #[arg(long, short = 's')]
+    pub session: Option<String>,
+    /// Submit this initial prompt once in the interactive TUI.
+    #[arg(long)]
+    pub prompt: Option<String>,
     /// Subcommand; bare `oc` launches the local TUI when stdin/stdout are a
     /// terminal (otherwise it fails with a headless hint).
     #[command(subcommand)]
@@ -51,17 +60,26 @@ pub enum Command {
     /// Run one headless prompt through the local runtime.
     Run {
         /// User prompt text.
-        prompt: String,
+        prompt: Vec<String>,
         /// Session id; a fresh `s-<nanos>` id is minted when absent.
         #[arg(long)]
         session: Option<String>,
+        /// Continue the latest root session in this Location.
+        #[arg(long = "continue", short = 'c')]
+        continue_session: bool,
+        /// Select provider/model#variant before submission.
+        #[arg(long, short = 'm')]
+        model: Option<String>,
+        /// Attach a local text or supported image file (repeatable).
+        #[arg(long = "file", short = 'f')]
+        files: Vec<PathBuf>,
         /// Select an admitted primary agent before submitting the prompt.
         #[arg(long)]
         agent: Option<String>,
         /// Emit NDJSON events on stdout (diagnostics stay on stderr).
         #[arg(long, default_value_t = false)]
         json: bool,
-        /// Image input is not supported by this text-only application profile.
+        /// Image URL input is unsupported; use --file for a local image.
         #[arg(long, value_name = "URL")]
         image: Option<String>,
     },

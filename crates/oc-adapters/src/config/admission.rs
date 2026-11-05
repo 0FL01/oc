@@ -589,6 +589,14 @@ pub(crate) fn scan_document(document: &Value) -> Vec<Finding> {
             scan_server(&mut out, server);
         }
     }
+    for entry in entries(root.get("formatter")) {
+        check(
+            &mut out,
+            Some(entry),
+            "formatter.<id>.",
+            &["disabled", "command", "extensions", "environment"],
+        );
+    }
     for agent in entries(root.get("agents")) {
         scan_agent(&mut out, "agents.<id>.", agent, false);
     }

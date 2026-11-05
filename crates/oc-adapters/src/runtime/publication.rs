@@ -42,6 +42,7 @@ pub(crate) struct WorkspacePublication {
     pub agent_permission_rules: crate::permissions::PermissionRules,
     pub agent_request: crate::provider::RequestOverlay,
     pub instruction_roots: Vec<crate::instructions::Root>,
+    pub configured_instructions: Vec<crate::instructions::Source>,
     pub subagents: Option<SubagentCatalog>,
     pub command_digest: Option<String>,
     pub profile_issue: Option<oc_core::queries::ServiceDiagnostic>,
@@ -150,7 +151,8 @@ impl Runtime<'_> {
         } else {
             Some(serde_json::to_string(&projection).map_err(|_| RuntimeError::Storage)?)
         };
-        let shared_sources = !input.instruction_roots.is_empty();
+        let shared_sources =
+            !input.instruction_roots.is_empty() || !input.configured_instructions.is_empty();
         let instructions = if shared_sources {
             String::new()
         } else {
@@ -175,6 +177,7 @@ impl Runtime<'_> {
             agent_request: input.agent_request,
             instructions,
             instruction_roots: input.instruction_roots,
+            configured_instructions: input.configured_instructions,
             subagents: input.subagents,
             command_digest: input.command_digest,
         })

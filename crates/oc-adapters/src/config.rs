@@ -18,9 +18,11 @@ use thiserror::Error;
 
 pub(crate) mod admission;
 pub(crate) mod diagnostic;
+mod formatter;
 pub(crate) mod mcp;
 mod providers;
 pub use crate::tools::output::Limits as ToolOutputLimits;
+pub use formatter::Formatter;
 pub use mcp::McpTimeouts;
 
 #[cfg(test)]
@@ -667,6 +669,8 @@ impl ConversationKeybinds {
 /// Effective immutable generation (T07 subset).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Generation {
+    /// Trusted configured programs, captured with this generation's authority.
+    pub formatters: Vec<Formatter>,
     /// Config-priority shell for command interpolation only.
     pub command_shell: Option<String>,
     pub tool_output: ToolOutputLimits,
@@ -1178,6 +1182,7 @@ fn assemble_with_admission(
     let mut config_diagnostics = Vec::new();
     let mut compaction_provenance = BTreeMap::new();
     let mut command_shell = None;
+    let mut formatters = Vec::new();
 
     for source in sources {
         let value =
@@ -1222,7 +1227,7 @@ fn assemble_with_admission(
                     }
                 }
             }
-            for field in ["share", "username", "watcher", "formatter"] {
+            for field in ["share", "username", "watcher"] {
                 if obj.contains_key(field) {
                     config_diagnostics.push(oc_core::queries::ConfigDiagnostic {
                         source: mcp::safe_source_id(&source.path),
@@ -1231,6 +1236,9 @@ fn assemble_with_admission(
                         action: oc_core::queries::ConfigDiagnosticAction::Skip,
                     });
                 }
+            }
+            if obj.contains_key("formatter") {
+                formatter::merge(&mut formatters, source, env, reader)?;
             }
             if let Some(mode) = terminal_copy_value(obj)? {
                 terminal_copy_source = Some(source.path.clone());
@@ -1597,6 +1605,10 @@ fn assemble_with_admission(
 
     Ok((
         Generation {
+            formatters: formatters
+                .into_iter()
+                .map(|(_, formatter)| formatter)
+                .collect(),
             command_shell,
             tool_output,
             config_diagnostics,
@@ -2980,7 +2992,7 @@ mod tests {
             .map(|note| note.to_string())
             .collect::<Vec<_>>()
             .join("\n");
-        for field in ["snapshots", "share", "username", "watcher", "formatter"] {
+        for field in ["snapshots", "share", "username", "watcher"] {
             assert!(
                 diagnostics.contains(field),
                 "missing named warning: {field}"

@@ -57,14 +57,19 @@ proxy-certificate refusal without HTTP fallback. No process-global set_var, exte
 provider or system trust change; existing direct endpoint/delivery guards stay tested.
 W5 covers legacy policy source order/native precedence under selected Build,
 unknown fields preserving provider/definition/request siblings with safe startup/reload
-warnings, and malformed known policy/selected-profile refusal. Fixed260skills and
-90×48KiB definitions prove warning-only capacity omissions on startup/reload without
+warnings, and malformed known policy/selected-profile refusal. Fixed4100skills and
+90×768KiB definitions prove warning-only capacity omissions on startup/reload without
 relaxing agent-catalog completeness. Trusted public/admitted file-reference fixtures
 cover ~/absolute/../links, trim/decoded quotes, >64KiB and unreadable regular/FIFO
 fallbacks, including disabled-MCP activation and protected status/stderr. Real
 project/global stdio fixtures prove captured credential inheritance plus overlay
 precedence using booleans, exact argv/cwd and reaping; never dump referenced values.
 При работе с capture/comparator: `python3 tui-recovery/scripts/test_compare_frames.py`.
+W10 owner slices `w10_` cover configured instruction captures/URL refusal and dedup,
+formatter disk effects/cancellation/symlink move/unsafe readback, recursive skill
+sources and watch topology, CLI input/files and one-shot root startup/continue.
+Differential TS runs use the existing loopback-only `bwrap` stand; no real provider
+or authoring credentials. This scoped parity evidence does not replace the full gate.
 При наличии Node в dev-среде: `node --test scripts/test_discovery_reference.mjs` — offline oracle, не production зависимость.
 
 ## Ресурсы и время

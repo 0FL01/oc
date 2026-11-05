@@ -1292,19 +1292,29 @@ pub(crate) fn tool_patch_typed(
     call: &ToolCall,
     diff: &mut dyn FnMut(&str),
 ) -> (&'static str, String, Option<oc_core::patch::PatchEffects>) {
+    tool_patch_formatted(ctx, call, diff, None)
+}
+
+pub(crate) fn tool_patch_formatted(
+    ctx: &ToolContext<'_>,
+    call: &ToolCall,
+    diff: &mut dyn FnMut(&str),
+    formatter: Option<&mut dyn crate::patch::Formatter>,
+) -> (&'static str, String, Option<oc_core::patch::PatchEffects>) {
     if ctx.cancel.load(std::sync::atomic::Ordering::Relaxed) {
         return ("cancelled", Diagnostic::cancelled(&call.name).1, None);
     }
     if let Err(e) = ctx.policy.check_call(call) {
         return ("failed", e.diagnostic(&call.name).output("failed"), None);
     }
-    tool_patch_impl(ctx, call, diff)
+    tool_patch_impl(ctx, call, diff, formatter)
 }
 
 fn tool_patch_impl(
     ctx: &ToolContext<'_>,
     call: &ToolCall,
     diff: &mut dyn FnMut(&str),
+    formatter: Option<&mut dyn crate::patch::Formatter>,
 ) -> (&'static str, String, Option<oc_core::patch::PatchEffects>) {
     let patch = call
         .arguments
@@ -1334,20 +1344,17 @@ fn tool_patch_impl(
         );
     };
     let bridge = PolicyBridge(ctx.policy, &call.name);
-    let (result, effects) = crate::patch::apply_patch_with_approved_preimage(
+    let (result, effects) = crate::patch::apply_patch_formatted(
         ctx.files,
         patch,
         &bridge,
         ctx.policy.approved_patch_preimage(),
         diff,
+        formatter,
     );
-    let state = if result.is_ok() {
-        "completed"
-    } else {
-        "failed"
-    };
+    let state = mutation_state(result.as_ref().err().map(|failure| &failure.error));
     let output = patch_outcome(result);
-    let output = if state == "failed" {
+    let output = if state != "completed" {
         Diagnostic::new(&call.name, "execution_failed", &output)
             .hint("Some operations may have committed; inspect recorded effects before any retry.")
             .output(state)
@@ -1361,6 +1368,26 @@ pub(crate) fn tool_mutation_typed(
     ctx: &ToolContext<'_>,
     call: &ToolCall,
     diff: &mut dyn FnMut(&str),
+) -> (&'static str, String, Option<oc_core::patch::PatchEffects>) {
+    tool_mutation_formatted(ctx, call, diff, None)
+}
+
+fn mutation_state(error: Option<&PatchError>) -> &'static str {
+    match error {
+        None => "completed",
+        Some(PatchError::Conflict { reason, .. }) if reason == "formatter-result-unknown" => {
+            "unknown"
+        }
+        Some(PatchError::Conflict { reason, .. }) if reason == "formatter-cancelled" => "cancelled",
+        Some(_) => "failed",
+    }
+}
+
+pub(crate) fn tool_mutation_formatted(
+    ctx: &ToolContext<'_>,
+    call: &ToolCall,
+    diff: &mut dyn FnMut(&str),
+    formatter: Option<&mut dyn crate::patch::Formatter>,
 ) -> (&'static str, String, Option<oc_core::patch::PatchEffects>) {
     if ctx.cancel.load(std::sync::atomic::Ordering::Acquire) {
         return ("cancelled", Diagnostic::cancelled(&call.name).1, None);
@@ -1390,24 +1417,22 @@ pub(crate) fn tool_mutation_typed(
             None,
         );
     };
-    let (result, effects) = crate::patch::mutation::execute(
+    let (result, effects) = crate::patch::mutation::execute_formatted(
         ctx.files,
         &input,
         &PolicyBridge(ctx.policy, &call.name),
         ctx.policy.approved_patch_preimage(),
         diff,
+        formatter,
     );
+    let state = mutation_state(result.as_ref().err());
     (
-        if result.is_ok() {
-            "completed"
-        } else {
-            "failed"
-        },
+        state,
         match result {
             Ok(output) => output.to_string(),
             Err(error) => Diagnostic::new(&call.name, "execution_failed", error.to_string())
                 .hint("Inspect recorded effects before retrying a mutation.")
-                .output("failed"),
+                .output(state),
         },
         Some(effects),
     )

@@ -15,6 +15,146 @@ pub(crate) use image_budget::{defer_images, image_measurement, project_images};
 pub(crate) use projection::{omitted_images, project_media};
 pub(crate) use prompt::{image_metadata, prepare_prompt, restore_prompt};
 
+/// Explicit CLI file inputs use the existing text/PNG prompt and own-data guard.
+/// Supported image containers normalize to PNG; PDF remains unsupported.
+/// No filesystem reference or new attachment kind crosses the native protocol.
+pub fn attach_files(
+    mut prompt: oc_core::prompt::PromptInput,
+    paths: &[std::path::PathBuf],
+    project: &std::path::Path,
+    data: &std::path::Path,
+) -> Result<oc_core::prompt::PromptInput, AttachmentError> {
+    use std::io::Read as _;
+    use std::os::unix::fs::OpenOptionsExt as _;
+    const FILE_BYTES: usize = 10 * 1024 * 1024;
+    if paths.len() > 100 {
+        return Err(AttachmentError::TooLarge);
+    }
+    let scope =
+        crate::files::Files::new(project, data).map_err(|_| AttachmentError::VerificationFailed)?;
+    let mut images = Vec::new();
+    let mut image_bytes = 0usize;
+    for path in paths {
+        let target = scope
+            .io_target(&project.join(path))
+            .map_err(|_| AttachmentError::VerificationFailed)?;
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC)
+            .open(target)
+            .map_err(|_| AttachmentError::VerificationFailed)?;
+        scope
+            .check_data_file(&file)
+            .map_err(|_| AttachmentError::VerificationFailed)?;
+        let meta = file
+            .metadata()
+            .map_err(|_| AttachmentError::VerificationFailed)?;
+        if !meta.is_file() {
+            return Err(AttachmentError::UnsupportedKind);
+        }
+        if meta.len() > FILE_BYTES as u64 {
+            return Err(AttachmentError::TooLarge);
+        }
+        let mut bytes = Vec::new();
+        file.take((FILE_BYTES + 1) as u64)
+            .read_to_end(&mut bytes)
+            .map_err(|_| AttachmentError::VerificationFailed)?;
+        if bytes.len() > FILE_BYTES {
+            return Err(AttachmentError::TooLarge);
+        }
+        let extension = path
+            .extension()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_ascii_lowercase();
+        let format = image::guess_format(&bytes).ok().filter(|format| {
+            matches!(
+                format,
+                image::ImageFormat::Png
+                    | image::ImageFormat::Jpeg
+                    | image::ImageFormat::Gif
+                    | image::ImageFormat::WebP
+            )
+        });
+        if let Some(format) = format {
+            crate::files::read::validate_image(
+                &bytes,
+                format,
+                &std::sync::atomic::AtomicBool::new(false),
+            )
+            .map_err(|_| AttachmentError::VerificationFailed)?;
+            if format != image::ImageFormat::Png {
+                let mut reader =
+                    image::ImageReader::with_format(std::io::Cursor::new(&bytes), format);
+                let mut limits = image::Limits::default();
+                limits.max_alloc = Some(ATTACHMENT_CAP_BYTES as u64);
+                limits.max_image_width = Some(4096);
+                limits.max_image_height = Some(4096);
+                reader.limits(limits);
+                let decoded = reader
+                    .decode()
+                    .map_err(|_| AttachmentError::VerificationFailed)?;
+                let mut png = std::io::Cursor::new(Vec::new());
+                decoded
+                    .write_to(&mut png, image::ImageFormat::Png)
+                    .map_err(|_| AttachmentError::VerificationFailed)?;
+                bytes = png.into_inner();
+            }
+            image_bytes += bytes.len();
+            if image_bytes > ATTACHMENTS_TOTAL_CAP_BYTES {
+                return Err(AttachmentError::TooLarge);
+            }
+            images.push(bytes);
+        } else if matches!(
+            extension.as_str(),
+            "png" | "jpg" | "jpeg" | "gif" | "webp" | "pdf"
+        ) {
+            return Err(AttachmentError::UnsupportedKind);
+        } else {
+            let text = std::str::from_utf8(&bytes).map_err(|_| AttachmentError::UnsupportedKind)?;
+            if bytes.contains(&0)
+                || bytes
+                    .iter()
+                    .filter(|&&byte| byte < 9 || (byte > 13 && byte < 32))
+                    .count()
+                    * 10
+                    > bytes.len() * 3
+            {
+                return Err(AttachmentError::UnsupportedKind);
+            }
+            let name = path.file_name().unwrap_or_default().to_string_lossy();
+            let block = format!("<file name=\"{name}\">\n{text}\n</file>");
+            if !prompt.text.is_empty() {
+                prompt.text.push_str("\n\n");
+            }
+            prompt.text.push_str(&block);
+            prompt
+                .check_budget()
+                .map_err(|_| AttachmentError::TooLarge)?;
+        }
+    }
+    for bytes in images {
+        if !prompt.text.is_empty() {
+            prompt.text.push('\n');
+        }
+        let ordinal = prompt.images.len() + 1;
+        let start = prompt.text.len();
+        prompt.text.push_str(&format!("[Image {ordinal}]"));
+        prompt.images.push(oc_core::prompt::PromptImage {
+            mark: oc_core::prompt::ImageMark {
+                start,
+                end: prompt.text.len(),
+                ordinal,
+            },
+            png: bytes.into(),
+        });
+        prompt
+            .check_budget()
+            .map_err(|_| AttachmentError::TooLarge)?;
+    }
+    Ok(prompt)
+}
+
 /// Full bounded PNG verification shared by clipboard acquisition and admission.
 pub fn validate_png(
     bytes: &[u8],
@@ -109,6 +249,56 @@ pub fn encode_segments(
 #[cfg(test)]
 mod tests {
     use super::{AttachmentError, encode_segments, verify_attachment};
+
+    #[test]
+    fn w10_cli_files_capture_text_and_refuse_special_and_own_data_inputs() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        std::fs::write(project.join("context.txt"), "file body\n").unwrap();
+        let prompt =
+            super::attach_files("prompt".into(), &["context.txt".into()], &project, &data).unwrap();
+        assert_eq!(
+            prompt.text,
+            "prompt\n\n<file name=\"context.txt\">\nfile body\n\n</file>"
+        );
+        let mut png = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::new_rgba8(1, 1)
+            .write_to(&mut png, image::ImageFormat::Png)
+            .unwrap();
+        std::fs::write(project.join("image.png"), png.get_ref()).unwrap();
+        let image =
+            super::attach_files("prompt".into(), &["image.png".into()], &project, &data).unwrap();
+        assert_eq!(image.text, "prompt\n[Image 1]");
+        assert_eq!(&*image.images[0].png, png.get_ref());
+        let mut jpeg = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::new_rgb8(1, 1)
+            .write_to(&mut jpeg, image::ImageFormat::Jpeg)
+            .unwrap();
+        std::fs::write(project.join("image.jpg"), jpeg.get_ref()).unwrap();
+        let normalized =
+            super::attach_files("prompt".into(), &["image.jpg".into()], &project, &data).unwrap();
+        assert_eq!(normalized.text, "prompt\n[Image 1]");
+        super::validate_png(
+            &normalized.images[0].png,
+            &std::sync::atomic::AtomicBool::new(false),
+        )
+        .unwrap();
+        assert!(
+            super::attach_files(
+                "prompt".into(),
+                std::slice::from_ref(&project),
+                &project,
+                &data
+            )
+            .is_err()
+        );
+        std::fs::write(data.join("private"), "never attached").unwrap();
+        std::os::unix::fs::symlink(data.join("private"), project.join("alias")).unwrap();
+        assert!(super::attach_files("prompt".into(), &["alias".into()], &project, &data).is_err());
+    }
 
     #[test]
     fn prov05_images_text_caps_refusals() {

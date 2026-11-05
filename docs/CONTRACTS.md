@@ -90,6 +90,8 @@ Intent записывается до side effect; outcome — после под�
 
 Multi-file patch не атомарен целиком: preflight всех entries уменьшает риски, но каждый файловый commit отдельный. Partial outcome сообщает committed paths/ещё не применённые paths и recovery instructions. Не откатывать чужие правки автоматически.
 
+Configured formatter продолжает уже разрешённую write/edit/patch mutation под captured generation. Итоговые content/hash/diff берутся из guarded actual readback, не из planned text. Неверифицируемый readback оставляет confirmed partial metadata и unknown/no-replay outcome; cancellation joins supervised process group и не обещает откат. Trusted formatter может иметь произвольные host effects: native Shell Deny/Plan не является sandbox этой программы.
+
 ## Errors
 
 ConfigInvalid/UnsupportedCapability/UnsupportedPlugin/MissingCredential/StaleGeneration/UnknownAgent/UnknownCommand/UnknownSkill/UnknownModel/InvalidVariant; PermissionDenied/ApprovalRequired; Conflict/PathDenied/PatchInvalid; ProviderAuth/RateLimited/ProviderTimeout/ProtocolError/ContextLimit; McpUnavailable/McpProtocol/McpToolError; StorageFull/StorageBusy/DataRootBusy; Cancelled/Interrupted/UnknownOutcome.
@@ -587,13 +589,14 @@ AUTH01–AUTH06 belong only to T57; VIS45 only to T44 after explicit resume. Fun
 connect/auth actions do not require T44 completion; full auth-segment parity does.
 No backend/visual/live PASS is created by this plan, storage roundtrip or doc validator.
 
-## Config publication — W5
+## Config publication — W5/W9/W10
 
 Unknown config/frontmatter/request keys are omitted with payload-free service
 warnings, preserving recognized siblings and definitions on startup/reload. Legacy
 root/agent/frontmatter `permission` and `tools` normalize before omission in source
-order; native rules win within the document. Singular provider/direct MCP entries
-are warning+ignore, not new migration support. Known malformed policy/mandatory
+order; native rules win within the document. The explicit W9 provider/npm/options,
+model-overlay and provider-allowlist subset normalizes read-only; other legacy
+vocabulary/direct MCP remains warning+ignore. Known malformed policy/mandatory
 selected profiles, source authority and lower-trust/child/Plan ceilings stay gates.
 
 Local project/global MCP receives the full captured parent env plus configured
@@ -602,8 +605,8 @@ admission, live source/entry/stderr secret collection and no-unknown-effect repl
 remain. Trusted `{file:...}` references follow absolute/~/../links, trim, and have no
 64KiB file cap; unreadable/nonregular values become empty plus a safe warning.
 Admitted source authority remains pinned, disabled-MCP templates remain inert until
-activation, and decoded strings are not double escaped. Definition count/4MiB byte
-caps still omit excess skills with warnings on startup/reload; usable siblings and
+activation, and decoded strings are not double escaped. Definition caps (4096 per
+kind/64MiB aggregate) still omit excess skills with warnings on startup/reload; usable siblings and
 selected-profile/catalog completeness checks remain. See [CONFIG](CONFIG.md).
 
 ## Limits и context admission

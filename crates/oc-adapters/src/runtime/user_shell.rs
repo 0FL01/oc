@@ -152,6 +152,7 @@ impl Runtime<'_> {
             command: params.command.into(),
             cwd: pinned.path.to_string_lossy().into(),
             selected_shell: invocation.argv[0].clone(),
+            formatter: false,
         };
         let admission = match expected_selection {
             None => self

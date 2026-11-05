@@ -12,8 +12,10 @@ use oc_core::queries::{ServiceCode, ServiceStage};
 
 // Bound topology independently of source bodies and kernel watch allocation.
 // Duplicate observations (including repeated provider admission) cost nothing.
-const MAX_TARGETS: usize = 4096;
-const MAX_PATH_BYTES: usize = 1024 * 1024;
+// A recursive skill can contribute both its directory and its body. Retain
+// finite headroom for 4096 definitions plus the ordinary config/source targets.
+const MAX_TARGETS: usize = 16_384;
+const MAX_PATH_BYTES: usize = 4 * 1024 * 1024;
 
 pub(crate) mod observer;
 
@@ -107,6 +109,10 @@ impl WatchInputs {
 
     pub(super) fn file(&mut self, path: &Path) {
         self.insert(path, InputKind::File);
+    }
+
+    pub(super) fn skills(&mut self, path: &Path) {
+        self.insert(path, InputKind::Skills);
     }
 
     /// Successful descriptor opens supply the canonical target without re-opening

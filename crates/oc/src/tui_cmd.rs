@@ -201,10 +201,24 @@ const OWNER_RESTORED: &str = "Runtime connection restored; state reloaded. Nothi
 const MENTION_DEBOUNCE: Duration = Duration::from_millis(90);
 
 /// Launch the interactive TUI; returns process exit code.
-pub async fn run_tui(data_dir: &Path, session_opt: Option<String>, auto_once: bool) -> ExitCode {
+pub async fn run_tui(
+    data_dir: &Path,
+    session_opt: Option<String>,
+    continue_session: bool,
+    prompt: Option<String>,
+    auto_once: bool,
+) -> ExitCode {
     install_panic_hook();
     // Keep presentation state out of the shared CLI/native-owner dispatch future.
-    match Box::pin(run_inner(data_dir, session_opt, auto_once)).await {
+    match Box::pin(run_inner(
+        data_dir,
+        session_opt,
+        continue_session,
+        prompt,
+        auto_once,
+    ))
+    .await
+    {
         Ok(code) => code,
         Err(message) => {
             eprintln!("error: {message}");
@@ -216,9 +230,11 @@ pub async fn run_tui(data_dir: &Path, session_opt: Option<String>, auto_once: bo
 async fn run_inner(
     data_dir: &Path,
     session_opt: Option<String>,
+    continue_session: bool,
+    prompt: Option<String>,
     auto_once: bool,
 ) -> Result<ExitCode, String> {
-    let outcome = run_stages(data_dir, session_opt, auto_once).await;
+    let outcome = run_stages(data_dir, session_opt, continue_session, prompt, auto_once).await;
     let code = match &outcome {
         Ok(code) => *code,
         Err(_) => 1,
@@ -230,6 +246,8 @@ async fn run_inner(
 async fn run_stages(
     data_dir: &Path,
     session_opt: Option<String>,
+    continue_session: bool,
+    prompt: Option<String>,
     auto_once: bool,
 ) -> Result<u8, String> {
     if !at_tty() {
@@ -263,6 +281,16 @@ async fn run_stages(
         }
     };
     let result = async {
+        let session = if session.is_none() && continue_session {
+            app.session_list("".into(), false)
+                .await
+                .map_err(|error| error.to_string())?
+                .into_iter()
+                .next()
+                .map(|entry| entry.id)
+        } else {
+            session
+        };
         let catalog = match app.catalog().await {
             Ok(catalog) => catalog,
             Err(error) => return startup_query_frame(error),
@@ -280,10 +308,10 @@ async fn run_stages(
                         .to_string(),
                 ),
                 Err(error) => startup_query_frame(error),
-                _ => drive_ui(&app, session, auto_once).await,
+                _ => drive_ui(&app, session, prompt, auto_once).await,
             }
         } else {
-            drive_ui(&app, session, auto_once).await
+            drive_ui(&app, session, prompt, auto_once).await
         }
     }
     .await;
@@ -1469,7 +1497,12 @@ async fn refresh_approvals_in_views(
     Ok(())
 }
 
-async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> Result<u8, String> {
+async fn drive_ui(
+    app: &CoreApp,
+    session: Option<SessionId>,
+    mut prompt: Option<String>,
+    cli_auto: bool,
+) -> Result<u8, String> {
     let _term = enter()?;
     if std::env::var_os(PANIC_PROBE_ENV).is_some() {
         panic!("{PANIC_PROBE_ENV} probe");
@@ -1586,6 +1619,40 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             dirty = true;
         }
         dirty |= sync_controller_jobs(app, &mut state, &mut loop_state).await;
+        if prompt.is_some()
+            && !loop_state.read_only
+            && !loop_state.scope_uncertain
+            && state.chrome.selection.is_none()
+            && state
+                .chrome
+                .provider
+                .as_ref()
+                .is_none_or(|provider| provider.status == oc_core::queries::ProviderStatus::Ready)
+            && !loop_state.catalogs.preparing(&state)
+            && !loop_state
+                .unresolved_homes
+                .contains(&state.view_identity().0)
+            && !state.has_pending_model_commit()
+            && !state.has_pending_submission()
+            && loop_state.navigation_job.is_none()
+            && loop_state.deck_job.is_none()
+        {
+            // One startup input, through the same editor/admission path as Enter.
+            // Taking it before admission also prevents unknown-effect resend.
+            state.restore_prompt_input(prompt.take().expect("startup prompt").into());
+            handle_event_ticks(
+                app,
+                &mut state,
+                &mut loop_state,
+                CEvent::Key(crossterm::event::KeyEvent::new(
+                    crossterm::event::KeyCode::Enter,
+                    crossterm::event::KeyModifiers::NONE,
+                )),
+                1,
+            )
+            .await?;
+            dirty = true;
+        }
         if state.terminals_need_refresh() {
             loop_state.terminals.request(&state);
         }

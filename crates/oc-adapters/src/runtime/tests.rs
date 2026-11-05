@@ -149,6 +149,7 @@ async fn duplicate_binding_redactions_keep_protected_set_and_allow_silent_shell_
             command: "exit 0".into(),
             cwd: ".".into(),
             selected_shell: "/bin/sh".into(),
+            formatter: false,
         },
         jobs.reserve().unwrap(),
         true,

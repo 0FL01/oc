@@ -12,6 +12,7 @@ Scope текущей работы задаёт пользователь; workflo
 - Поддержанные provider/tool/config semantics — [CONTRACTS](docs/CONTRACTS.md), [CONFIG](docs/CONFIG.md), [OpenProxy](docs/PROVIDER_OPENPROXY.md), [tools/MCP](docs/TOOLS_MCP.md).
 - RAW/HOT, intentional forgetting и отсутствие artificial round stops остаются свойствами продукта, не процессом ведения документации: [DCP](docs/DCP.md), [Long Horizon](docs/LONG_HORIZON.md).
 - Публикация, historical PASS, offline gate или отдельный bugfix не означают full-product READY либо полный паритет с OpenCode.
+- Текущий явно запрошенный срез W0/W6–W10 и обязательный full offline gate: [разминирование и scoped TS parity](docs/goals/2026-11-04-demine-ts-parity.md). Исторические pending outcomes ниже не расширяют этот срез.
 
 ## Native tool diagnostics — завершено offline
 
@@ -37,7 +38,7 @@ Runtime/tests отправлены в origin, release собран; fresh-data m
 ### Provider recovery и компакция — offline fix, закрытие заблокировано
 
 Исправленный после RECON/аудита план и выполнение: [runtime recovery](docs/goals/2026-10-26-runtime-recovery.md).
-Pre-send retry classification/backoff, native-image accounting и compaction admission реализованы и проверены адресно; release binary собран. Push заблокирован SSH-доступом, общий offline gate остаётся FAIL; подробности и attribution незатронутых blockers — в цели. Буквальное бесконечное восстановление конфликтует с finite-контрактом и не объявляется выполненным.
+Pre-send retry classification/backoff, native-image accounting и compaction admission реализованы и проверены адресно; исторические release/push/full-gate статусы и attribution — в той цели. Текущий [demine-срез](docs/goals/2026-11-04-demine-ts-parity.md) отдельно проверяет интеграционный gate. Typed transient generation failures повторяются без общего attempt cap с отменяемым bounded backoff; `UnknownProvider` сохраняет10 attempts. Это не разрешает retry security/config/refusal, cancellation или unknown effect.
 
 ### TUI parity — отложено, не отменено
 

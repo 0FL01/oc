@@ -234,12 +234,24 @@ pub(crate) fn preview(
     Ok((proposed, plan.digest))
 }
 
+#[cfg(test)]
 pub(crate) fn execute(
     files: &Files,
     input: &Input<'_>,
     policy: &dyn WritePolicy,
     expected: Option<&str>,
     diff: &mut dyn FnMut(&str),
+) -> (Result<Value, PatchError>, oc_core::patch::PatchEffects) {
+    execute_formatted(files, input, policy, expected, diff, None)
+}
+
+pub(crate) fn execute_formatted(
+    files: &Files,
+    input: &Input<'_>,
+    policy: &dyn WritePolicy,
+    expected: Option<&str>,
+    diff: &mut dyn FnMut(&str),
+    mut formatter: Option<&mut dyn Formatter>,
 ) -> (Result<Value, PatchError>, oc_core::patch::PatchEffects) {
     let mut confirmed = oc_core::patch::PatchEffects::default();
     let result = (|| {
@@ -260,6 +272,8 @@ pub(crate) fn execute(
             &mut Vec::new(),
             &mut confirmed,
             diff,
+            files,
+            &mut formatter,
         )?;
         Ok(plan.output)
     })();

@@ -73,6 +73,8 @@ the generic wording does not authorize replay for shell, execute or MCP.
 
 `apply_patch`: один JSON argument `patchText` с upstream-style `*** Begin Patch` / Add File / Update File / Delete File / Move to / End Patch. Не смешивать с provider-hosted Responses `apply_patch` schema. В M2 сохранить parser fixtures выбранного OpenCode baseline; политика unsafe paths — наша.
 
+Configured `formatter` может продолжить разрешённую write/edit/patch запись; output/effects отражают guarded фактические bytes после форматирования. Это не отдельный Shell ToolCall и не permission grant; trusted host-effect caveat и unknown/no-replay lifecycle — [SECURITY](SECURITY.md), конфиг — [CONFIG](CONFIG.md#configured-formatters).
+
 Native strict profile: Add body состоит только из `+`-строк (префикс снимается);
 empty Add создаёт zero-byte файл. `*** Move to:` идёт непосредственно после
 `*** Update File:`, до hunks. `@@ section` выбирает точный уникальный context,

@@ -77,6 +77,7 @@ impl Held {
                     command,
                     cwd: self.project.to_string_lossy().into(),
                     selected_shell: "/bin/sh".into(),
+                    formatter: false,
                 },
                 self.jobs.reserve().unwrap(),
                 foreground,
@@ -185,6 +186,7 @@ async fn user_shell_consumes_committed_admission_and_reuses_supervised_job_owner
         command: command.into(),
         cwd: h.project.to_string_lossy().into(),
         selected_shell: "/bin/sh".into(),
+        formatter: false,
     };
     let slot = h.jobs.reserve().unwrap();
     let admission = h.db.admit_user_shell_job(&provenance, true, None).unwrap();
@@ -479,6 +481,7 @@ async fn tool13_held_owned_shell_output_is_readable_before_terminal() {
             command: "held".into(),
             cwd: project.to_string_lossy().into(),
             selected_shell: "/bin/sh".into(),
+            formatter: false,
         },
         jobs.reserve().unwrap(),
         true,
@@ -647,6 +650,7 @@ async fn tool13_cancelled_owner_wait_keeps_worker_then_failed_join_is_durable_an
         command: "never executed".into(),
         cwd: "/project".into(),
         selected_shell: "/bin/sh".into(),
+        formatter: false,
     })
     .unwrap();
     let (release_tx, release_rx) = std::sync::mpsc::channel();

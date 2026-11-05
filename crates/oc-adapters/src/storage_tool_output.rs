@@ -581,7 +581,7 @@ impl Db {
     /// small inline result. Its distinct shell viewer always pages the resource.
     pub(crate) fn output_for_history(&self, op: &str) -> Result<Option<Resource>, StorageError> {
         let shell:Option<(bool,bool)>=self.conn.lock().expect("db mutex").query_row(
-                "SELECT (EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id AND e.kind='shell_foreground' AND e.payload=j.operation_id) AND NOT EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id AND e.kind='shell_background' AND e.payload=j.operation_id)),COALESCE(json_extract(outcome,'$.output_prepared'),0) FROM shell_jobs j WHERE operation_id=?1",
+                "SELECT (EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id AND e.kind='shell_foreground' AND e.payload=j.operation_id) AND NOT EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id AND e.kind='shell_background' AND e.payload=j.operation_id)),COALESCE(json_extract(outcome,'$.output_prepared'),0) FROM shell_jobs j WHERE operation_id=?1 AND coalesce(json_extract(provenance,'$.formatter'),0)=0",
             [op],|row|Ok((row.get(0)?,row.get(1)?))).optional()?;
         if shell.is_some_and(|(foreground, prepared)| !foreground || !prepared) {
             return Ok(None);

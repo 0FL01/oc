@@ -837,6 +837,20 @@ pub(crate) fn apply_patch_with_approved_preimage(
     Result<Vec<FileResult>, ApplyFailure>,
     oc_core::patch::PatchEffects,
 ) {
+    apply_patch_formatted(files, patch_text, policy, expected, diff, None)
+}
+
+pub(crate) fn apply_patch_formatted(
+    files: &Files,
+    patch_text: &str,
+    policy: &dyn WritePolicy,
+    expected: Option<&str>,
+    diff: &mut dyn FnMut(&str),
+    formatter: Option<&mut dyn Formatter>,
+) -> (
+    Result<Vec<FileResult>, ApplyFailure>,
+    oc_core::patch::PatchEffects,
+) {
     let mut effects = oc_core::patch::PatchEffects::default();
     let result = apply_patch_inner(
         files,
@@ -846,6 +860,7 @@ pub(crate) fn apply_patch_with_approved_preimage(
         None,
         expected,
         diff,
+        formatter,
     );
     effects::bound_serialized(&mut effects);
     (result, effects)
@@ -866,11 +881,13 @@ pub(crate) fn approval_preview(
         Some(&mut digest),
         None,
         &mut |_| {},
+        None,
     )?;
     effects::bound_serialized(&mut proposed);
     Ok((proposed, digest))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn apply_patch_inner(
     files: &Files,
     patch_text: &str,
@@ -879,6 +896,7 @@ fn apply_patch_inner(
     preview_digest: Option<&mut String>,
     expected_digest: Option<&str>,
     diff: &mut dyn FnMut(&str),
+    mut formatter: Option<&mut dyn Formatter>,
 ) -> Result<Vec<FileResult>, ApplyFailure> {
     let ops = parse_plan(patch_text)?;
     let canonical_root = files.project_root().to_path_buf();
@@ -1252,6 +1270,8 @@ fn apply_patch_inner(
             &mut done,
             effects,
             diff,
+            files,
+            &mut formatter,
         ) {
             Ok(()) => {}
             Err(error) => {
@@ -1332,6 +1352,14 @@ fn link_entry(
     }))
 }
 
+/// Current runtime capability: reserve capacity before the commit, then run a
+/// joined trusted program. Standalone patch callers do not have this authority.
+pub(crate) trait Formatter {
+    fn prepare(&mut self, path: &std::path::Path) -> Result<bool, PatchError>;
+    fn format(&mut self, path: &std::path::Path) -> Result<(), PatchError>;
+}
+
+#[allow(clippy::too_many_arguments)]
 fn execute_op(
     root: &fs::Root,
     op: &FileOp,
@@ -1340,6 +1368,8 @@ fn execute_op(
     done: &mut Vec<FileResult>,
     effects: &mut oc_core::patch::PatchEffects,
     diff: &mut dyn FnMut(&str),
+    files: &Files,
+    formatter: &mut Option<&mut dyn Formatter>,
 ) -> Result<(), PatchError> {
     let rel = op.path();
     commit_prepared(
@@ -1356,6 +1386,8 @@ fn execute_op(
         done,
         effects,
         diff,
+        files,
+        formatter,
     )
 }
 
@@ -1371,8 +1403,21 @@ fn commit_prepared(
     done: &mut Vec<FileResult>,
     effects: &mut oc_core::patch::PatchEffects,
     diff: &mut dyn FnMut(&str),
+    files: &Files,
+    formatter: &mut Option<&mut dyn Formatter>,
 ) -> Result<(), PatchError> {
     policy.check(rel)?;
+    let should_format = if prepared.after.is_some() {
+        if let Some(destination) = move_to {
+            policy.check(destination)?;
+        }
+        match formatter.as_mut() {
+            Some(formatter) => formatter.prepare(std::path::Path::new(move_to.unwrap_or(rel)))?,
+            None => false,
+        }
+    } else {
+        false
+    };
     let io = |_| PatchError::Io {
         path: rel.to_string(),
     };
@@ -1414,6 +1459,15 @@ fn commit_prepared(
         None
     };
     let destination = target.as_ref().unwrap_or(&entry);
+    let format_path = if should_format {
+        let path = destination.absolute_path().map_err(io)?;
+        files
+            .io_target(&path)
+            .map_err(|_| io(std::io::Error::other("formatter target refused")))?;
+        Some(path)
+    } else {
+        None
+    };
     let staged = prepared
         .after
         .as_ref()
@@ -1473,6 +1527,92 @@ fn commit_prepared(
         }
         Ok(())
     })();
+    let mut formatted = None;
+    let mut formatting = Ok(());
+    if let Some(path) = &format_path {
+        formatting = formatter.as_mut().expect("formatter").format(path);
+        let snapshot = (|| {
+            if destination.absolute_path()? != *path {
+                return Err(std::io::Error::other("formatter parent replaced"));
+            }
+            files
+                .io_target(path)
+                .map_err(|_| std::io::Error::other("formatter target refused"))?;
+            if let (Some(linked), Some(link)) = (&linked, &prepared.link) {
+                let expected = if done.last().is_some_and(|file| file.new_path.is_some()) {
+                    // A confirmed move intentionally removed the source link.
+                    linked.absent()?
+                } else {
+                    linked.same_entry(&link.metadata)?
+                };
+                if !expected {
+                    return Err(std::io::Error::other("formatter link replaced"));
+                }
+            }
+            let cap = FILE_BYTES_CAP.min(
+                PLAN_BYTES_CAP
+                    .saturating_sub(prepared.before.as_ref().map_or(0, |s| s.bytes.len())),
+            );
+            let mut snapshot = destination.snapshot_with_cap(cap)?;
+            if !destination.unchanged(&snapshot)? {
+                return Err(std::io::Error::other("formatter target replaced"));
+            }
+            if prepared
+                .after
+                .as_ref()
+                .is_some_and(|bytes| bytes.starts_with(b"\xef\xbb\xbf"))
+                && !snapshot.bytes.starts_with(b"\xef\xbb\xbf")
+            {
+                if snapshot.bytes.len().saturating_add(3) > cap {
+                    return Err(std::io::Error::other("formatted file limit"));
+                }
+                let mut bytes = b"\xef\xbb\xbf".to_vec();
+                bytes.extend_from_slice(&snapshot.bytes);
+                let stage = destination.stage(&bytes, Some(snapshot.mode))?;
+                if !destination.unchanged(&snapshot)? {
+                    return Err(std::io::Error::other("formatter target replaced"));
+                }
+                stage.commit(false)?;
+                destination.sync()?;
+                snapshot.bytes = bytes;
+            }
+            Ok(snapshot.bytes)
+        })();
+        match snapshot {
+            Ok(bytes) => {
+                done.last_mut().expect("committed").hash_after = Some(sha_hex(&bytes));
+                formatted = Some(bytes);
+            }
+            Err(_) => {
+                let committed = done.last_mut().expect("committed");
+                committed.hash_after = None;
+                effects::push(
+                    effects,
+                    oc_core::patch::FileEffect {
+                        algorithm: oc_core::patch::DiffAlgorithm::StreamingReplacement,
+                        operation: match committed.op {
+                            "add" => oc_core::patch::PatchOperation::Create,
+                            "delete" => oc_core::patch::PatchOperation::Delete,
+                            _ if committed.new_path.is_some() => {
+                                oc_core::patch::PatchOperation::Move
+                            }
+                            _ => oc_core::patch::PatchOperation::Update,
+                        },
+                        path: committed.path.clone(),
+                        destination: committed.new_path.clone(),
+                        additions: 0,
+                        deletions: 0,
+                        hunks: Vec::new(),
+                        truncated: true,
+                    },
+                );
+                return Err(PatchError::Conflict {
+                    path: rel.into(),
+                    reason: "formatter-result-unknown".into(),
+                });
+            }
+        }
+    }
     // Sync/move may fail after a committed namespace change. Publish exactly
     // that change, using the actual destination, even on the failure path.
     let committed = done.last().expect("committed");
@@ -1495,7 +1635,9 @@ fn commit_prepared(
         } else {
             prepared.before.as_ref().map_or(&[], |s| s.bytes.as_slice())
         },
-        prepared.after.as_deref().unwrap_or(&[]),
+        formatted
+            .as_deref()
+            .unwrap_or_else(|| prepared.after.as_deref().unwrap_or(&[])),
         diff,
     );
     if let Some(destination) = &committed.new_path {
@@ -1503,7 +1645,7 @@ fn commit_prepared(
         file.operation = oc_core::patch::PatchOperation::Move;
     }
     effects::push(effects, file);
-    result
+    formatting.and(result)
 }
 
 fn map_resolve(files: &Files, rel: &str) -> Result<PathBuf, PatchError> {

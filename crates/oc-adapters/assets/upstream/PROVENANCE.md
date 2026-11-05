@@ -1,4 +1,4 @@
-# Bundled review prompt
+# Bundled command prompts
 
 `v2/review.txt` is a byte-for-byte copy of
 `packages/core/src/plugin/command/review.txt` from
@@ -31,6 +31,20 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ## Config command templates
+
+`v2/initialize.txt` is a byte-for-byte copy of
+`packages/core/src/plugin/command/initialize.txt` from TS 2.2.5, pinned tree
+`ff90ed91607cabf420a369e9009539c1aa0932af`.
+SHA-256: `bc5243883cdcc4c5e73e98604b3e3d263fe0fbccc0fc38140b650873c7fd175a`.
+The MIT notice above applies. Native `/init` is a fallback to admitted workspace
+definitions; its project-directory substitution precedes user-argument expansion.
+
+Recursive skill scan/order in `src/defs.rs` and `src/composition.rs`, and CLI
+text-file projection in `src/attachments.rs`, adapt respectively
+`config/plugin/{skill-scan,skill,compatibility}.ts` and
+`packages/cli/src/run/noninteractive.ts` from the same 2.2.5 tree. Native pinned
+admission, resource guards and text/PNG protocol remain independent. The MIT
+notice above applies to these adaptations as well.
 
 The configured-command argument parsing and substitution in
 `crates/oc-adapters/src/runtime.rs`, and interpolation syntax/order in

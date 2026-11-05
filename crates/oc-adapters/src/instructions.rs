@@ -13,7 +13,7 @@ use crate::provider::{InputItem, InputRole};
 use crate::runtime::RuntimePolicy;
 use crate::tools::ToolPolicy as _;
 
-const SOURCES_CAP: usize = 128;
+pub(crate) const SOURCES_CAP: usize = 128;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) enum Origin {
@@ -41,6 +41,16 @@ pub(crate) struct Source {
     pub digest: Option<String>,
     pub content: Option<String>,
     pub generation: u64,
+}
+
+/// Captured configuration inputs, not additional filesystem/read capabilities.
+/// Remote bodies are resolved outside the strictly local reload comparison.
+#[derive(Clone, Default, PartialEq)]
+pub(crate) struct Configured {
+    pub sources: Vec<Source>,
+    /// URL, declaring origin and position among local plus remote sources.
+    pub urls: Vec<(String, Origin, usize)>,
+    pub config_digest: [u8; 32],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -169,6 +179,7 @@ pub(crate) fn read_source(
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn after_read(
     roots: &[Root],
+    captured: &[Source],
     files: &crate::files::Files,
     path: &str,
     scope_dir: bool,
@@ -212,6 +223,12 @@ pub(crate) fn after_read(
         let directory = root.path.join(ancestor);
         let candidate = ancestor.join("AGENTS.md");
         if location.path.starts_with(directory) || root.path.join(&candidate) == resolved {
+            continue;
+        }
+        if captured
+            .iter()
+            .any(|source| source.path == root.path.join(&candidate).to_string_lossy())
+        {
             continue;
         }
         if result.len() >= SOURCES_CAP {

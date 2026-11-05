@@ -1370,10 +1370,14 @@ pub(crate) async fn start(
 ) -> Result<Location, SpawnIssue> {
     let mut composition = match owner.upgrade().and_then(|owner| owner.take_seed(project)) {
         Some(composition) => composition,
-        None => composition::load_local_with_env(project, env)
+        None => composition::load_local_inputs(project, env, false, Some(db.root()))
             .await
             .map_err(SpawnIssue::configuration)?,
     };
+    composition
+        .refresh_instruction_urls(None, false)
+        .await
+        .map_err(SpawnIssue::configuration)?;
     composition
         .attach_custom_connections(&db)
         .map_err(SpawnIssue::configuration)?;

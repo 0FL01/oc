@@ -26,8 +26,21 @@ impl Runtime<'_> {
                 sources.push(source);
             }
         }
+        for source in &published.workspace.configured_instructions {
+            if std::path::Path::new(&source.path).starts_with(&self.roots.data) {
+                continue;
+            }
+            let mut source = source.clone();
+            source.generation = published.id;
+            if !sources.iter().any(|present| present.path == source.path) {
+                sources.push(source);
+            }
+        }
         for fact in previous {
             if fact.source.origin != Origin::Nested || fact.source.content.is_none() {
+                continue;
+            }
+            if sources.iter().any(|source| source.path == fact.source.path) {
                 continue;
             }
             if let Some(root) = roots.iter().find(|r| {

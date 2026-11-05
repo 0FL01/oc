@@ -318,6 +318,7 @@ fn provenance(project: &Path, operation: &str) -> Provenance {
         command: "owned fixture".into(),
         cwd: project.to_string_lossy().into(),
         selected_shell: "/bin/sh".into(),
+        formatter: false,
     }
 }
 
@@ -701,6 +702,7 @@ async fn tool21_shell_captures_distant_stdout_before_recent_discard() {
             command: command.into(),
             cwd: project.to_string_lossy().into(),
             selected_shell: "/bin/sh".into(),
+            formatter: false,
         },
         jobs.reserve().unwrap(),
         true,

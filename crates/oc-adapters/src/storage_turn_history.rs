@@ -145,7 +145,7 @@ impl Db {
     /// jobs, subagent children and Execute jobs), kept verbatim in HOT.
     pub(crate) fn live_background_call_ids(&self, turn: &str) -> Result<Vec<String>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let mut stmt=conn.prepare("SELECT o.provider_call_id FROM shell_jobs j JOIN tool_operations o ON o.id=j.operation_id WHERE o.turn_id=?1 AND j.phase!='terminal' AND o.provider_call_id IS NOT NULL LIMIT 9")?;
+        let mut stmt=conn.prepare("SELECT o.provider_call_id FROM shell_jobs j JOIN tool_operations o ON o.id=j.operation_id WHERE o.turn_id=?1 AND j.phase!='terminal' AND coalesce(json_extract(j.provenance,'$.formatter'),0)=0 AND o.provider_call_id IS NOT NULL LIMIT 9")?;
         let mut ids = stmt
             .query_map([turn], |r| r.get::<_, String>(0))?
             .collect::<Result<Vec<_>, _>>()?;
@@ -479,7 +479,7 @@ impl Db {
                 // durable shell/child/Execute job, which keeps the launch row `running`.
                 let (state, background): (String, bool) = tx
                     .prepare_cached(
-                        "SELECT o.state, EXISTS(SELECT 1 FROM child_jobs WHERE operation_id=o.id) OR EXISTS(SELECT 1 FROM shell_jobs WHERE operation_id=o.id) OR EXISTS(SELECT 1 FROM execute_jobs WHERE operation_id=o.id) FROM tool_operations o WHERE o.id=?1 AND o.turn_id=?2",
+                        "SELECT o.state, EXISTS(SELECT 1 FROM child_jobs WHERE operation_id=o.id) OR EXISTS(SELECT 1 FROM shell_jobs WHERE operation_id=o.id AND coalesce(json_extract(provenance,'$.formatter'),0)=0) OR EXISTS(SELECT 1 FROM execute_jobs WHERE operation_id=o.id) FROM tool_operations o WHERE o.id=?1 AND o.turn_id=?2",
                     )?
                     .query_row(params![op, old.turn_id], |r| Ok((r.get(0)?, r.get(1)?)))?;
                 if !background
