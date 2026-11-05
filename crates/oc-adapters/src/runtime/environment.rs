@@ -12,6 +12,7 @@ const OPEN: &str = "<oc-execution-environment>";
 const CLOSE: &str = "</oc-execution-environment>";
 const FIELD_BYTES: usize = 4096;
 const DATA_BYTES: usize = 65536;
+const SELECTOR_ENV_BYTES: usize = 32 * 1024;
 
 /// Read strictly bounded regular data, including the normal /etc symlink. Never
 /// source os-release, read an environment inventory, or block on a FIFO/device.
@@ -212,13 +213,13 @@ fn collect(
     // This is the same selector the canonical tool uses, not a claim about $SHELL.
     let path_bounded = env
         .get("PATH")
-        .is_none_or(|value| value.len() <= crate::shell::ARG_BYTES_CAP);
+        .is_none_or(|value| value.len() <= SELECTOR_ENV_BYTES);
     let selector_env: Option<BTreeMap<_, _>> = ["PATH", "SHELL"]
         .into_iter()
         .filter_map(|key| env.get(key).map(|value| (key, value)))
         .filter(|(key, _)| *key != "PATH" || path_bounded)
         .map(|(key, value)| {
-            (value.len() <= crate::shell::ARG_BYTES_CAP).then(|| (key.into(), value.clone()))
+            (value.len() <= SELECTOR_ENV_BYTES).then(|| (key.into(), value.clone()))
         })
         .collect();
     if let Some(selector_env) = selector_env

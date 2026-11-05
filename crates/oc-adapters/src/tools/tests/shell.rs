@@ -10,7 +10,7 @@ fn call(name: &str, arguments: serde_json::Value) -> ToolCall {
 }
 
 #[test]
-fn tool13_source_defaults_zero_and_native_resource_ceiling() {
+fn tool13_source_defaults_zero_and_uncapped_timeout() {
     let env = BTreeMap::new();
     for (name, args, expected) in [
         (
@@ -29,6 +29,16 @@ fn tool13_source_defaults_zero_and_native_resource_ceiling() {
             Duration::from_millis(600000),
         ),
         (
+            "shell",
+            serde_json::json!({"command":"true","timeout":600001}),
+            Duration::from_millis(600001),
+        ),
+        (
+            "bash",
+            serde_json::json!({"argv":["true"],"timeout_ms":600001}),
+            Duration::from_millis(600001),
+        ),
+        (
             "bash",
             serde_json::json!({"argv":["true"]}),
             Duration::from_millis(30000),
@@ -40,7 +50,6 @@ fn tool13_source_defaults_zero_and_native_resource_ceiling() {
         );
     }
     for args in [
-        serde_json::json!({"command":"true","timeout":600001}),
         serde_json::json!({"command":"true","timeout":-1}),
         serde_json::json!({"command":"true","timeout":1.5}),
         serde_json::json!({"command":"true","timeout":null}),
@@ -64,6 +73,31 @@ fn tool13_source_defaults_zero_and_native_resource_ceiling() {
             Duration::from_millis(timeout.unwrap_or(0))
         );
     }
+}
+
+#[tokio::test]
+async fn w8_long_argv_reaches_exec_and_os_e2big_is_a_tool_failure() {
+    let env = setup();
+    let context = ctx(&env, &AllowAllPolicy);
+    let accepted = call(
+        "bash",
+        serde_json::json!({"argv":["/bin/true", "x".repeat(33 * 1024)]}),
+    );
+    let (state, _) = crate::tools::execute_shell_typed(&context, &accepted).await;
+    assert_eq!(state, "completed");
+    // SAFETY: sysconf reads this fixture process's page-size limit.
+    let page = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+    assert!(page > 0);
+    let too_large = call(
+        "bash",
+        serde_json::json!({"argv":["/bin/true", "x".repeat(32 * page as usize + 1)]}),
+    );
+    let (state, output) = crate::tools::execute_shell_typed(&context, &too_large).await;
+    assert_eq!(state, "failed");
+    assert!(
+        output.contains("Argument list too long"),
+        "actual exec E2BIG must remain a tool error: {output}"
+    );
 }
 
 #[tokio::test]

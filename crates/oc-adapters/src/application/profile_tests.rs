@@ -10,7 +10,7 @@ fn config() -> serde_json::Value {
 
 #[tokio::test]
 async fn w5_skill_capacity_omissions_warn_on_startup_and_reload() {
-    for (count, body_bytes) in [(260, 32), (90, 48 * 1024)] {
+    for (count, body_bytes) in [(4100, 32), (90, 768 * 1024)] {
         for preload in [true, false] {
             let temp = tempfile::tempdir().unwrap();
             let project = temp.path().join("project");
@@ -115,6 +115,26 @@ async fn r6_primary_catalog_source_order_default_fallback_and_explicit_hidden() 
 }
 
 #[tokio::test]
+async fn w8_config_agent_capacity_never_admits_a_missing_deny_profile_as_fallback() {
+    let temp = tempfile::tempdir().unwrap();
+    let mut source = config();
+    source["default_agent"] = serde_json::json!("zz-guard");
+    for index in 0..4096 {
+        source["agents"][format!("slot-{index:04}")] = serde_json::json!({"system":"Small body"});
+    }
+    source["agents"]["zz-guard"] = serde_json::json!({"system":"Guard body","permissions":[{"action":"read","resource":"*","effect":"deny"}]});
+    std::fs::write(temp.path().join("opencode.json"), source.to_string()).unwrap();
+    let error = match composition::load_with_env(temp.path(), BTreeMap::new()).await {
+        Ok(partial) => panic!(
+            "capacity omitted the deny profile and admitted {:?}",
+            partial.default_agent
+        ),
+        Err(error) => error,
+    };
+    assert!(error.contains("capacity_exceeded"), "{error}");
+}
+
+#[tokio::test]
 async fn r6_capacity_truncated_nested_default_never_admits_partial_catalog() {
     // Exact exhaustion skips an as-yet-unvisited child; one extra root entry
     // also exercises the existing generic overflow diagnostic. Neither may
@@ -128,15 +148,30 @@ async fn r6_capacity_truncated_nested_default_never_admits_partial_catalog() {
         std::fs::create_dir_all(agents.join("team")).unwrap();
         std::fs::write(
             agents.join("team/selected.md"),
-            "---\nmodel: fixture/org/main#fast\n---\nVALID_SELECTED_PROFILE",
+            "---\nmodel: fixture/org/main#fast\npermissions:\n  - action: read\n    resource: \"*\"\n    effect: deny\n---\nVALID_SELECTED_PROFILE",
         )
         .unwrap();
         let complete = composition::load_with_env(temp.path(), BTreeMap::new())
             .await
             .unwrap();
         assert_eq!(complete.default_agent.as_deref(), Some("team/selected"));
+        for index in 0..4097 {
+            std::fs::write(agents.join(format!("noise-{index:04}.txt")), "").unwrap();
+        }
+        let complete = composition::load_with_env(temp.path(), BTreeMap::new())
+            .await
+            .unwrap();
+        assert_eq!(complete.default_agent.as_deref(), Some("team/selected"));
+        assert_eq!(
+            complete.agents["team/selected"].permission_rules.evaluate(
+                &BTreeMap::new(),
+                "read",
+                "src/x"
+            ),
+            crate::config::Permission::Deny
+        );
         for index in 0..fillers {
-            std::fs::write(agents.join(format!("foreign-{index:04}.txt")), "").unwrap();
+            std::fs::write(agents.join(format!("foreign-{index:04}.md")), "").unwrap();
         }
         let error = match composition::load_with_env(temp.path(), BTreeMap::new()).await {
             Ok(partial) => panic!(

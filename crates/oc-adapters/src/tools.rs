@@ -65,8 +65,6 @@ pub const SUBAGENT_NO_TEXT: &str = "Subagent completed without a text response."
 /// truncate real SKILL.md files. Kept as a generous snapshot bound (audited
 /// contract: oversized bodies are skipped with a visible warning).
 pub const SKILL_BODY_CAP: usize = 1024 * 1024;
-/// Native positive execution-timeout resource ceiling for both shell forms (ms).
-pub const BASH_TIMEOUT_CAP_MS: u64 = 600_000;
 /// Highest accepted zero-based search cursor.
 const SEARCH_OFFSET_CAP: u64 = 1_000_000;
 /// Highest accepted glob/grep page size (the `Files` API cap).

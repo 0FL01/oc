@@ -136,6 +136,8 @@ print('USER-SHELL-HISTORY-COMMITTED', flush=True)
 
 #[test]
 fn vis12_actual_user_shell_ignores_model_policy_and_keeps_durable_history() {
+    use rusqlite::OptionalExtension;
+
     for permission in ["allow", "ask", "deny"] {
         let fixture = Fixture::new();
         let project = fixture.root.path().join("project");
@@ -159,6 +161,11 @@ fn vis12_actual_user_shell_ignores_model_policy_and_keeps_durable_history() {
         let discoveries = fixture.discoveries.load(Ordering::SeqCst);
         let command = "printf OWNED-SHELL-EFFECT > policy-effect.txt";
         pty.send(format!("\x1b[200~{command}\x1b[201~\r").as_bytes());
+        let sql = rusqlite::Connection::open_with_flags(
+            fixture.data_dir().join("oc.sqlite"),
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
         let started = Instant::now();
         loop {
             let rows = render_screen(&pty.snapshot()).rows();
@@ -166,7 +173,24 @@ fn vis12_actual_user_shell_ignores_model_policy_and_keeps_durable_history() {
                 !rows.iter().any(|r| r.contains("Permission required")),
                 "explicit user command must not ask: {rows:?}"
             );
-            let done = project.join("policy-effect.txt").exists()
+            let state: Option<String> = sql
+                .query_row(
+                    "SELECT state FROM tool_operations WHERE name='shell' AND turn_id IS NULL ORDER BY rowid DESC LIMIT 1",
+                    [],
+                    |row| row.get(0),
+                )
+                .optional()
+                .unwrap();
+            assert!(
+                state
+                    .as_deref()
+                    .is_none_or(|state| matches!(state, "started" | "completed")),
+                "{permission} user shell reached {state:?}"
+            );
+            // The effect/footer precede terminal persistence. Last-client exit
+            // cancels an unfinished interactive job, so await its real outcome.
+            let done = state.as_deref() == Some("completed")
+                && project.join("policy-effect.txt").exists()
                 && rows.iter().any(|r| r.contains("Build ·"));
             if done {
                 break;
@@ -177,6 +201,7 @@ fn vis12_actual_user_shell_ignores_model_policy_and_keeps_durable_history() {
             );
             thread::sleep(POLL);
         }
+        drop(sql);
         assert!(fixture.requests.lock().unwrap().is_empty());
         assert_eq!(fixture.discoveries.load(Ordering::SeqCst), discoveries);
         // Quit explicitly, without another input entering prompt history.

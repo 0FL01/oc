@@ -1,5 +1,5 @@
 //! Bounded length-prefixed fragments. A frame limit is not an application reply
-//! limit: the existing 50 x 1 MiB history may need six JSON bytes per text byte.
+//! limit: the full prompt history may need six JSON bytes per text byte.
 use serde::{Serialize, de::DeserializeOwned};
 use std::{io, sync::Arc};
 use tokio::{
@@ -8,7 +8,7 @@ use tokio::{
 };
 
 const FRAME: usize = 64 * 1024;
-pub(super) const LOGICAL: usize = 6 * 50 * 1024 * 1024 + 1024 * 1024;
+pub(super) const LOGICAL: usize = 6 * 50 * oc_core::session::MAX_INPUT_BYTES + 1024 * 1024;
 // One maximum legal reply plus room for normal concurrent requests. Admission
 // is by bytes, before allocating or reading a declared message body.
 const AGGREGATE: usize = LOGICAL + 64 * 1024 * 1024;

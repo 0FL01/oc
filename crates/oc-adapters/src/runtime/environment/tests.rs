@@ -170,7 +170,7 @@ fn prm01_shell_metadata_matches_selector_with_oversized_unused_path() {
         ("SHELL".into(), "/bin/bash".into()),
         (
             "PATH".into(),
-            format!("/bin:/{}", "x".repeat(crate::shell::ARG_BYTES_CAP)),
+            format!("/bin:/{}", "x".repeat(SELECTOR_ENV_BYTES)),
         ),
     ]);
     let actual = crate::shell::command_argv(&env, ":").unwrap();
@@ -192,7 +192,7 @@ fn prm01_shell_metadata_matches_selector_with_oversized_unused_path() {
 
     // Unused ambient keys do not change selection or consume the selector budget.
     env.insert("PATH".into(), "/usr/bin:/bin".into());
-    env.insert("HOME".into(), "x".repeat(crate::shell::ARG_BYTES_CAP + 1));
+    env.insert("HOME".into(), "x".repeat(SELECTOR_ENV_BYTES + 1));
     let actual = crate::shell::command_argv(&env, ":").unwrap();
     let facts = collect(temp.path(), temp.path(), &env);
     assert_eq!(

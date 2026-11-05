@@ -22,8 +22,8 @@ impl std::ops::Deref for Database<'_> {
     }
 }
 
-pub(crate) const JOB_CAP: usize = 8;
-const SESSION_CAP: usize = 4;
+pub(crate) const JOB_CAP: usize = 16;
+const SESSION_CAP: usize = 16;
 
 struct Work {
     identity: ChildJob,

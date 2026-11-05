@@ -149,7 +149,7 @@ pub const MAX_QUEUE_ITEMS: usize = 256;
 /// Product queue byte cap reference (not yet enforced across the whole queue).
 pub const MAX_QUEUE_BYTES: usize = 8 * 1024 * 1024;
 /// Single-input smoke cap for T03.
-pub const MAX_INPUT_BYTES: usize = 1024 * 1024;
+pub const MAX_INPUT_BYTES: usize = 2 * 1024 * 1024;
 
 #[cfg(test)]
 mod tests {

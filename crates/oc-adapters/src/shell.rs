@@ -34,9 +34,6 @@ pub const RETAIN_CAP_BYTES: usize = 1024 * 1024;
 pub const STDIN_CAP_BYTES: usize = 65536;
 /// Max argv entries (program + args).
 pub const ARGV_CAP: usize = 64;
-/// Max bytes per argv entry.
-pub const ARG_BYTES_CAP: usize = 32768;
-
 /// Typed shell errors (no secrets, no payload contents).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ShellError {
@@ -1036,10 +1033,7 @@ pub(crate) fn validate_argv(argv: &[String]) -> Result<(), ShellError> {
             reason: "argv arity".to_string(),
         });
     }
-    if argv
-        .iter()
-        .any(|a| a.is_empty() || a.len() > ARG_BYTES_CAP || a.contains('\0'))
-    {
+    if argv.iter().any(|a| a.is_empty() || a.contains('\0')) {
         return Err(ShellError::SpawnRefused {
             reason: "argv shape".to_string(),
         });

@@ -27,9 +27,9 @@ pub fn validate_png(
         .map_err(|_| AttachmentError::VerificationFailed)
 }
 
-/// Single attachment cap (mirrors `attachment_bytes` 8 MiB).
+/// Single attachment cap (mirrors `attachment_bytes` 20 MiB).
 pub const ATTACHMENT_CAP_BYTES: usize = oc_core::prompt::IMAGE_BYTES;
-/// Total attachments cap per request (`attachments_total_bytes` 16 MiB).
+/// Total attachments cap per request (`attachments_total_bytes` 40 MiB).
 pub const ATTACHMENTS_TOTAL_CAP_BYTES: usize = oc_core::prompt::IMAGES_TOTAL_BYTES;
 
 /// Typed attachment errors (kinds only, no contents).

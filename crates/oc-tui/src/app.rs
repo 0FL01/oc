@@ -48,7 +48,7 @@ pub const CARDS_MAX: usize = 160;
 /// Maximum rows fetched for one inline mention (owner traversal is separately bounded).
 pub const MENTION_LIMIT: usize = 10;
 /// Never send a clipboard payload larger than a bounded visible transcript.
-pub const MAX_SELECTION_BYTES: usize = 64 * 1024;
+pub const MAX_SELECTION_BYTES: usize = 128 * 1024;
 static NEXT_VIEW_ID: AtomicU64 = AtomicU64::new(1);
 
 /// Exact identity of one focused file query. A tab can park and return with

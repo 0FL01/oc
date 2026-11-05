@@ -878,7 +878,7 @@ fn tool21_registered_stream_cap_verbatim_leases_and_shared_quota() {
     writer.append("sentinel\n").unwrap();
     // Filler volume, not caller publication count, exercises the artifact cap.
     // Match bounded shell ingress without changing the two split calls.
-    const FILLER_BYTES: usize = 2049 * 8192;
+    const FILLER_BYTES: usize = CAP as usize + 8192;
     let filler = "x".repeat(32 * 1024);
     for _ in 0..FILLER_BYTES / filler.len() {
         writer.append(&filler).unwrap();

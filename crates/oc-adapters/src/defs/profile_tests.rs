@@ -1,6 +1,83 @@
 use super::*;
 
 #[test]
+fn w8_irrelevant_entries_do_not_hide_skills_commands_or_nested_agent_policy() {
+    let temp = tempfile::tempdir().unwrap();
+    for dir in ["skills/bundle", "commands", "agents/team"] {
+        std::fs::create_dir_all(temp.path().join(dir)).unwrap();
+    }
+    std::fs::write(temp.path().join("notes.txt"), "not a definition").unwrap();
+    for index in 0..4097 {
+        for dir in ["skills", "commands", "agents"] {
+            std::fs::write(temp.path().join(format!("{dir}/noise-{index:04}.txt")), "").unwrap();
+            if dir != "commands" {
+                std::os::unix::fs::symlink(
+                    "../notes.txt",
+                    temp.path().join(format!("{dir}/linked-noise-{index:04}")),
+                )
+                .unwrap();
+            }
+        }
+    }
+    for (path, body) in [
+        (
+            "skills/bundle/SKILL.md",
+            "---\ndescription: Bundle\n---\nBundle body",
+        ),
+        ("skills/flat.md", "---\ndescription: Flat\n---\nFlat body"),
+        ("commands/kept.md", "Kept command"),
+        (
+            "agents/team/guard.md",
+            "---\npermissions:\n  - action: read\n    resource: \"*\"\n    effect: deny\n---\nGuard body",
+        ),
+    ] {
+        std::fs::write(temp.path().join(path), body).unwrap();
+    }
+    for (target, alias) in [
+        ("skills/bundle", "skills/alias"),
+        ("agents/team", "agents/alias"),
+    ] {
+        std::os::unix::fs::symlink(temp.path().join(target), temp.path().join(alias)).unwrap();
+    }
+    let defs = load_definitions(&[DefRoot {
+        dir: temp.path().into(),
+        origin: "project".into(),
+    }]);
+    assert!(defs.diagnostics.is_empty(), "{:?}", defs.diagnostics);
+    for skill in ["flat", "bundle", "alias"] {
+        assert!(defs.skills.contains_key(skill), "{skill}");
+    }
+    assert_eq!(defs.commands["kept"].body, "Kept command");
+    for agent in ["team/guard", "alias/guard"] {
+        assert_eq!(defs.agents[agent].body, "Guard body");
+        assert_eq!(
+            defs.agents[agent]
+                .permission_rules
+                .evaluate(&BTreeMap::new(), "read", "src/x"),
+            Permission::Deny
+        );
+    }
+}
+
+#[test]
+fn w8_definition_body_above_four_mib_is_admitted_under_the_total_budget() {
+    let temp = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(temp.path().join("commands")).unwrap();
+    let body = "x".repeat(5 * 1024 * 1024);
+    std::fs::write(temp.path().join("commands/large.md"), &body).unwrap();
+    let defs = load_definitions(&[DefRoot {
+        dir: temp.path().into(),
+        origin: "project".into(),
+    }]);
+    assert!(defs.diagnostics.is_empty(), "{:?}", defs.diagnostics);
+    assert!(
+        defs.commands
+            .get("large")
+            .is_some_and(|command| command.body == body)
+    );
+}
+
+#[test]
 fn w5_legacy_agent_and_frontmatter_keep_policy_with_unknown_siblings() {
     let temp = tempfile::tempdir().unwrap();
     let path = temp.path().join("agents/build.md");

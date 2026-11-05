@@ -90,6 +90,14 @@ mod tests {
         assert_eq!(payload, b"aGkbXTUyO2M7aW5qZWN0ZWQH4piD");
         assert_eq!(output.iter().filter(|&&byte| byte == b'\x1b').count(), 1);
         assert_eq!(output.iter().filter(|&&byte| byte == b'\x07').count(), 1);
+        let large = "x".repeat(64 * 1024 + 1);
+        let mut output = Vec::new();
+        write_osc52(&mut output, &large).unwrap();
+        assert_eq!(
+            &output[PREFIX.len()..output.len() - TERMINATOR.len()],
+            encode_base64(large.as_bytes())
+        );
+        assert!(write_osc52(&mut Vec::new(), &"x".repeat(MAX_TEXT_BYTES + 1)).is_err());
     }
 
     #[test]

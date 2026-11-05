@@ -45,11 +45,6 @@ impl ReadToolOutput {
     pub(crate) fn estimated_tokens(&self) -> u64 {
         1500 + (self.display.encode_utf16().count() as u64 + 2) / 4
     }
-    pub(crate) fn retained_bytes(&self) -> usize {
-        self.facts.to_string().len()
-            + serde_json::to_vec(self).map_or(usize::MAX, |s| s.len())
-            + self.display.len()
-    }
     pub(crate) fn from_stored(facts: Value) -> Result<Self, String> {
         if facts.as_object().is_none_or(|object| {
             object.keys().any(|key| {
@@ -76,13 +71,13 @@ impl ReadToolOutput {
             return Err("invalid native read source".into());
         }
         let data = facts["data"].as_str().ok_or("invalid native image data")?;
-        if data.len() > (crate::files::GREP_FILE_BYTES_CAP as usize).div_ceil(3) * 4 {
+        if data.len() > crate::attachments::ATTACHMENT_CAP_BYTES.div_ceil(3) * 4 {
             return Err("native image exceeds read budget".into());
         }
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(data)
             .map_err(|_| "invalid native image data")?;
-        if bytes.len() > crate::files::GREP_FILE_BYTES_CAP as usize {
+        if bytes.len() > crate::attachments::ATTACHMENT_CAP_BYTES {
             return Err("native image exceeds read budget".into());
         }
         let format = image::guess_format(&bytes).map_err(|_| "invalid native image")?;

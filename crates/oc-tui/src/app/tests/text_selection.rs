@@ -188,7 +188,12 @@ fn vis27_text_selection_prompt_capture_survives_repaint_and_clamps_visible_rows(
 
 #[test]
 fn vis27_text_selection_chip_endpoint_and_raw_byte_limit() {
-    for size in [2000, MAX_SELECTION_BYTES - 4, MAX_SELECTION_BYTES + 1] {
+    for size in [
+        2000,
+        64 * 1024 + 1,
+        MAX_SELECTION_BYTES - 4,
+        MAX_SELECTION_BYTES + 1,
+    ] {
         let (app, _, _) = CoreApp::channel(4);
         let mut state = TuiState::new_home(app);
         let area = Rect::new(0, 0, 12, 40);
@@ -203,7 +208,12 @@ fn vis27_text_selection_chip_endpoint_and_raw_byte_limit() {
         let from = prompt_cell(&state, 0);
         let chip = p.chips[0].0;
         drag(&mut state, area, from, (chip.x, chip.y));
-        if size + 4 > MAX_SELECTION_BYTES {
+        if size == 64 * 1024 + 1 {
+            assert!(
+                state.take_copy_request() == Some(format!("pre {}", "z".repeat(size))),
+                "old-bound-plus-one selection must be kept whole"
+            );
+        } else if size + 4 > MAX_SELECTION_BYTES {
             assert!(state.take_copy_request().is_none());
             assert_eq!(state.note(), Some("Selection exceeds clipboard size limit"));
         } else {

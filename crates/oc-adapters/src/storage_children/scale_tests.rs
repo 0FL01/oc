@@ -237,7 +237,10 @@ fn w6_unknown_jobs_release_capacity_without_releasing_unresolved_identity() {
     let live = admit(&db, crate::runtime::children::JOB_CAP + 1, true);
     assert_eq!(db.child_job_outstanding().unwrap(), 1);
     assert!(db.child_job_live(&live.operation).unwrap());
-    assert_eq!(db.deliver_child_notices().unwrap().len(), 8);
+    assert_eq!(
+        db.deliver_child_notices().unwrap().len(),
+        crate::runtime::children::JOB_CAP
+    );
     assert_eq!(db.deliver_child_notices().unwrap().len(), 1);
     assert!(db.deliver_child_notices().unwrap().is_empty());
     assert!(db.child_job_unresolved(&unknown.child.0).unwrap());
@@ -245,4 +248,23 @@ fn w6_unknown_jobs_release_capacity_without_releasing_unresolved_identity() {
     let candidates = db.child_recovery_candidates().unwrap();
     assert_eq!(candidates.len(), 1);
     assert_eq!(candidates[0].operation, live.operation);
+}
+
+#[test]
+fn w8_full_child_capacity_keeps_recovery_and_notices_complete_without_replay() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    db.create_session("parent").unwrap();
+    let jobs: Vec<_> = (0..crate::runtime::children::JOB_CAP)
+        .map(|index| admit(&db, index, true))
+        .collect();
+    assert_eq!(db.child_recovery_candidates().unwrap().len(), jobs.len());
+    db.recover_child_jobs().unwrap();
+    assert!(db.child_recovery_candidates().unwrap().is_empty());
+    assert_eq!(db.child_job_outstanding().unwrap(), 0);
+    assert_eq!(db.deliver_child_notices().unwrap().len(), jobs.len());
+    assert!(db.deliver_child_notices().unwrap().is_empty());
+    for job in jobs {
+        assert!(db.child_job_unresolved(&job.child.0).unwrap());
+    }
 }

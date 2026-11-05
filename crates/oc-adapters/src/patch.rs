@@ -27,8 +27,8 @@ pub(crate) mod mutation;
 
 /// Legacy strict-patch registry helper; runtime selects its working file family.
 pub const MODEL_TOOL_NAMES: &[&str] = &["apply_patch"];
-/// Patch text cap (mirrors `tool_argument_bytes` 2 MiB).
-pub const PATCH_BYTES_CAP: usize = 2 * 1024 * 1024;
+/// Patch text cap, independent of the JSON argument envelope.
+pub const PATCH_BYTES_CAP: usize = 4 * 1024 * 1024;
 /// Per-file content cap after application.
 pub const FILE_BYTES_CAP: usize = 8 * 1024 * 1024;
 /// Max hunks per updated file.
@@ -559,7 +559,7 @@ fn parse_plan(text: &str) -> Result<Vec<FileOp>, ApplyFailure> {
             failed_path: "$patch".to_string(),
             error: PatchError::TooLarge {
                 path: "$patch".to_string(),
-                reason: "patch exceeds 2 MiB".to_string(),
+                reason: "patch exceeds 4 MiB".to_string(),
             },
         });
     }

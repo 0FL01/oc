@@ -238,6 +238,13 @@ fn tool16_real_decoding_rejects_signature_only_pdf_and_invalid_image() {
         files.read("real.png", 1, 1).is_err(),
         "String-only legacy API cannot claim image success"
     );
+    let cap = crate::attachments::ATTACHMENT_CAP_BYTES as u64;
+    fs::File::create(files.root.join("oversize.png"))
+        .unwrap()
+        .set_len(cap + 1)
+        .unwrap();
+    assert!(matches!(read(&files, "oversize.png", 1, 1),
+        Err(FileToolError::BudgetExhausted(facts)) if facts.budget == "file_bytes" && facts.limit == cap && facts.observed == cap + 1));
 }
 
 #[test]
@@ -265,7 +272,7 @@ fn tool16_all_animation_frames_must_decode_under_existing_pixel_budget() {
     bytes.push(b';'); // a complete first frame must not hide an invalid second frame
     fs::write(files.root.join("bad-animation.gif"), bytes).unwrap();
     assert!(read(&files, "bad-animation.gif", 1, 1).is_err());
-    let pixels = image::RgbaImage::from_pixel(2048, 2048, image::Rgba([0, 0, 0, 255]));
+    let pixels = image::RgbaImage::from_pixel(3072, 3072, image::Rgba([0, 0, 0, 255]));
     let mut encoded = std::io::Cursor::new(Vec::new());
     pixels
         .write_to(&mut encoded, image::ImageFormat::Png)

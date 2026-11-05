@@ -4949,7 +4949,7 @@ async fn vis27_oversized_selection_reports_error_without_clipboard_request() {
     use crossterm::event::{MouseButton, MouseEventKind};
     let mut state = fresh_state("selection-size").await;
     let frame = Rect::new(0, 0, 100, 28);
-    let paragraph = format!("{}\n", "zzzz ".repeat(19)).repeat(400);
+    let paragraph = format!("{}\n", "zzzz ".repeat(19)).repeat(800);
     for seq in 1..=3 {
         state.window.push_row(crate::history::HistoryRow {
             position: None,

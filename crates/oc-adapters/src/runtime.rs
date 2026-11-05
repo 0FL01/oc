@@ -616,7 +616,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
             parameters: schema(
                 serde_json::json!({
                     "path": {"type": "string", "minLength":1, "description":"Use '.' for the project root. Nonempty, at most 4096 UTF-8 bytes, no control characters. Pagination does not bypass whole-file admission."},
-                    "offset": {"type": "integer", "minimum":1, "maximum":crate::storage::tool_output::CAP+1, "default":1,"description":"Ordinary files: at most 1000000; exact registered tool-output artifacts: bounded by the 16 MiB capture extent."},
+                    "offset": {"type": "integer", "minimum":1, "maximum":crate::storage::tool_output::CAP+1, "default":1,"description":"Ordinary files: at most 1000000; exact registered tool-output artifacts: bounded by the 32 MiB capture extent."},
                     "limit": {"type": "integer", "minimum":1, "maximum":2000, "default":2000},
                 }),
                 &["path"],
@@ -659,13 +659,13 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "shell".to_string(),
-            description: "Execute a Linux shell command using the compatible inherited SHELL (fallback PATH bash, then /bin/sh), with -c semantics. Quote paths containing spaces; prefer dedicated tools. `workdir` is relative to the admitted project root (default root). `timeout` is milliseconds (foreground default 120000, background default 0; 0 disables only execution timeout; native positive ceiling 600000). Background returns running/shellID after launch; you will be notified automatically when it completes. DO NOT poll; continue independent work or end your response. Output is bounded; cancellation and process-group teardown remain active. The child inherits the native owner's captured startup environment, including SSH-agent access and credentials."
+            description: "Execute a Linux shell command using the compatible inherited SHELL (fallback PATH bash, then /bin/sh), with -c semantics. Quote paths containing spaces; prefer dedicated tools. `workdir` is relative to the admitted project root (default root). `timeout` is milliseconds (foreground default 120000, background default 0; 0 disables only execution timeout). Background returns running/shellID after launch; you will be notified automatically when it completes. DO NOT poll; continue independent work or end your response. Output is bounded; cancellation and process-group teardown remain active. The child inherits the native owner's captured startup environment, including SSH-agent access and credentials."
                 .to_string(),
             parameters: serde_json::json!({
                 "type": "object", "properties": {
-                    "command": {"type": "string", "minLength": 1, "maxLength": crate::shell::ARG_BYTES_CAP},
+                    "command": {"type": "string", "minLength": 1},
                     "workdir": {"type": "string"},
-                    "timeout": {"type": "integer", "minimum": 0, "maximum": crate::tools::BASH_TIMEOUT_CAP_MS},
+                    "timeout": {"type": "integer", "minimum": 0},
                     "background": {"type": "boolean", "default": false},
                 }, "required": ["command"], "additionalProperties": false,
             }),
@@ -696,14 +696,14 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "question".into(),
-            description: "Ask the user questions during execution and wait for their answers. A Type your own answer option is added automatically; do not include it in options. multiple defaults false; set true for multiple choices. Put a recommended choice first with (Recommended) in its label. Interactive TUI required; permission autoaccept never answers. Native limits: 16 questions, 16 options each, 64KiB input/reply.".into(),
+            description: "Ask the user questions during execution and wait for their answers. A Type your own answer option is added automatically; do not include it in options. multiple defaults false; set true for multiple choices. Put a recommended choice first with (Recommended) in its label. Interactive TUI required; permission autoaccept never answers. Native limits: 16 questions, 16 options each, 128KiB input/reply.".into(),
             parameters: serde_json::json!({"type":"object", "additionalProperties":false, "required":["questions"], "properties":{
                 "questions":{"type":"array","minItems":1,"maxItems":16,"items":{
                     "type":"object","additionalProperties":false,"required":["question","header","options"],"properties":{
-                        "question":{"type":"string","maxLength":4096},
+                        "question":{"type":"string","maxLength":8192},
                         "header":{"type":"string","description":"Very short label (max 30 chars)"},
                         "options":{"type":"array","maxItems":16,"items":{"type":"object","additionalProperties":false,"required":["label","description"],"properties":{
-                            "label":{"type":"string","maxLength":256},"description":{"type":"string","maxLength":4096}}}},
+                            "label":{"type":"string","maxLength":512},"description":{"type":"string","maxLength":8192}}}},
                         "multiple":{"type":"boolean","default":false}
                     }}}}}),
         },

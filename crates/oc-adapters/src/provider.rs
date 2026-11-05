@@ -46,9 +46,9 @@ pub const CHUNK_TIMEOUT_MS: u64 = 900_000;
 /// Physical attempts per adapter invocation (no internal HTTP retry).
 pub const MAX_ATTEMPTS: usize = 1;
 /// Maximum pending SSE line and complete event, in bytes.
-pub const SSE_BYTE_CAP: usize = 2 * 1024 * 1024;
+pub const SSE_BYTE_CAP: usize = 8 * 1024 * 1024;
 /// Maximum arguments for one call, including all deltas.
-pub const ARGUMENT_BYTE_CAP: usize = 1024 * 1024;
+pub const ARGUMENT_BYTE_CAP: usize = 4 * 1024 * 1024;
 /// Conservative retained generation budget (state, stream items and output copies).
 pub const GENERATION_BYTE_CAP: usize = 32 * 1024 * 1024;
 /// Maximum serialized request, matching the pinned proxy's body ceiling.

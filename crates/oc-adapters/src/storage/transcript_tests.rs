@@ -6,7 +6,7 @@ use serde_json::json;
 fn canonical_encoding_of_admitted_arguments_is_not_a_raw_wire_limit() {
     let wire = format!(
         "{{\"values\":[{}]}}",
-        std::iter::repeat_n("1e10", 90_000)
+        std::iter::repeat_n("1e10", 360_000)
             .collect::<Vec<_>>()
             .join(",")
     );

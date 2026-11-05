@@ -42,13 +42,13 @@ pub const MAX_DEF_ID_LEN: usize = 128;
 /// on agent/command/skill files, bodies, frontmatter or definition counts.
 /// This is the single generous resource bound; per-file, per-body and
 /// frontmatter caps are intentionally absent.
-pub const MAX_TOTAL_BYTES: usize = 4 * 1024 * 1024;
+pub const MAX_TOTAL_BYTES: usize = 64 * 1024 * 1024;
 /// Max definitions per kind per load.
-pub const MAX_DEFS_PER_KIND: usize = 256;
+pub const MAX_DEFS_PER_KIND: usize = 4096;
 /// Max single instructions file bytes.
-pub const MAX_INSTRUCTIONS_FILE: usize = 64 * 1024;
+pub const MAX_INSTRUCTIONS_FILE: usize = 128 * 1024;
 /// Max total instructions bytes.
-pub const MAX_INSTRUCTIONS_TOTAL: usize = 256 * 1024;
+pub const MAX_INSTRUCTIONS_TOTAL: usize = 512 * 1024;
 
 pub(crate) const TITLE_PROMPT: &str = "Generate a short session title from the user's request. Output only the title, in at most 100 characters.";
 
@@ -1044,6 +1044,37 @@ fn open_admitted(root: &DefRoot, dir: &File, candidate: &Path, flags: i32) -> io
     admitted_fs::open_beneath(dir, relative, flags)
 }
 
+fn definition_candidate(
+    root: &DefRoot,
+    admitted: &File,
+    entry: &std::fs::DirEntry,
+    directories: bool,
+) -> bool {
+    let name = entry.file_name();
+    if name.len() > 3 && name.to_string_lossy().ends_with(".md") {
+        return true;
+    }
+    match entry.file_type() {
+        Ok(kind) if kind.is_symlink() => {
+            // Ignore admitted aliases to irrelevant files, not directory aliases.
+            // Unresolved candidates still reach the existing trust diagnostics.
+            match open_admitted(
+                root,
+                admitted,
+                &entry.path(),
+                libc::O_RDONLY | libc::O_NONBLOCK,
+            )
+            .and_then(|file| file.metadata())
+            {
+                Ok(meta) => directories && meta.is_dir(),
+                Err(_) => true,
+            }
+        }
+        Ok(kind) => directories && kind.is_dir(),
+        Err(_) => true,
+    }
+}
+
 fn load_root(out: &mut Collector<'_>, root: &DefRoot, dir: &File) {
     load_kind(out, root, dir, "skill", &["skill", "skills"]);
     load_kind(
@@ -1119,11 +1150,19 @@ fn load_kind(out: &mut Collector<'_>, root: &DefRoot, admitted: &File, kind: &st
                 continue;
             }
         };
-        // 256 definitions per kind are admitted; bound directory enumeration
-        // as well, before sorting names or opening any definition bodies.
+        // Bound relevant entries before sorting or opening definition bodies.
+        // Skill directories and aliases still pass through open_admitted.
         let names: Vec<String> = entries
-            .take(4097)
             .filter_map(|e| e.ok())
+            .filter(|entry| {
+                if kind == "skill" {
+                    definition_candidate(root, admitted, entry, true)
+                } else {
+                    let name = entry.file_name();
+                    name.len() > 3 && name.to_string_lossy().ends_with(".md")
+                }
+            })
+            .take(4097)
             .map(|e| e.file_name().to_string_lossy().to_string())
             .collect();
         if names.len() > 4096 {
@@ -1218,6 +1257,11 @@ fn collect_agent_paths(
     };
     let mut names = Vec::new();
     for entry in entries {
+        let Ok(entry) = entry else { continue };
+        if !definition_candidate(root, admitted, &entry, recursive) {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().into_owned();
         if *remaining == 0 {
             out.defs.diagnostics.push(diag_code(
                 &path,
@@ -1228,9 +1272,7 @@ fn collect_agent_paths(
             break;
         }
         *remaining -= 1;
-        if let Ok(entry) = entry {
-            names.push(entry.file_name().to_string_lossy().into_owned());
-        }
+        names.push(name);
     }
     names.sort();
     for name in names {
@@ -1397,9 +1439,12 @@ fn insert_agent(out: &mut Collector<'_>, root: &DefRoot, mut input: AgentInput, 
     }
     input.mode.get_or_insert_with(|| "primary".into());
     if out.defs.agents.len() >= MAX_DEFS_PER_KIND && !out.defs.agents.contains_key(&input.id) {
-        out.defs
-            .diagnostics
-            .push(diag(path, "agent", "too many agents"));
+        out.defs.diagnostics.push(diag_code(
+            path,
+            "agent",
+            "too many agents",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
         return;
     }
     let previous = out
@@ -2416,18 +2461,22 @@ mod tests {
         let base = tempfile::tempdir().expect("tmp");
         let g = base.path().join("G-AGENTS.md");
         let p = base.path().join("P-AGENTS.md");
-        fs::write(&g, "global rules\n").expect("g");
-        fs::write(&p, "local rules\n").expect("p");
+        fs::write(&g, format!("global rules\n{}", "g".repeat(120 * 1024))).expect("g");
+        fs::write(&p, format!("local rules\n{}", "p".repeat(120 * 1024))).expect("p");
+        let third = base.path().join("third.md");
+        fs::write(&third, format!("third rules\n{}", "t".repeat(120 * 1024))).unwrap();
         let missing = base.path().join("gone.md");
         let (text, diagnostics) = load_instructions(&[
             ("G/AGENTS.md".to_string(), g),
             ("P/AGENTS.md".to_string(), p.clone()),
             ("P/AGENTS.md".to_string(), p),
+            ("third.md".to_string(), third),
             ("X/AGENTS.md".to_string(), missing),
         ]);
         assert_eq!(text.matches("oc-instructions: P/AGENTS.md").count(), 1);
         assert!(text.contains("global rules"));
         assert!(text.contains("local rules"));
+        assert!(text.contains("third rules"));
         assert!(text.find("global rules") < text.find("local rules"));
         assert!(diagnostics.iter().any(|d| d.reason == "unreadable"));
     }

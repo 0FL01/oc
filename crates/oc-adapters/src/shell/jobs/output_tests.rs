@@ -410,6 +410,10 @@ async fn tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot
     for (quota, want) in [
         (
             2 * 1024 * 1024 * 1024,
+            crate::storage::tool_output::CaptureState::Complete,
+        ),
+        (
+            2 * 1024 * 1024 * 1024,
             crate::storage::tool_output::CaptureState::ArtifactCap,
         ),
         (32768, crate::storage::tool_output::CaptureState::Quota),
@@ -425,9 +429,16 @@ async fn tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot
         db.record_tool_intent("op", "s", Some("t"), "shell", "{}")
             .unwrap();
         let jobs = Jobs::new(&db);
-        let command = "head -c 20971520 /dev/zero | tr '\\000' x; printf 'effect' >> effect; printf 'final flush\\n'";
+        let bytes = if want == crate::storage::tool_output::CaptureState::Complete {
+            20 * 1024 * 1024
+        } else {
+            crate::storage::tool_output::CAP + 4 * 1024 * 1024
+        };
+        let command = format!(
+            "head -c {bytes} /dev/zero | tr '\\000' x; printf 'effect' >> effect; printf 'final flush\\n'"
+        );
         let shell = Shell::new(&project).unwrap();
-        let argv = vec!["/bin/sh".into(), "-c".into(), command.into()];
+        let argv = vec!["/bin/sh".into(), "-c".into(), command];
         let pinned = shell.pin_cwd(&argv, ".").unwrap();
         let setup = started.elapsed();
         jobs.launch_mode(
@@ -463,24 +474,29 @@ async fn tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot
         jobs.shutdown().await.unwrap();
         let resource = db.output_for_operation("op").unwrap().unwrap();
         assert_eq!(resource.state, want);
-        let diagnostic = outcome.diagnostic.as_deref().unwrap();
-        assert!(diagnostic.contains(
-            if want == crate::storage::tool_output::CaptureState::Quota {
-                "stage=finish code=state_quota"
-            } else {
-                "stage=finish code=state_artifact_cap"
-            }
-        ));
-        assert!(!diagnostic.contains("errno="));
+        if want == crate::storage::tool_output::CaptureState::Complete {
+            assert!(outcome.diagnostic.is_none());
+            assert_eq!(outcome.state, "completed");
+            assert_eq!(resource.admitted_bytes, resource.bytes);
+        } else {
+            let diagnostic = outcome.diagnostic.as_deref().unwrap();
+            assert!(diagnostic.contains(
+                if want == crate::storage::tool_output::CaptureState::Quota {
+                    "stage=finish code=state_quota"
+                } else {
+                    "stage=finish code=state_artifact_cap"
+                }
+            ));
+            assert!(!diagnostic.contains("errno="));
+            assert!(resource.admitted_bytes > resource.bytes);
+            assert_eq!(
+                outcome.state, "failed",
+                "logging failure is separate from exit0"
+            );
+        }
         assert!(resource.bytes <= crate::storage::tool_output::CAP && resource.bytes <= quota);
-        assert!(
-            resource.admitted_bytes > 20 * 1024 * 1024 && resource.admitted_bytes > resource.bytes
-        );
+        assert!(resource.admitted_bytes > bytes);
         assert_eq!(outcome.exit, Some(0));
-        assert_eq!(
-            outcome.state, "failed",
-            "logging failure is separate from exit0"
-        );
         assert!(outcome.stdout.contains("final flush"));
         assert!(outcome.tool_result().1.len() <= crate::tools::output::SERVED_CAP);
         assert!(memory <= output::RECENT_CAP);

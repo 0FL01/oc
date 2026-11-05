@@ -545,9 +545,11 @@ impl Db {
     pub(crate) fn recover_child_jobs(&self) -> Result<(), StorageError> {
         let rows = {
             let conn = self.conn.lock().expect("db mutex");
-            let mut stmt = conn.prepare("SELECT j.operation_id FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id WHERE j.state IN ('admitted','running') ORDER BY j.rowid LIMIT 9")?;
-            stmt.query_map([], |r| r.get::<_, String>(0))?
-                .collect::<Result<Vec<_>, _>>()?
+            let mut stmt = conn.prepare("SELECT j.operation_id FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id WHERE j.state IN ('admitted','running') ORDER BY j.rowid LIMIT ?1")?;
+            stmt.query_map([crate::runtime::children::JOB_CAP as i64 + 1], |r| {
+                r.get::<_, String>(0)
+            })?
+            .collect::<Result<Vec<_>, _>>()?
         };
         if rows.len() > crate::runtime::children::JOB_CAP {
             return Err(StorageError::OperationNotFound);
@@ -668,8 +670,8 @@ impl Db {
     pub(crate) fn child_recovery_candidates(&self) -> Result<Vec<ChildJob>, StorageError> {
         let jobs = {
             let conn = self.conn.lock().expect("db mutex");
-            let mut stmt = conn.prepare("SELECT j.identity,j.state,j.message_id,j.child_turn,EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id) FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.state IN ('admitted','running') ORDER BY j.rowid LIMIT 9")?;
-            stmt.query_map([], |r| {
+            let mut stmt = conn.prepare("SELECT j.identity,j.state,j.message_id,j.child_turn,EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id) FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.state IN ('admitted','running') ORDER BY j.rowid LIMIT ?1")?;
+            stmt.query_map([crate::runtime::children::JOB_CAP as i64 + 1], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
                     r.get::<_, String>(1)?,
@@ -731,9 +733,11 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let rows = {
-            let mut stmt = tx.prepare("SELECT j.operation_id FROM child_jobs j INDEXED BY child_job_undelivered JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id WHERE j.state NOT IN ('admitted','running') AND j.message_id IS NULL AND j.background=1 ORDER BY j.rowid LIMIT 8")?;
-            stmt.query_map([], |r| r.get::<_, String>(0))?
-                .collect::<Result<Vec<_>, _>>()?
+            let mut stmt = tx.prepare("SELECT j.operation_id FROM child_jobs j INDEXED BY child_job_undelivered JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id WHERE j.state NOT IN ('admitted','running') AND j.message_id IS NULL AND j.background=1 ORDER BY j.rowid LIMIT ?1")?;
+            stmt.query_map([crate::runtime::children::JOB_CAP as i64], |r| {
+                r.get::<_, String>(0)
+            })?
+            .collect::<Result<Vec<_>, _>>()?
         };
         let mut notices = Vec::new();
         for operation in rows {

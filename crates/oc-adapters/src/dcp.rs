@@ -334,7 +334,7 @@ pub fn load_prune_mark(db: &crate::storage::Db, session: &str) -> Result<Option<
 
 /// Protected payload bound: a covered protected message larger than this
 /// makes compression visibly impossible instead of silently lossy.
-pub const PROTECTED_BYTES_CAP: usize = 65536;
+pub const PROTECTED_BYTES_CAP: usize = 128 * 1024;
 /// Nested expansion depth cap (cycle/size guards fire first).
 pub const NESTED_DEPTH_CAP: usize = 8;
 /// Expanded text must fit the existing serialized request resource ceiling.
@@ -2043,6 +2043,27 @@ mod tests {
             ),
             Err(super::DcpError::Impossible { .. })
         ));
+        let larger = "protected ".repeat(7 * 1024);
+        assert!(larger.len() > 64 * 1024);
+        let history = vec![
+            message("m0001", Role::User, &larger),
+            message(
+                "m0002",
+                Role::Assistant,
+                &"compressible detail ".repeat(1024),
+            ),
+            message("m0003", Role::User, "tail"),
+        ];
+        let committed = super::compress_ranges_atomic(
+            &db,
+            "s",
+            &history,
+            &[validated("under-new-bound", "m0001", "m0002", "s")],
+            &spec,
+            None,
+        )
+        .unwrap();
+        assert!(committed.blocks[0].summary.contains(&larger));
     }
 
     #[test]

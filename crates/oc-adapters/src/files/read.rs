@@ -110,13 +110,13 @@ impl Files {
                 .iter()
                 .any(|e| s.eq_ignore_ascii_case(e))
         });
-        if (pdf || format.is_some() || image_path) && meta.len() > GREP_FILE_BYTES_CAP {
-            return Err(budget.exhausted(
-                "file_bytes",
-                "read_file",
-                GREP_FILE_BYTES_CAP,
-                meta.len(),
-            ));
+        let media_cap = if pdf {
+            GREP_FILE_BYTES_CAP
+        } else {
+            crate::attachments::ATTACHMENT_CAP_BYTES as u64
+        };
+        if (pdf || format.is_some() || image_path) && meta.len() > media_cap {
+            return Err(budget.exhausted("file_bytes", "read_file", media_cap, meta.len()));
         }
         if pdf {
             return Err(FileToolError::InvalidPattern(
@@ -138,11 +138,11 @@ impl Files {
                 if n == 0 {
                     break;
                 }
-                if bytes.len() + n > GREP_FILE_BYTES_CAP as usize {
+                if bytes.len() + n > crate::attachments::ATTACHMENT_CAP_BYTES {
                     return Err(budget.exhausted(
                         "file_bytes",
                         "read_file",
-                        GREP_FILE_BYTES_CAP,
+                        crate::attachments::ATTACHMENT_CAP_BYTES as u64,
                         (bytes.len() + n) as u64,
                     ));
                 }

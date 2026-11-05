@@ -1662,6 +1662,16 @@ async fn aud33_paste_is_never_silently_cut_below_the_input_budget() {
         "identical full-budget paste can expand"
     );
     assert_eq!(state.input(), full);
+
+    state.handle_key(KeyAction::Interrupt).await;
+    let larger = "п".repeat(512 * 1024 + 1);
+    assert!(
+        oc_core::prompt::PromptInput::from(larger.clone())
+            .check_budget()
+            .is_ok()
+    );
+    assert!(state.handle_paste(&larger).note.is_none());
+    assert_eq!(state.input(), larger);
 }
 
 #[tokio::test]

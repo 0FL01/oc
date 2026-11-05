@@ -55,6 +55,22 @@ fn w7_ts_question_annotations_are_not_semantic_validation_gates() {
         Some(result)
     );
 }
+
+#[test]
+fn w8_larger_question_payload_fields_and_answers_keep_finite_bounds() {
+    let input = QuestionInput::parse(&serde_json::json!({"questions":[{
+        "question":"q".repeat(4097), "header":"h".repeat(64 * 1024),
+        "options":[{"label":"l".repeat(257),"description":"d".repeat(4097)}]
+    }]}))
+    .unwrap();
+    input.validate_answers(&[vec!["a".repeat(4097)]]).unwrap();
+    assert!(
+        input
+            .validate_answers(&[vec!["a".repeat(ANSWER_BYTES_CAP + 1)]])
+            .is_err()
+    );
+    assert!(QuestionInput::parse(&serde_json::json!({"questions":[{"question":"q","header":"h".repeat(PAYLOAD_CAP),"options":[]}]})).is_err());
+}
 #[tokio::test]
 async fn wait_reply_binding_errors_preserve_then_settle_once() {
     let queue = Arc::new(QuestionQueue::default());

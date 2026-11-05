@@ -53,7 +53,9 @@ Approval/document validation is not runtime PASS; examples/config sources stay u
 
 ## Built-ins
 
-Tool arguments remain bounded at 1 MiB per call. Overflow is a failed call with
+Tool arguments remain bounded at 4 MiB per call. Provider SSE lines/events have
+an independent 8 MiB bound; the serialized provider request remains 32 MiB.
+These are not the separate 64 MiB MCP transport-message budget. Argument overflow is a failed call with
 its original identity, not an executable partial JSON prefix or a failed turn:
 the parsers drain/reconcile the response, persist that refusal and run other
 admitted calls in the batch once. Independent SSE/generation/protocol caps remain.
@@ -67,7 +69,7 @@ the streak. A stream missing its genuine terminal remains an error, not length.
 Unknown effects still stop with `tool outcome unknown; retry may duplicate side effects`;
 the generic wording does not authorize replay for shell, execute or MCP.
 
-`read`: потоковое чтение выбранного диапазона строк с path/offset/limit, без whole-file size admission для текста. Сохраняются ≤2000 lines, 65536-byte rendered page, bounded huge-line prefix, UTF-8/CRLF и явный next cursor; binary/NUL проверяется только в consumed prefix, включая пропущенные до offset строки. Artifact содержит выбранную страницу, не весь файл. Image admission остаётся ≤1 MiB, PDF unsupported. Явные пути read/edit/write/apply_patch следуют symlinks; permissions/external_directory — по lexical path, own-data-root exclusion — по разрешённой цели I/O. Recursive search не следует найденным ссылкам. Точный registered artifact сохраняет отдельный authorized read/grep route, не общий доступ к native directory/blob/mutations. Complete search pages stable sorted/paginated; budget-limited subsets честно truncated, без обещания глобального sorted prefix/cursor.
+`read`: потоковое чтение выбранного диапазона строк с path/offset/limit, без whole-file size admission для текста. Сохраняются ≤2000 lines, 65536-byte rendered page, bounded huge-line prefix, UTF-8/CRLF и явный next cursor; binary/NUL проверяется только в consumed prefix, включая пропущенные до offset строки. Artifact содержит выбранную страницу, не весь файл. Image media-ingest ≤20 MiB, отдельно от неизменных text/search bounds; PDF unsupported. Явные пути read/edit/write/apply_patch следуют symlinks; permissions/external_directory — по lexical path, own-data-root exclusion — по разрешённой цели I/O. Recursive search не следует найденным ссылкам. Точный registered artifact сохраняет отдельный authorized read/grep route, не общий доступ к native directory/blob/mutations. Complete search pages stable sorted/paginated; budget-limited subsets честно truncated, без обещания глобального sorted prefix/cursor.
 
 `apply_patch`: один JSON argument `patchText` с upstream-style `*** Begin Patch` / Add File / Update File / Delete File / Move to / End Patch. Не смешивать с provider-hosted Responses `apply_patch` schema. В M2 сохранить parser fixtures выбранного OpenCode baseline; политика unsafe paths — наша.
 
@@ -87,7 +89,7 @@ BOM снимается перед matching и восстанавливается
 Парсер сначала строит plan всех операций, validates grammar/sizes/lexical paths/conflicts и checks permissions. Затем per-file preimage check и запись temp file в директории фактической цели I/O, fsync, atomic rename; preserve mode в рамках разрешений. Write/update через leaf symlink сохраняет ссылку и меняет referent; delete/move-source действует на lexical entry. Preview и commit связаны с реальным target и identity ссылки. Не обещать all-files atomicity. Ошибка после части commits → partial result с точными paths/hashes; crash ambiguity → unknown. Pinned directory-relative no-follow I/O применяется после разрешения явных ссылок, не как blanket symlink ban. Это не kernel CAS и не полная защита от malicious same-UID TOCTOU.
 
 Весь preflight вычисляет before/after и проверяет каждый hunk до первого изменения;
-лимиты: patch 2 MiB, файл 8 MiB, сохранённые preimages/results плана 64 MiB.
+лимиты: patch 4 MiB, файл 8 MiB, сохранённые preimages/results плана 64 MiB.
 Linux implementation после разрешения explicit links удерживает directory handles, проходит фактические parents через
 `openat(O_DIRECTORY|O_NOFOLLOW)` и использует только single-component имена в
 mutation syscalls. Temporary inode — `O_CREAT|O_EXCL|O_NOFOLLOW`, новое случайное
@@ -107,6 +109,11 @@ destination до удаления source; source не обновляется п�
 `write` (T50/R9 pending): `{path,content}` создаёт/перезаписывает файл, включая пустой
 content и missing parents; donor BOM/newline semantics, bounded regular-file preimage
 и реальные target/resource/existed/operation metadata. Не эмуляция Add File patch.
+Старый preimage `write` может быть NUL/non-UTF-8 или больше8MiB: он не разбирается
+как текст. Полные before bytes сохраняются и буквально перепроверяются перед commit;
+before+after ограничены существующим64MiB plan budget. Новый content остаётся
+валидным NUL-free UTF-8 ≤8MiB, старый BOM сохраняется. `edit`/strict patch сохраняют
+прежние8MiB snapshot/text guards; digest/link/inode/mode/cleanup не ослаблены.
 
 `edit` (T50/R9 pending): `{path,oldString,newString,replaceAll?}`; существующий файл,
 unique match по умолчанию, все matches при true, фактический replacements count.
@@ -123,6 +130,10 @@ Write/Edit/ApplyPatch отдельно; replay использует persisted in
 не сегодняшние файлы. No Formatter/LSP subsystem в этом файловом срезе.
 
 `shell` (T50 target): command/workdir/timeout/background through the actual configured Linux shell; default foreground timeout120000ms, explicit0 disables execution timeout, background default has no execution timeout. Preserve legacy `bash(argv/cwd/timeout_ms)` through one supervisor/policy owner with unambiguous schema normalization, not duplicate advertised tools or a Deny bypass. Process group, trusted cwd, captured owner env, concurrent drains, bounded preview/retained output and TERM→grace→KILL→wait remain. Background returns running/shellID after launch and later an automatic durable terminal notice, without polling; output/jobs/queues/teardown stay bounded even with no execution timeout. Native unknown effects never auto-replay; no hidden persistent terminal manager or sandbox claim.
+Нет отдельного32KiB argv-entry cap и600000ms positive-timeout ceiling. Аргументы
+по-прежнему проверяются на shape/NUL/arity; реальный OS `E2BIG` — failed tool result,
+не success/unknown replay. Captured environment metadata сохраняет отдельный32KiB
+selector-input bound; это не ограничение фактических shell argv.
 
 Model `shell` source is analyzed by a native bash/zsh/posix scanner using the same
 captured executable as execution. Every extracted command is an authorization
@@ -226,7 +237,16 @@ A free-form answer may carry clipboard PNGs (`[Image N]` chips, prompt paste bin
 only when the issuing model accepts image input; owner re-validates label/caps/PNG and
 the tool result lowers them to `input_image`, persisted as `native_question_results`.
 
-RAW keeps every prompt/read/question/MCP image. Before request byte admission,
+Prompt/question attachments have a finite 20 MiB single /40 MiB total raw-byte
+budget. Native local-image read and stored reconstruction use the same single
+media bound and complete container/pixel/animation validation (decoded allocation
+≤20 MiB, dimensions ≤4096). Cancellation and own-data-root refusal remain.
+Read base64 is retained once in native facts, not charged again for the transient
+wire projection or as text tokens. Admission measures the actual durable record,
+including earlier results in the same batch; visual and nonimage text costs remain.
+The independent 32 MiB retained-record and final request limits are unchanged.
+
+RAW keeps every admitted prompt/read/question/MCP image. Before request byte admission,
 capability/wire projection omits unsupported images; then image-only projection
 replays the TS prefix budget: strictly above 25 MiB, oldest images become notes
 until retained image size is at most 15 MiB. Ordinary inline media counts base64
@@ -236,6 +256,17 @@ without relaxing per-record or final request caps. Compaction transcripts never
 quote base64. Removed images are no longer visible; retrieve/reattach rather than
 claiming their contents from memory. A turn whose own unsupported images were dropped warns
 "the selected model cannot see images; sent without them".
+
+Other native input bounds remain finite: prompt2MiB (Core, TUI and native framing
+agree), question input/reply128KiB with8192-byte question/description/answer and
+512-byte option labels, clipboard/selection128KiB, protected DCP text128KiB,
+instructions128KiB per source/512KiB total, fork8192 copied rows/32MiB copied bytes.
+These budgets do not promise every maximum-sized combination fits one provider request.
+`subagent` keeps a finite global16-job budget and16 child sessions per parent.
+Transactional outstanding counts and real semaphore permits both remain enforced.
+Recovery reads at most cap+1 identities to detect overflow, normal notice delivery
+is bounded by the same16-job cap. Unknown jobs stay unresolved/non-replayable even
+after leaving the outstanding count. The independent shell-job8 budget is unchanged.
 
 `opencode_models` searches the existing catalog without selecting a model;
 `opencode_session_rename` persists an authorized current/explicit session title;
@@ -355,7 +386,7 @@ T40 evidence remains factual.
   pages only durable published extents; terminal preparation never recaptures the tail.
 - Complete means all admitted text was captured, not full HTTP body rejected at input,
   media/base64 or discarded producer bytes. Tool text may contain unredacted secrets
-  by the explicit TS-parity contract below. Native artifact cap16 MiB,
+  by the explicit TS-parity contract below. Native artifact cap32 MiB,
   shared existing quota default2 GiB and completed TTL7 days are explicit differences
   from donor full-file retention without a byte quota. Preview-truncated can still be capture-complete;
   producer/cap/quota/IO/cancel loss is incomplete with actual readable prefix or no path.
@@ -511,8 +542,10 @@ remote вызова и не выполняет автоматическую св
 
 Структурно неподдерживаемый, пустой/некорректный или oversized ответ после
 `tools/call` возвращает обычный `failed`, без retirement/quarantine. Text-only
-result ограничен16 MiB (lookup использует тот же лимит), media-bearing result —
-1 MiB aggregate. Превышение сообщает `MCP result N bytes exceeds L bytes`.
+result ограничен16 MiB (lookup использует тот же лимит); media-bearing result
+использует тот же16MiB encoded-JSON aggregate, без отдельного64-part ceiling.
+MIME/base64/SDK shape и ordered durable reconstruction остаются обязательными.
+Превышение сообщает `MCP result N bytes exceeds L bytes`.
 Большой допустимый текст публикуется существующим preview + `read(path)` artifact,
 без redaction ни в preview, ни в cold capture. `isError:true` остаётся `failed`,
 joined text parts видны модели verbatim; numeric JSON-RPC errors сохраняют только

@@ -123,11 +123,17 @@ fn prepare(files: &Files, input: &Input<'_>, policy: &dyn WritePolicy) -> Result
     let before = if root.absent(&path).map_err(io)? {
         None
     } else {
-        Some(root.snapshot(&path).map_err(io)?)
+        Some(match input {
+            Input::Write { .. } => root
+                .entry(&path, false)
+                .map_err(io)?
+                .snapshot_for_write()
+                .map_err(io)?,
+            Input::Edit { .. } => root.snapshot(&path).map_err(io)?,
+        })
     };
-    let original = text(before.as_ref().map_or(&[], |s| s.bytes.as_slice()), rel)?;
-    let bom = original.starts_with('\u{feff}');
-    let source = original.strip_prefix('\u{feff}').unwrap_or(original);
+    let original: &[u8] = before.as_ref().map_or(&[], |s| s.bytes.as_slice());
+    let bom = original.starts_with(b"\xef\xbb\xbf");
     let (next, replacements) = match input {
         Input::Write { content, .. } => ((*content).to_string(), None),
         Input::Edit { old, new, all, .. } => {
@@ -137,6 +143,8 @@ fn prepare(files: &Files, input: &Input<'_>, policy: &dyn WritePolicy) -> Result
                     reason: "missing".into(),
                 });
             }
+            let original = text(original, rel)?;
+            let source = original.strip_prefix('\u{feff}').unwrap_or(original);
             let (next, count) =
                 replace(source, old, new, *all).map_err(|reason| PatchError::Conflict {
                     path: rel.into(),
@@ -157,6 +165,12 @@ fn prepare(files: &Files, input: &Input<'_>, policy: &dyn WritePolicy) -> Result
         return Err(PatchError::TooLarge {
             path: rel.into(),
             reason: "file cap".into(),
+        });
+    }
+    if original.len().saturating_add(after.len()) > PLAN_BYTES_CAP {
+        return Err(PatchError::TooLarge {
+            path: rel.into(),
+            reason: "write preimage plan cap".into(),
         });
     }
     let kind = if before.is_some() { "update" } else { "add" };

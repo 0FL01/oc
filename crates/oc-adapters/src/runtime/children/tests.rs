@@ -606,7 +606,7 @@ async fn foreground_conversion_releases_only_waiter_and_retains_actual_join_and_
 }
 
 #[test]
-fn seven_outstanding_two_reserved_launches_reject_without_orphan_or_cleanup() {
+fn cap_minus_one_outstanding_two_reserved_launches_reject_without_orphan_or_cleanup() {
     let data = tempfile::tempdir().unwrap();
     let db = Db::open(data.path()).unwrap();
     for parent in ["seed", "left", "right", "unrelated"] {
@@ -615,7 +615,7 @@ fn seven_outstanding_two_reserved_launches_reject_without_orphan_or_cleanup() {
     db.set_pref("unrelated-pref", "preserved").unwrap();
     db.append_message("unrelated", "user", "preserved history")
         .unwrap();
-    for i in 0..7 {
+    for i in 0..JOB_CAP - 1 {
         let job = identity("seed", &format!("seed-{i}"));
         db.record_tool_intent(&job.operation, "seed", None, "subagent", "{}")
             .unwrap();
@@ -643,7 +643,7 @@ fn seven_outstanding_two_reserved_launches_reject_without_orphan_or_cleanup() {
                     .unwrap();
                 let _reservation = jobs.reserve(parent, &job.child.0).unwrap();
                 // Both callers have passed the real owner reservation against
-                // seven terminal, undelivered facts before either admission.
+                // cap-minus-one terminal, undelivered facts before either admission.
                 barrier.wait();
                 let outcome = db.admit_fresh_child_job(&job);
                 (job, outcome)
@@ -663,7 +663,7 @@ fn seven_outstanding_two_reserved_launches_reject_without_orphan_or_cleanup() {
         .find(|(_, result)| result.is_err())
         .unwrap()
         .0;
-    assert_eq!(db.child_job_outstanding().unwrap(), 8);
+    assert_eq!(db.child_job_outstanding().unwrap(), JOB_CAP as i64);
     assert_eq!(db.read_history_full("unrelated").unwrap(), unrelated);
     assert_eq!(
         db.get_pref("unrelated-pref").unwrap().as_deref(),

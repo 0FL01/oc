@@ -7,8 +7,8 @@ use std::collections::HashMap;
 #[path = "storage_fork_context.rs"]
 mod context;
 
-const MAX_ROWS: i64 = 4096;
-const MAX_BYTES: i64 = 16 * 1024 * 1024;
+const MAX_ROWS: i64 = 8192;
+const MAX_BYTES: i64 = 32 * 1024 * 1024;
 
 fn refuse(reason: &str) -> CoreError {
     CoreError::Application(format!("fork refused: {reason}"))
@@ -1336,7 +1336,7 @@ mod tests {
                 let mut conn = db.conn.lock().unwrap();
                 let tx = conn.transaction().unwrap();
                 tx.execute("INSERT INTO events(session_id,kind,payload) VALUES ('source','accepted_model',?1)",[&raw]).unwrap();
-                for _ in 0..300 {
+                for _ in 0..600 {
                     Db::insert_message(&tx, "source", "user", "unassociated legacy prompt")
                         .unwrap();
                 }
@@ -1358,7 +1358,7 @@ mod tests {
         }
         let db = Db::open(tmp.path()).unwrap();
         assert_eq!(db.list_sessions().unwrap(), ["source"]);
-        assert_eq!(db.read_history_full("source").unwrap().len(), 301);
+        assert_eq!(db.read_history_full("source").unwrap().len(), 601);
         assert!(db.tab_adoptions("/project").unwrap().is_empty());
     }
 
@@ -1731,7 +1731,7 @@ mod tests {
             "{\"version\":1,\"sessions\":[],\"active\":null}",
         )
         .unwrap();
-        db.conn.lock().unwrap().execute_batch("WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<4097) INSERT INTO messages(id,session_id,seq,role,text) SELECT 'extra-' || x,'source',100+x,'user','x' FROM n;").unwrap();
+        db.conn.lock().unwrap().execute("WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<?1) INSERT INTO messages(id,session_id,seq,role,text) SELECT 'extra-' || x,'source',100+x,'user','x' FROM n", [MAX_ROWS + 1]).unwrap();
         let last = db.append_message("source", "user", "boundary").unwrap();
         assert!(
             db.fork_session("source", &last, "/project", "fixture", "{}")
@@ -1739,6 +1739,26 @@ mod tests {
         );
         assert_eq!(db.list_sessions().unwrap(), ["source"]);
         assert!(db.tab_adoptions("/project").unwrap().is_empty());
+    }
+
+    #[test]
+    fn w8_fork_copies_history_above_old_row_and_byte_budgets() {
+        for (rows, bytes) in [(5000, 1), (32, 600 * 1024)] {
+            let tmp = tempfile::tempdir().unwrap();
+            let db = Db::open(tmp.path()).unwrap();
+            db.create_bound_session("source", "/project").unwrap();
+            let text = "x".repeat(bytes);
+            for _ in 0..rows {
+                db.append_message("source", "user", &text).unwrap();
+            }
+            let boundary = db.append_message("source", "user", "next prompt").unwrap();
+            let fork = db
+                .fork_session("source", &boundary, "/project", "fixture", "{}")
+                .unwrap();
+            assert_eq!(db.read_history_full(&fork.session.0).unwrap().len(), rows);
+            assert_eq!(db.read_history_full("source").unwrap().len(), rows + 1);
+            assert_eq!(fork.prompt, "next prompt");
+        }
     }
 
     #[test]

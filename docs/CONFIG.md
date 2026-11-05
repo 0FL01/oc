@@ -116,7 +116,9 @@ cannot prove that it contains no policy and stays fatal, even above healthy glob
 policy. Selected mandatory definitions, trust/security, storage/recovery, cleanup and
 mandatory resource guards remain non-success; cancellation remains cancelled. Skills/count
 and aggregate-definition-byte omissions are warning-only on startup and reload:
-256skills/4MiB caps stay in force, retained siblings remain usable. Incomplete agent
+4096 definitions per kind/64MiB aggregate caps stay in force, retained siblings remain usable.
+Non-definition files are filtered before enumeration budgets; directory skills,
+recursive agent directories and aliases retain descriptor-based trust checks. Incomplete agent
 catalog/selected-profile validation and instruction diagnostics are not relaxed. Failed reload keeps
 the previous complete generation, not mixed catalogs/instructions/clients/policy.
 Source-watcher installation failure also retains the already admitted snapshot
@@ -604,7 +606,7 @@ the same settings for stream previews, conversion and terminal publication.
 
 Oversized admitted normalized text is retained verbatim by the existing native
 Db owner under `tool-output/`, with a model-readable exact registered path. Initial
-artifact ceiling16 MiB, existing shared storage quota default2 GiB and completed
+artifact ceiling32 MiB, existing shared storage quota default2 GiB and completed
 artifact TTL7 days are native safety differences, **not donor `tool_output` fields**
 or implemented TOML controls. Capture loss/IO/quota/expiry is explicit; no full-inline
 fallback, producer replay, arbitrary native-root access or automatic cold rehydration.

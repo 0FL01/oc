@@ -5,10 +5,9 @@ use base64::Engine as _;
 use serde::{Serialize, Serializer};
 use serde_json::{Value, json};
 
-const PARTS_CAP: usize = 64;
 const IDENTITY_CAP: usize = 8 * 1024;
 const PRESENTATION_CAP: usize = 8 * 1024;
-const MEDIA_BYTES_CAP: usize = 1024 * 1024;
+const MEDIA_BYTES_CAP: usize = crate::mcp_remote::RESULT_TEXT_BYTES_CAP;
 
 /// Validated native tool facts. Debug never prints media or metadata.
 /// Serialization is Responses output only; durable facts belong to TurnLog.
@@ -437,9 +436,6 @@ fn make(mut facts: Value) -> Result<McpToolOutput, ResultError> {
     let parts = facts["content"]
         .as_array_mut()
         .ok_or(ResultError::BadResult)?;
-    if parts.len() > PARTS_CAP {
-        return Err(ResultError::BadResult);
-    }
     for part in parts {
         match part["type"].as_str().ok_or(ResultError::BadResult)? {
             "text" => {

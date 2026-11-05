@@ -3248,9 +3248,6 @@ impl<'a> Runtime<'a> {
                     input
                         .iter()
                         .filter_map(|item| match item {
-                            InputItem::ReadFunctionCallOutput { output, .. } => {
-                                Some(output.facts().to_string().len())
-                            }
                             InputItem::QuestionFunctionCallOutput { output, .. } => {
                                 Some(output.facts().to_string().len())
                             }
@@ -5006,7 +5003,7 @@ impl<'a> Runtime<'a> {
         let mut records = Vec::new();
         let mut projection_changed = false;
         let mut permission_rejected = false;
-        let mut read_extra_bytes = 0usize;
+        let mut read_base64_bytes = 0usize;
         let mut read_visual_tokens = 0u64;
         let mut child_end = 0;
         let mut renewals = Vec::new();
@@ -6347,27 +6344,46 @@ impl<'a> Runtime<'a> {
                                     ),
                                 )
                             });
-                            if let Some(image) = &result.image {
-                                let retained = image.retained_bytes();
-                                let growth = turn_log
+                            if let Some(image) = result.image.take() {
+                                let base64_bytes = read_base64_bytes.saturating_add(
+                                    image.facts()["data"]
+                                        .as_str()
+                                        .expect("validated read image")
+                                        .len(),
+                                );
+                                let visual =
+                                    read_visual_tokens.saturating_add(image.estimated_tokens());
+                                // Measure the actual durable representation: facts contain
+                                // the base64 once, while input contains only its display.
+                                // No await/publication occurs before this candidate is removed.
+                                turn_log.input.push(InputItem::ReadFunctionCallOutput {
+                                    call_id: id.clone(),
+                                    output: image,
+                                });
+                                let bytes = turn_log
                                     .to_json()
                                     .to_string()
                                     .len()
                                     .saturating_sub(read_log_base);
-                                let bytes = growth
-                                    .saturating_add(read_extra_bytes)
-                                    .saturating_add(retained);
-                                let visual =
-                                    read_visual_tokens.saturating_add(image.estimated_tokens());
-                                let tokens = visual.saturating_add((bytes as u64).div_ceil(4));
+                                let Some(InputItem::ReadFunctionCallOutput {
+                                    output: image, ..
+                                }) = turn_log.input.pop()
+                                else {
+                                    unreachable!("just appended native read result");
+                                };
+                                // Media is charged visually, not as millions of text tokens.
+                                let tokens = visual.saturating_add(
+                                    (bytes.saturating_sub(base64_bytes) as u64).div_ceil(4),
+                                );
                                 if tokens > read_tokens || bytes > read_bytes {
                                     result = crate::tools::read::Outcome::error(
                                         "failed",
                                         "image exceeds selected model or retained-context budget; compress context or use a smaller image",
                                     );
                                 } else {
-                                    read_extra_bytes = read_extra_bytes.saturating_add(retained);
+                                    read_base64_bytes = base64_bytes;
                                     read_visual_tokens = visual;
+                                    result.image = Some(image);
                                 }
                             }
                             native_read_result = result.image;

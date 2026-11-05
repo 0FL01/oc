@@ -304,11 +304,13 @@ Read the project's existing instructions before changing its configuration.
 user actually wants an override. A valid global definition replaces the builtin,
 and a later project definition replaces that winner with normal provenance.
 A malformed replacement leaves the last valid body callable and emits a safe
-diagnostic. Caps stay in force: at 256 skills an existing ID can be replaced,
-but a new 257th ID cannot. Count and aggregate4MiB omissions warn on startup and
+diagnostic. Caps stay in force: at 4096 skills an existing ID can be replaced,
+but a new 4097th ID cannot. Count and aggregate64MiB omissions warn on startup and
 reload while usable siblings remain; selected-profile/incomplete-agent-catalog and
 instruction validation still gate publication. Generation snapshots pin bodies; changing a file after
 request preparation does not retroactively change the skill served to that request.
+Unrelated files do not consume definition enumeration budgets; directory skills and
+recursive agent aliases still undergo the existing source-trust checks.
 Only metadata enters automatic context; explicit `skill` loading still obeys
 per-ID Allow/Ask/Deny and ordinary user output limits.
 

@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-pub const IMAGE_BYTES: usize = 8 * 1024 * 1024;
-pub const IMAGES_TOTAL_BYTES: usize = 16 * 1024 * 1024;
+pub const IMAGE_BYTES: usize = 20 * 1024 * 1024;
+pub const IMAGES_TOTAL_BYTES: usize = 40 * 1024 * 1024;
 pub const MAX_IMAGES: usize = 1024;
 
 /// An attachment's tracked range in the original UTF-8 draft (no trailing space).

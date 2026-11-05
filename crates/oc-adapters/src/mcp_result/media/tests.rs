@@ -54,7 +54,7 @@ fn mcp12_native_media_lowering_is_ordered_and_legacy_text_api_is_compatible() {
 }
 
 #[test]
-fn mcp12_malformed_content_and_parts_cap_reject_the_whole_result() {
+fn mcp12_malformed_content_and_aggregate_cap_reject_the_whole_result() {
     for block in [
         json!({"type":"image","mimeType":"image/png","data":"not-base64!"}),
         json!({"type":"image","mimeType":"image/invalid mime","data":"AA=="}),
@@ -73,8 +73,27 @@ fn mcp12_malformed_content_and_parts_cap_reject_the_whole_result() {
         ),
         Err(ResultError::BadResult)
     ));
-    assert!(matches!(project_rich(serde_json::from_value(json!({"content":vec![json!({"type":"image","mimeType":"image/png","data":"AA=="});65]})).unwrap()), Err(ResultError::BadResult)));
     assert!(matches!(project_rich(serde_json::from_value(json!({"content":[{"type":"text","text":"x".repeat(MEDIA_BYTES_CAP)},{"type":"image","mimeType":"image/png","data":"AA=="}]})).unwrap()), Err(ResultError::TooLarge { limit: MEDIA_BYTES_CAP, .. })));
+}
+
+#[test]
+fn w8_mcp_media_above_one_mib_and_sixty_four_parts_reconstructs_in_order() {
+    let original = json!({"content":(0..65).map(|i| json!({"type":"image","mimeType":"image/png","data":base64::engine::general_purpose::STANDARD.encode(vec![i as u8; 16 * 1024])})).collect::<Vec<_>>()});
+    assert!(original.to_string().len() > 1024 * 1024);
+    let output = project_rich(serde_json::from_value(original.clone()).unwrap()).unwrap();
+    let wire = serde_json::to_value(&output).unwrap();
+    assert_eq!(wire.as_array().unwrap().len(), 65);
+    for (index, item) in wire.as_array().unwrap().iter().enumerate() {
+        assert_eq!(
+            item["image_url"],
+            format!(
+                "data:image/png;base64,{}",
+                original["content"][index]["data"].as_str().unwrap()
+            )
+        );
+    }
+    let restored = McpToolOutput::from_stored(output.facts().clone()).unwrap();
+    assert_eq!(serde_json::to_value(restored).unwrap(), wire);
 }
 
 #[test]

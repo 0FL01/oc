@@ -1,6 +1,73 @@
 use super::*;
 
 #[test]
+fn w8_write_binary_and_large_preimages_still_bind_every_approved_byte() {
+    use std::os::unix::fs::PermissionsExt;
+    let temp = tempfile::tempdir().unwrap();
+    let project = temp.path().join("project");
+    let data = temp.path().join("data");
+    std::fs::create_dir_all(&project).unwrap();
+    std::fs::create_dir_all(&data).unwrap();
+    let files = Files::new(&project, &data).unwrap();
+    let mut refused = Vec::new();
+    for (path, mut before) in [
+        ("nul", b"old\0bytes".to_vec()),
+        ("invalid", vec![0xff, 0xfe]),
+        ("large", vec![b'a'; 9 * 1024 * 1024]),
+    ] {
+        let target = project.join(path);
+        std::fs::write(&target, &before).unwrap();
+        std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o640)).unwrap();
+        assert!(
+            preview(
+                &files,
+                &Input::Edit {
+                    path,
+                    old: "a",
+                    new: "b",
+                    all: false
+                }
+            )
+            .is_err()
+        );
+        let input = Input::Write {
+            path,
+            content: "replacement\n",
+        };
+        let digest = match preview(&files, &input) {
+            Ok((_, digest)) => digest,
+            Err(error) => {
+                refused.push((path, error.to_string()));
+                continue;
+            }
+        };
+        *before.last_mut().unwrap() ^= 1;
+        std::fs::write(&target, &before).unwrap();
+        let (result, effects) = execute(&files, &input, &AllowAll, Some(&digest), &mut |_| {});
+        assert!(result.is_err() && effects.files.is_empty());
+        assert!(
+            std::fs::read(&target).unwrap() == before,
+            "stale refusal changed {path}"
+        );
+        let (_, digest) = preview(&files, &input).unwrap();
+        assert!(
+            execute(&files, &input, &AllowAll, Some(&digest), &mut |_| {})
+                .0
+                .is_ok()
+        );
+        assert_eq!(std::fs::read(&target).unwrap(), b"replacement\n");
+        assert_eq!(
+            std::fs::metadata(&target).unwrap().permissions().mode() & 0o777,
+            0o640
+        );
+    }
+    assert!(
+        refused.is_empty(),
+        "overwrite must not text-parse or cap old preimages at 8 MiB: {refused:?}"
+    );
+}
+
+#[test]
 fn w2_write_edit_follow_symlinks_and_bind_approval_to_referent() {
     let temp = tempfile::tempdir().unwrap();
     let project = temp.path().join("project");

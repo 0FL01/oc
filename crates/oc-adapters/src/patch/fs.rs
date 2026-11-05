@@ -202,19 +202,27 @@ impl Entry {
     }
 
     pub fn snapshot(&self) -> io::Result<Snapshot> {
+        self.snapshot_with_cap(super::FILE_BYTES_CAP)
+    }
+
+    pub fn snapshot_for_write(&self) -> io::Result<Snapshot> {
+        self.snapshot_with_cap(super::PLAN_BYTES_CAP)
+    }
+
+    fn snapshot_with_cap(&self, cap: usize) -> io::Result<Snapshot> {
         let mut file = open(&self.dir, &self.name, libc::O_RDONLY | libc::O_NONBLOCK, 0)?;
         let meta = file.metadata()?;
         if !meta.is_file() {
             return Err(io::ErrorKind::InvalidData.into());
         }
-        if meta.len() > super::FILE_BYTES_CAP as u64 {
+        if meta.len() > cap as u64 {
             return Err(io::ErrorKind::FileTooLarge.into());
         }
         let mut bytes = Vec::new();
         Read::by_ref(&mut file)
-            .take(super::FILE_BYTES_CAP as u64 + 1)
+            .take(cap as u64 + 1)
             .read_to_end(&mut bytes)?;
-        if bytes.len() > super::FILE_BYTES_CAP {
+        if bytes.len() > cap {
             return Err(io::ErrorKind::FileTooLarge.into());
         }
         if identity(&meta) != identity(&file.metadata()?) {
@@ -228,7 +236,7 @@ impl Entry {
     }
 
     pub fn unchanged(&self, before: &Snapshot) -> io::Result<bool> {
-        let now = self.snapshot()?;
+        let now = self.snapshot_with_cap(before.bytes.len().max(super::FILE_BYTES_CAP))?;
         Ok(now.identity == before.identity && now.mode == before.mode && now.bytes == before.bytes)
     }
 

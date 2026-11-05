@@ -9,9 +9,9 @@ use tokio::sync::{broadcast, oneshot};
 
 pub const QUESTIONS_CAP: usize = 16;
 pub const OPTIONS_CAP: usize = 16;
-pub const PAYLOAD_CAP: usize = 64 * 1024;
+pub const PAYLOAD_CAP: usize = 128 * 1024;
 pub const RESULT_BYTES_CAP: usize = 2 * PAYLOAD_CAP + 64;
-pub const ANSWER_BYTES_CAP: usize = 4096;
+pub const ANSWER_BYTES_CAP: usize = 8192;
 pub const IMAGES_CAP: usize = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -49,11 +49,11 @@ impl QuestionInput {
             return Err("question payload too large");
         }
         for q in &self.questions {
-            if q.question.len() > 4096
+            if q.question.len() > 8192
                 || q.options.len() > OPTIONS_CAP
                 || q.options
                     .iter()
-                    .any(|o| o.label.len() > 256 || o.description.len() > 4096)
+                    .any(|o| o.label.len() > 512 || o.description.len() > 8192)
             {
                 return Err("invalid question fields or limits");
             }

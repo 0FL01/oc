@@ -789,7 +789,7 @@ async fn tool13_invalid_shell_never_commits_execution_intent() {
         serde_json::json!({"command":"touch marker","background":"yes"}),
         serde_json::json!({"command":"touch marker","timeout":-1}),
         serde_json::json!({"command":"touch marker","workdir":"missing-directory"}),
-        serde_json::json!({"command":"touch marker","timeout":600001}),
+        serde_json::json!({"command":"touch marker","timeout":1.5}),
         serde_json::json!({"command":"touch marker","argv":["true"]}),
     ] {
         let (base, _) = Fake::start(

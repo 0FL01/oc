@@ -279,7 +279,7 @@ fn skill01_capacity_allows_replacement_but_not_new_ids_or_byte_budget_bypass() {
             Path::new("native-skill-fixture/slot.md"),
         );
     }
-    assert_eq!(out.defs.skills.len(), 256);
+    assert_eq!(out.defs.skills.len(), 4096);
     assert!(out.defs.diagnostics.is_empty());
     let text = "---\ndescription: Replacement at capacity\n---\nLatest valid body";
     insert_skill_text(

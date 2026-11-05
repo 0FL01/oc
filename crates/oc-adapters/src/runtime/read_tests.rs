@@ -2,8 +2,180 @@
 use super::*;
 
 #[tokio::test]
+async fn w8_large_read_image_reaches_followups_and_replay_with_one_retained_base64() {
+    use base64::Engine as _;
+    use image::ImageEncoder as _;
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let mut state = 3u32;
+    let pixels: Vec<u8> = (0..2200 * 2200 * 3)
+        .map(|_| {
+            state ^= state << 13;
+            state ^= state >> 17;
+            state ^= state << 5;
+            state as u8
+        })
+        .collect();
+    let mut png = Vec::new();
+    image::codecs::png::PngEncoder::new_with_quality(
+        &mut png,
+        image::codecs::png::CompressionType::Fast,
+        image::codecs::png::FilterType::NoFilter,
+    )
+    .write_image(&pixels, 2200, 2200, image::ExtendedColorType::Rgb8)
+    .unwrap();
+    drop(pixels);
+    assert!(png.len() > 12 * 1024 * 1024 && png.len() < 20 * 1024 * 1024);
+    std::fs::write(project.path().join("large.png"), &png).unwrap();
+    let encoded = base64::engine::general_purpose::STANDARD.encode(&png);
+    drop(png);
+    image::RgbImage::new(1, 1)
+        .save(project.path().join("tiny.png"))
+        .unwrap();
+    let db = Db::open(data.path()).unwrap();
+    let rt = runtime(&db, project.path());
+    rt.create_session("s").unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = ResponsesConfig {
+        base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
+        api_key: "fixture".into(),
+        headers: BTreeMap::new(),
+        cache: crate::provider::CacheMode::Auto,
+        wire: Default::default(),
+        timeout: Some(false),
+        header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+        chunk_timeout_ms: Some(5000),
+        connect_timeout: Duration::from_secs(5),
+        allow_private: true,
+    };
+    let catalog = ModelCatalog { provider: "fixture".into(), models: [("m".into(),
+        json!({"modalities":{"input":["text","image"]},"limit":{"context":65536,"output":4096}}))].into() };
+    let (follow_tx, mut follow_rx) = tokio::sync::oneshot::channel();
+    let peer = tokio::spawn(async move {
+        let mut follow_tx = Some(follow_tx);
+        let mut followups = Vec::new();
+        for round in 0..3 {
+            let (mut socket, input) =
+                crate::runtime::tests::binding_replay_tests::request(&listener).await;
+            if round > 0 {
+                followups.push(input);
+            }
+            if round == 2 {
+                let _ = follow_tx
+                    .take()
+                    .unwrap()
+                    .send(std::mem::take(&mut followups));
+            }
+            let output = match round {
+                0 => vec![
+                    json!({"type":"function_call","id":"large-item","call_id":"large-read","name":"read","arguments":"{\"path\":\"large.png\"}"}),
+                    json!({"type":"function_call","id":"tiny-item","call_id":"tiny-read","name":"read","arguments":"{\"path\":\"tiny.png\"}"}),
+                ],
+                1 => vec![
+                    json!({"type":"function_call","id":"later-item","call_id":"later-read","name":"read","arguments":"{\"path\":\"tiny.png\"}"}),
+                ],
+                _ => vec![
+                    json!({"type":"message","role":"assistant","content":[{"type":"output_text","text":"DONE"}]}),
+                ],
+            };
+            let body = format!(
+                "data: {}\n\n",
+                json!({"type":"response.completed","response":{"status":"completed","output":output,"usage":{"input_tokens":1,"output_tokens":1}}})
+            );
+            socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        }
+    });
+    let cancel = AtomicBool::new(false);
+    let report = rt
+        .run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "Read the large and small images, then another small image".into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 4096,
+            provider,
+            cancel: &cancel,
+        })
+        .await;
+    // An early refusal must not leave our synthetic peer waiting for another request.
+    peer.abort();
+    let _ = peer.await;
+    let report = report.unwrap();
+    assert_eq!(
+        report.status,
+        TurnStatus::Completed,
+        "{:?}",
+        report.diagnostic
+    );
+    assert_eq!(report.calls.len(), 3);
+    assert!(
+        report.calls.iter().all(|call| call.state == "completed"),
+        "{:?}",
+        report.calls
+    );
+    let followups = follow_rx.try_recv().unwrap();
+    assert_eq!(followups.len(), 2);
+    let url = format!("data:image/png;base64,{encoded}");
+    for input in followups {
+        let output = input["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["type"] == "function_call_output" && item["call_id"] == "large-read")
+            .unwrap();
+        assert!(
+            output["output"][1]["image_url"]
+                .as_str()
+                .is_some_and(|actual| actual == url),
+            "large image missing or altered in follow-up"
+        );
+    }
+    let raw = db.turn_result(&report.turn_id).unwrap().1.unwrap();
+    assert!(raw.len() <= ACTIVE_CONTEXT_BYTES_CAP);
+    assert_eq!(
+        raw.matches(encoded.as_str()).count(),
+        1,
+        "one durable base64, not both facts and wire copies"
+    );
+    let stored: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(stored["native_read_results"].as_array().unwrap().len(), 3);
+    std::fs::remove_file(project.path().join("large.png")).unwrap();
+    drop(rt);
+    drop(db);
+    let db = Db::open(data.path()).unwrap();
+    let rt = runtime(&db, project.path());
+    rt.open_session("s").unwrap();
+    assert!(
+        db.turn_result(&report.turn_id).unwrap().1.unwrap() == raw,
+        "raw read history changed on reopen"
+    );
+    let replay = wire(&rt);
+    let output = replay
+        .iter()
+        .find_map(|item| match item {
+            InputItem::ProjectedFunctionCallOutput {
+                call_id,
+                output,
+                kind: Some(crate::provider::ProjectedImageKind::Read),
+                ..
+            } if call_id == "large-read" => Some(serde_json::to_value(output).unwrap()),
+            _ => None,
+        })
+        .unwrap();
+    assert!(
+        output[1]["image_url"]
+            .as_str()
+            .is_some_and(|actual| actual == url),
+        "large image missing or altered on replay"
+    );
+}
+
+#[tokio::test]
 async fn w3_read_images_keep_current_record_bounded_across_projected_batches() {
     use image::ImageEncoder as _;
+    let started = std::time::Instant::now();
     let data = tempfile::tempdir().unwrap();
     let project = tempfile::tempdir().unwrap();
     let mut state = 3u32;
@@ -49,6 +221,10 @@ async fn w3_read_images_keep_current_record_bounded_across_projected_batches() {
         for round in 0..=6 {
             let (mut socket, _) =
                 crate::runtime::tests::binding_replay_tests::request(&listener).await;
+            eprintln!(
+                "W3 images request {round} at {}ms",
+                started.elapsed().as_millis()
+            );
             let output = if round < 6 {
                 (round * 10..round * 10 + 10).map(|index| json!({
                     "type":"function_call","id":format!("item{index}"),"call_id":format!("read{index}"),
@@ -91,6 +267,21 @@ async fn w3_read_images_keep_current_record_bounded_across_projected_batches() {
     assert_eq!(report.calls.len(), 60, "no call was replayed");
     assert!(report.calls.iter().any(|call| call.state == "failed"));
     let raw = db.turn_result(&report.turn_id).unwrap().1.unwrap();
+    eprintln!(
+        "W3 images retained={} completed={} failed={} elapsed={}ms",
+        raw.len(),
+        report
+            .calls
+            .iter()
+            .filter(|call| call.state == "completed")
+            .count(),
+        report
+            .calls
+            .iter()
+            .filter(|call| call.state == "failed")
+            .count(),
+        started.elapsed().as_millis()
+    );
     assert!(
         raw.len() <= ACTIVE_CONTEXT_BYTES_CAP,
         "retained record grew to {} bytes",
@@ -208,7 +399,7 @@ fn tool16_stored_read_facts_require_bounded_complete_pixel_validation() {
         ("complete envelope, invalid pixels", bad_pixels, "image/png"),
         (
             "decoded allocation over existing cap",
-            png(2048),
+            png(3072),
             "image/png",
         ),
         ("damaged later animation frame", animation, "image/gif"),

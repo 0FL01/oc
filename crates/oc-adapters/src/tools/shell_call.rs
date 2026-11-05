@@ -1,5 +1,5 @@
 //! Native shell argument admission. Canonical command and legacy argv stay distinct.
-use super::{BASH_TIMEOUT_CAP_MS, ToolCall, ToolError};
+use super::{ToolCall, ToolError};
 use std::collections::BTreeMap;
 use std::time::Duration;
 
@@ -65,11 +65,6 @@ pub(crate) fn invocation(
                 input
                     .timeout
                     .unwrap_or(if background { 0 } else { FOREGROUND_TIMEOUT_MS });
-            if timeout > BASH_TIMEOUT_CAP_MS {
-                return Err(invalid(
-                    "timeout exceeds native execution resource ceiling (600000 ms)",
-                ));
-            }
             let argv = crate::shell::command_argv(env, &input.command)
                 .map_err(|_| invalid("invalid command or unavailable Linux shell"))?;
             (
@@ -82,7 +77,7 @@ pub(crate) fn invocation(
         "bash" => {
             let input: ArgvInput = serde_json::from_value(call.arguments.clone())
                 .map_err(|_| invalid("expected argv, optional cwd and nonnegative timeout_ms"))?;
-            let timeout = input.timeout_ms.unwrap_or(30_000).min(BASH_TIMEOUT_CAP_MS);
+            let timeout = input.timeout_ms.unwrap_or(30_000);
             // Legacy explicit zero kept its immediate deadline; canonical zero
             // is the donor no-execution-timeout contract.
             (

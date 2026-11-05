@@ -6,7 +6,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::os::fd::{AsRawFd, FromRawFd};
 use std::os::unix::fs::MetadataExt;
 
-pub(crate) const CAP: u64 = 16 * 1024 * 1024;
+pub(crate) const CAP: u64 = 32 * 1024 * 1024;
 pub(crate) const TTL: i64 = 7 * 24 * 60 * 60;
 #[path = "storage_tool_output/access.rs"]
 mod access;

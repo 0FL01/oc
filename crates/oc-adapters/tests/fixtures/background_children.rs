@@ -1110,6 +1110,8 @@ async fn background_child_posts_effects_and_completes_before_parent_response() {
 async fn background_admission_caps_before_child_prompt_or_effect() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation);
+    let (events, _) = tokio::sync::broadcast::channel(64);
+    runtime.set_approval_events(&events);
     runtime
         .publish_subagents(Some(catalog(
             2,
@@ -1118,20 +1120,28 @@ async fn background_admission_caps_before_child_prompt_or_effect() {
         .unwrap();
     runtime.create_session("parent").unwrap();
     let children = Arc::new(Gate::default());
+    let next_children = Arc::new(Gate::default());
+    let initial_children = std::sync::atomic::AtomicUsize::new(0);
     let parent = Arc::new(Gate::default());
     let held_children = children.clone();
+    let held_next_children = next_children.clone();
     let held_parent = parent.clone();
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let peer = Peer::start(move |request| {
         if request["model"] == "m" && outputs(&request).is_empty() {
-            (0..6).map(|id|subagent_call(&format!("job-{id}"),serde_json::json!({"agent":"helper","description":"Bounded child","prompt":format!("TASK-{id}"),"background":true}))).collect::<String>()+&sse_completed()
+            (0..18).map(|id|subagent_call(&format!("job-{id}"),serde_json::json!({"agent":"helper","description":"Bounded child","prompt":format!("TASK-{id}"),"background":true}))).collect::<String>()+&sse_completed()
         } else if request["model"] == "m" {
             tx.send(("parent".into(), request)).unwrap();
             held_parent.wait();
             sse_delta("parent done") + &sse_completed()
         } else if outputs(&request).is_empty() {
+            let index = initial_children.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             tx.send(("child".into(), request)).unwrap();
-            held_children.wait();
+            if index < 8 {
+                held_children.wait();
+            } else {
+                held_next_children.wait();
+            }
             sse_tool_call(
                 "only-admitted-effect",
                 "bash",
@@ -1150,10 +1160,10 @@ async fn background_admission_caps_before_child_prompt_or_effect() {
     ));
     let driver = async {
         let mut seen = Vec::new();
-        for _ in 0..5 {
+        for _ in 0..17 {
             seen.push(received(&mut rx).await);
         }
-        assert_eq!(seen.iter().filter(|(kind, _)| kind == "child").count(), 4);
+        assert_eq!(seen.iter().filter(|(kind, _)| kind == "child").count(), 16);
         let wire = &seen.iter().find(|(kind, _)| kind == "parent").unwrap().1;
         assert_eq!(
             outputs(wire)
@@ -1162,9 +1172,27 @@ async fn background_admission_caps_before_child_prompt_or_effect() {
                 .count(),
             2
         );
-        assert_eq!(harness.db.children_of("parent").unwrap().len(), 4);
+        assert_eq!(harness.db.children_of("parent").unwrap().len(), 16);
         assert!(!harness._project.path().join("bounded-effect").exists());
         children.release();
+        // All sixteen are admitted and held above. Keep effect concurrency at
+        // eight so this test does not exhaust the independent shell-job budget.
+        wait_for(|| {
+            harness
+                .db
+                .children_of("parent")
+                .unwrap()
+                .iter()
+                .filter(|child| {
+                    messages(&harness.db, child)
+                        .iter()
+                        .any(|(role, text)| role == "assistant" && text == "child done")
+                })
+                .count()
+                >= 8
+        })
+        .await;
+        next_children.release();
         wait_for(|| {
             harness
                 .db
@@ -1181,7 +1209,7 @@ async fn background_admission_caps_before_child_prompt_or_effect() {
         assert!(runtime.turn_active());
         assert_eq!(
             std::fs::read(harness._project.path().join("bounded-effect")).unwrap(),
-            b"xxxx"
+            b"xxxxxxxxxxxxxxxx"
         );
         parent.release();
     };
@@ -1193,7 +1221,7 @@ async fn background_admission_caps_before_child_prompt_or_effect() {
             .iter()
             .filter(|call| call.state == "running")
             .count(),
-        4
+        16
     );
     runtime.shutdown_mcp().await.unwrap();
 }
