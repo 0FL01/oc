@@ -1,6 +1,6 @@
 # Goal: OpenProxy modern remote MCP with legacy compatibility
 
-Status: active
+Status: complete
 Source: user-approved RECON plan; “тогда оставим два варианта, для совместимости”; “Делай копию план в цель и итеративно реализвоать и коммит пуш билд”.
 Last updated: 2026-11-06
 
@@ -50,7 +50,7 @@ proven external blocker or approved budget boundary; record the smallest unlock.
     `target/release/oc2`; own commits reach verified `origin/master` by normal push.
     Actual failures and unverified live behavior are reported without overstating PASS.
   - Primary evidence: command results, reviewed diff, release artifact and remote Git SHA.
-  - Status: in_progress
+  - Status: verified
   - Evidence: goal committed as `3e23b2312`; config manual/contracts updated;
     `python3 scripts/check_docs.py`, scoped rustfmt and `git diff --check` PASS.
     `cargo clippy -p oc-adapters -p oc2 --all-targets --locked -- -D warnings` PASS.
@@ -61,6 +61,8 @@ proven external blocker or approved budget boundary; record the smallest unlock.
     doctest check PASS (zero examples), debug build/help/version PASS; release build
     PASS (7m04s). `target/release/oc2`, version0.2.0, SHA256
     `8cc8dc08f56265f4d9d19586911f36f8cc21707949f1201f7f74e085ea7a3c32`.
+    Implementation `b5430baafedc85ccaefac62b2531f4d8a474015b` and goal commit
+    `3e23b2312` pushed normally to verified origin/master; `git ls-remote` matched HEAD.
 
 ### Constraints / Non-goals
 - Default stays legacy. Protocol selection uses config, never server/model/URL inference.
@@ -88,10 +90,7 @@ proven external blocker or approved budget boundary; record the smallest unlock.
 - Git: normal commits on current `master`; origin verified as `git@github.com:0FL01/oc.git`.
 
 ## Current Checkpoint
-- Closes: R3 (Git delivery only).
-- Smallest next action: commit the reviewed runtime/tests/docs and push normally to verified origin/master.
-- Expected evidence: remote Git SHA contains this implementation and the goal commit.
-- Stop or replan if: an unexpected worktree/remote change prevents normal delivery.
+- Closed: R1–R3. No substantive next action; status-only closeout is delivered with this document.
 
 ## Current State
 - Resolved: protocol admission and existing SDK lifecycle implemented; strict wire/config evidence PASS.
@@ -109,8 +108,8 @@ proven external blocker or approved budget boundary; record the smallest unlock.
   the expensive durable fixture setup is outside this goal. No workload/threshold weakened.
 - Retests: DNS test with proxy environment removed PASS; background-child test
   isolated PASS. Original full-gate failures remain reported, not relabeled green.
-- Blocker: none; all implementation/build evidence complete, Git delivery pending.
-- Next: commit/push own files, confirm remote SHA, close this goal. No live qualification claimed.
+- Blocker: none. Implementation/build/Git delivery evidence complete.
+- Next: none. No live qualification claimed; existing native owner and user config were not changed.
 
 ## Material Decisions
 - 2026-11-06: latest user decision supersedes the intermediate modern-only hard cut.
@@ -127,6 +126,17 @@ proven external blocker or approved budget boundary; record the smallest unlock.
 - 2026-11-06: exact failure retests PASS without source changes; remaining doctest,
   debug build/help/version and release build PASS. Release SHA recorded; own diff
   remains inside the frozen envelope, foreign test script untouched.
+- 2026-11-06: implementation `b5430baaf` pushed to verified origin/master, independently
+  confirmed by remote SHA. Closure check passed; subsequent change is this status-only closeout.
 
 ## Completion
-- R1/R2 verified; implementation/checks/release complete. R3 awaits normal Git delivery.
+- Resolved outcomes: R1–R3 verified; goal complete.
+- Commands/artifacts: scoped config/remote/native tests and strict Clippy, one full
+  offline run plus the two exact isolated retests, remaining doctest/debug checks,
+  release artifact/hash and normal commit/push are recorded above.
+- Constraint/diff-scope check: runtime/test/doc diff stayed inside the frozen envelope;
+  no dependency, storage schema/migration or stdio runtime changes. `git diff --check`
+  passed; foreign `scripts/test_test_runner.py` remains untouched and untracked.
+- Qualification limits: original full run was not wholly green (two failures above);
+  exact retests do not rewrite that result. No live OpenProxy/visual/whole-product READY claim.
+- Final status: complete. Stop substantive work; metadata-only closeout needs no rebuild/retest.
