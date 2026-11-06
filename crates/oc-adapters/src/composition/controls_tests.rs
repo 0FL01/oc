@@ -25,7 +25,7 @@ async fn hot02_reload_verdict_distinguishes_mandatory_inputs_from_optional_inven
         (
             "agents",
             "broken.md",
-            "---\npermissions: []\n---\nPRIVATE_CANARY",
+            "---\npermissions: [{}]\n---\nPRIVATE_CANARY",
         ),
     ] {
         let parent = definitions.join(subdir);

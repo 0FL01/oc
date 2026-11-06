@@ -2180,11 +2180,14 @@ pub struct SkillMeta {
 struct FrontmatterLine<'a> {
     indent: usize,
     content: &'a str,
+    end: usize,
 }
 
 /// Split Markdown frontmatter using the admitted YAML subset: nested
-/// mappings, scalar sequences, quoted scalars and `#` comments (gray-matter +
-/// js-yaml parity for the shapes the owner writes). A line whose first
+/// mappings/sequences, flow mappings/sequences, quoted scalars, `|`/`>` block
+/// scalars with `-`/`+` chomping, and `#` comments (gray-matter + js-yaml parity
+/// for the shapes the owner writes). Anchors, multiline flow collections, tabs
+/// and block indentation indicators remain unsupported. A line whose first
 /// non-space character is `#` is a comment, and a `#` preceded by whitespace
 /// starts a trailing comment (`provider/model#variant` stays intact).
 /// Duplicate mapping keys at any level are a parse error; unknown fields are
@@ -2218,7 +2221,11 @@ pub(crate) fn split_frontmatter_value(text: &str) -> Result<(serde_json::Value, 
         if content.starts_with('\t') {
             return Err("unsupported frontmatter indentation".to_string());
         }
-        lines.push(FrontmatterLine { indent, content });
+        lines.push(FrontmatterLine {
+            indent,
+            content,
+            end: next_offset,
+        });
     }
     if !closed {
         return Err("missing closing frontmatter ---".to_string());
@@ -2227,7 +2234,7 @@ pub(crate) fn split_frontmatter_value(text: &str) -> Result<(serde_json::Value, 
     let value = if lines.is_empty() {
         serde_json::Value::Object(serde_json::Map::new())
     } else {
-        parse_frontmatter_block(&lines, &mut index, 0)?
+        parse_frontmatter_block(&lines, after, &mut index, 0)?
     };
     if index < lines.len() {
         return Err("unsupported frontmatter indentation".to_string());
@@ -2238,6 +2245,7 @@ pub(crate) fn split_frontmatter_value(text: &str) -> Result<(serde_json::Value, 
 /// Parse one indentation-delimited mapping or scalar sequence.
 fn parse_frontmatter_block(
     lines: &[FrontmatterLine<'_>],
+    raw: &str,
     index: &mut usize,
     indent: usize,
 ) -> Result<serde_json::Value, String> {
@@ -2264,6 +2272,7 @@ fn parse_frontmatter_block(
                 let mut item_lines = vec![FrontmatterLine {
                     indent: column,
                     content: rest,
+                    end: line.end,
                 }];
                 let mut next = *index + 1;
                 while let Some(more) = lines.get(next).filter(|more| more.indent >= column) {
@@ -2271,7 +2280,12 @@ fn parse_frontmatter_block(
                     next += 1;
                 }
                 let mut consumed = 0;
-                items.push(parse_frontmatter_block(&item_lines, &mut consumed, column)?);
+                items.push(parse_frontmatter_block(
+                    &item_lines,
+                    raw,
+                    &mut consumed,
+                    column,
+                )?);
                 if consumed < item_lines.len() {
                     return Err("unsupported frontmatter indentation".to_string());
                 }
@@ -2303,7 +2317,16 @@ fn parse_frontmatter_block(
             return Err(format!("duplicate frontmatter field {key}"));
         }
         let value_text = strip_frontmatter_comment(raw_value).trim().to_string();
+        let after_key = line.end;
         *index += 1;
+        if frontmatter_block_indicator(&value_text).is_some() {
+            let (value, stop) = parse_frontmatter_block_scalar(raw, after_key, line.indent)?;
+            map.insert(key, serde_json::Value::String(value));
+            while lines.get(*index).is_some_and(|line| line.end <= stop) {
+                *index += 1;
+            }
+            continue;
+        }
         if value_text.is_empty() {
             let nested = lines
                 .get(*index)
@@ -2311,7 +2334,10 @@ fn parse_frontmatter_block(
                 .map(|next| next.indent);
             match nested {
                 Some(nested_indent) => {
-                    map.insert(key, parse_frontmatter_block(lines, index, nested_indent)?);
+                    map.insert(
+                        key,
+                        parse_frontmatter_block(lines, raw, index, nested_indent)?,
+                    );
                 }
                 None => {
                     map.insert(key, serde_json::Value::Null);
@@ -2327,9 +2353,109 @@ fn parse_frontmatter_block(
     Ok(serde_json::Value::Object(map))
 }
 
+enum Chomp {
+    Strip,
+    Clip,
+    Keep,
+}
+
+fn frontmatter_block_indicator(text: &str) -> Option<(bool, Chomp)> {
+    match text {
+        "|" => Some((false, Chomp::Clip)),
+        ">" => Some((true, Chomp::Clip)),
+        "|-" => Some((false, Chomp::Strip)),
+        ">-" => Some((true, Chomp::Strip)),
+        "|+" => Some((false, Chomp::Keep)),
+        ">+" => Some((true, Chomp::Keep)),
+        _ => None,
+    }
+}
+
+fn parse_frontmatter_block_scalar(
+    raw: &str,
+    from: usize,
+    parent_indent: usize,
+) -> Result<(String, usize), String> {
+    let header = raw[..from].lines().next_back().unwrap_or("");
+    let indicator = header.split_once(':').map(|(_, value)| value).unwrap_or("");
+    let (folded, chomp) = frontmatter_block_indicator(strip_frontmatter_comment(indicator).trim())
+        .ok_or_else(|| "malformed frontmatter scalar".to_string())?;
+    let mut base = None;
+    let mut pieces = Vec::new();
+    let mut stop = from;
+    for line in raw[from..].split_inclusive('\n') {
+        let content = line.trim_end_matches(['\n', '\r']);
+        let indent = content.len() - content.trim_start_matches(' ').len();
+        let rest = &content[indent..];
+        if !rest.is_empty() {
+            match base {
+                None if indent <= parent_indent => break,
+                None => base = Some(indent),
+                Some(base) if rest.starts_with('#') && indent < base => break,
+                Some(_) if !rest.starts_with('#') && indent <= parent_indent => break,
+                Some(base) if !rest.starts_with('#') && indent < base => {
+                    return Err("unsupported frontmatter indentation".to_string());
+                }
+                Some(_) => {}
+            }
+        }
+        pieces.push(content);
+        stop += line.len();
+    }
+    for piece in &mut pieces {
+        *piece = base.and_then(|base| piece.get(base..)).unwrap_or("");
+    }
+    let mut out = if !folded {
+        let mut out = pieces.join("\n");
+        if !pieces.is_empty() {
+            out.push('\n');
+        }
+        out
+    } else if pieces.iter().all(|piece| piece.is_empty()) {
+        "\n".repeat(pieces.len())
+    } else {
+        let mut out = if pieces[0].is_empty() {
+            "\n".to_string()
+        } else {
+            pieces[0].to_string()
+        };
+        for (index, piece) in pieces.iter().enumerate().skip(1) {
+            let previous = pieces[index - 1];
+            // After dedenting, a leading space marks a more-indented line.
+            if piece.is_empty() || piece.starts_with(' ') || previous.starts_with(' ') {
+                out.push('\n');
+            } else if previous.is_empty() {
+                if pieces[..index]
+                    .iter()
+                    .rev()
+                    .find(|piece| !piece.is_empty())
+                    .is_some_and(|piece| piece.starts_with(' '))
+                {
+                    out.push('\n');
+                }
+            } else {
+                out.push(' ');
+            }
+            out.push_str(piece);
+        }
+        out.push('\n');
+        out
+    };
+    match chomp {
+        Chomp::Strip | Chomp::Clip => {
+            out.truncate(out.trim_end_matches('\n').len());
+            if matches!(chomp, Chomp::Clip) && !out.is_empty() {
+                out.push('\n');
+            }
+        }
+        Chomp::Keep => {}
+    }
+    Ok((out, stop))
+}
+
 /// A plain `key: value` (or `key:`) sequence item, not a quoted/URL scalar.
 fn frontmatter_mapping_entry(item: &str) -> bool {
-    if item.starts_with(['"', '\'']) {
+    if item.starts_with(['"', '\'', '{', '[']) {
         return false;
     }
     let item = strip_frontmatter_comment(item).trim_end();
@@ -2342,10 +2468,13 @@ fn frontmatter_mapping_entry(item: &str) -> bool {
 fn strip_frontmatter_comment(value: &str) -> &str {
     let mut quote: Option<u8> = None;
     let mut preceded_by_space = true;
-    for (index, byte) in value.bytes().enumerate() {
+    let mut bytes = value.bytes().enumerate();
+    while let Some((index, byte)) = bytes.next() {
         match quote {
             Some(active) => {
-                if byte == active {
+                if active == b'"' && byte == b'\\' {
+                    bytes.next();
+                } else if byte == active {
                     quote = None;
                 }
             }
@@ -2368,6 +2497,9 @@ fn parse_frontmatter_scalar(text: &str) -> Result<serde_json::Value, String> {
     if trimmed.is_empty() {
         return Ok(serde_json::Value::Null);
     }
+    if trimmed.starts_with(['{', '[']) {
+        return parse_frontmatter_flow(strip_frontmatter_comment(trimmed).trim_end());
+    }
     if trimmed.starts_with('"') || trimmed.starts_with('\'') {
         return Ok(serde_json::Value::String(unquote_frontmatter_scalar(
             trimmed,
@@ -2380,6 +2512,96 @@ fn parse_frontmatter_scalar(text: &str) -> Result<serde_json::Value, String> {
         _ => Ok(frontmatter_number(trimmed)
             .unwrap_or_else(|| serde_json::Value::String(trimmed.to_string()))),
     }
+}
+
+fn parse_frontmatter_flow(text: &str) -> Result<serde_json::Value, String> {
+    fn token<'a>(rest: &mut &'a str, key: bool) -> Result<&'a str, String> {
+        *rest = rest.trim_start();
+        let text = *rest;
+        if let Some(quote @ (b'"' | b'\'')) = text.as_bytes().first().copied() {
+            let mut index = 1;
+            while let Some(&byte) = text.as_bytes().get(index) {
+                if quote == b'"' && byte == b'\\' {
+                    index += 2;
+                    continue;
+                }
+                if byte == quote {
+                    if quote == b'\'' && text.as_bytes().get(index + 1) == Some(&quote) {
+                        index += 2;
+                        continue;
+                    }
+                    *rest = &text[index + 1..];
+                    return Ok(&text[..index + 1]);
+                }
+                index += 1;
+            }
+            return Err("malformed frontmatter scalar".to_string());
+        }
+        let end = text
+            .find(|c| matches!(c, ',' | '[' | ']' | '{' | '}') || key && c == ':')
+            .unwrap_or(text.len());
+        let token = text[..end].trim_end();
+        if token.is_empty() || !key && (token.ends_with(':') || token.contains(": ")) {
+            return Err("malformed frontmatter flow collection".to_string());
+        }
+        *rest = &text[end..];
+        Ok(token)
+    }
+
+    fn value(rest: &mut &str) -> Result<serde_json::Value, String> {
+        *rest = rest.trim_start();
+        let mapping = rest.starts_with('{');
+        if !mapping && !rest.starts_with('[') {
+            return parse_frontmatter_scalar(token(rest, false)?);
+        }
+        let close = if mapping { '}' } else { ']' };
+        *rest = &rest[1..];
+        let mut map = serde_json::Map::new();
+        let mut items = Vec::new();
+        loop {
+            *rest = rest.trim_start();
+            if rest.starts_with(close) {
+                *rest = &rest[1..];
+                return Ok(if mapping {
+                    serde_json::Value::Object(map)
+                } else {
+                    serde_json::Value::Array(items)
+                });
+            }
+            if mapping {
+                let key = unquote_frontmatter_scalar(token(rest, true)?)?;
+                *rest = rest.trim_start();
+                *rest = rest
+                    .strip_prefix(':')
+                    .ok_or_else(|| "malformed frontmatter flow collection".to_string())?;
+                if key.is_empty() {
+                    return Err("malformed frontmatter field".to_string());
+                }
+                if map.contains_key(&key) {
+                    return Err(format!("duplicate frontmatter field {key}"));
+                }
+                map.insert(key, value(rest)?);
+            } else {
+                items.push(value(rest)?);
+            }
+            *rest = rest.trim_start();
+            if let Some(after) = rest.strip_prefix(',') {
+                *rest = after;
+            } else if !rest.starts_with(close) {
+                return Err("malformed frontmatter flow collection".to_string());
+            }
+        }
+    }
+
+    if text.contains(['\n', '\r', '\t']) {
+        return Err("malformed frontmatter flow collection".to_string());
+    }
+    let mut rest = text;
+    let parsed = value(&mut rest)?;
+    if !rest.trim().is_empty() {
+        return Err("malformed frontmatter flow collection".to_string());
+    }
+    Ok(parsed)
 }
 
 /// YAML 1.2 core-schema decimal int/float for an unquoted plain scalar.
@@ -3509,6 +3731,105 @@ mod tests {
         assert!(
             parse_skill("x", "---\nname: x\nname: dup\n---\nbody").is_err(),
             "duplicate keys stay a parse error"
+        );
+    }
+
+    #[test]
+    fn cfg07_frontmatter_flow_collections() {
+        let (value, body) = split_frontmatter_value(
+            "---\npermissions:\n  - { action: \"*\", resource: \"*\", effect: allow }\n  - { action: read, resource: '*.env', effect: deny } # keep this restriction\n  - { action: shell, resource: \"echo \\\"hello # world\\\"\", effect: deny } # quoted hash\nflags: [a, b]\nnested: {inner: [true, {key: 'quoted, value'}], empty: {}, list: []}\nquoted: [\"echo \\\"hello # world\\\"\"] # quoted hash\n---\nbody",
+        )
+        .unwrap();
+        assert_eq!(
+            value["permissions"],
+            serde_json::json!([
+                {"action": "*", "resource": "*", "effect": "allow"},
+                {"action": "read", "resource": "*.env", "effect": "deny"},
+                {"action": "shell", "resource": "echo \"hello # world\"", "effect": "deny"}
+            ])
+        );
+        assert_eq!(value["flags"], serde_json::json!(["a", "b"]));
+        assert_eq!(
+            value["quoted"],
+            serde_json::json!(["echo \"hello # world\""])
+        );
+        assert_eq!(
+            value["nested"],
+            serde_json::json!({"inner": [true, {"key": "quoted, value"}], "empty": {}, "list": []})
+        );
+        assert_eq!(body, "body");
+        for malformed in [
+            "{a: 1",
+            "{a: 1, a: 2}",
+            "{a: 1} junk",
+            "{a: 1 b: 2}",
+            "[a, b}",
+        ] {
+            assert!(
+                split_frontmatter_value(&format!("---\nk: {malformed}\n---\n")).is_err(),
+                "{malformed}"
+            );
+        }
+    }
+
+    #[test]
+    fn cfg07_frontmatter_block_scalars_preserve_raw_content() {
+        for (field, source, expected) in [
+            (
+                "literal",
+                "literal: |-\n  a\n\n  # keep this line\n  last\nnext: v\n",
+                "a\n\n# keep this line\nlast",
+            ),
+            ("literal", "literal: |+\n  first\n\nnext: v\n", "first\n\n"),
+            (
+                "literal",
+                "literal: |-\n  a\n    \n  b\nnext: v\n",
+                "a\n  \nb",
+            ),
+            ("folded", "folded: >-\n  a\n  b\n", "a b"),
+            ("folded", "folded: >-\n\n  first\nnext: v\n", "\nfirst"),
+            (
+                "folded",
+                "folded: >-\n  first\n    code\n  last\n",
+                "first\n  code\nlast",
+            ),
+            (
+                "folded",
+                "folded: >-\n  first\n    code\n\n  last\n",
+                "first\n  code\n\nlast",
+            ),
+            ("folded", "folded: >-\n  a\n\n  b\n", "a\nb"),
+            (
+                "folded",
+                "folded: >-\n  a\n    \n  b\nnext: v\n",
+                "a\n  \nb",
+            ),
+            ("folded", "folded: >+\n\nnext: v\n", "\n"),
+            (
+                "folded",
+                "folded: >-\n  first\n    code\n\n\n  last\n",
+                "first\n  code\n\n\nlast",
+            ),
+            (
+                "literal",
+                "literal: |-\n    first\n  # outside scalar\nnext: v\n",
+                "first",
+            ),
+            ("literal", "literal: |\n  first\n\nnext: v\n", "first\n"),
+            ("folded", "folded: >\n  a\n  b\n", "a b\n"),
+            ("literal", "literal: |\r\n  déjà\r\nnext: v\r\n", "déjà\n"),
+        ] {
+            let text = format!("---\n{source}---\nbody");
+            let (value, body) = split_frontmatter_value(&text).unwrap();
+            assert_eq!(value[field], expected, "{source:?}");
+            assert_eq!(body, "body");
+            if source.contains("next: v") {
+                assert_eq!(value["next"], "v", "{source:?}");
+            }
+        }
+        assert!(
+            split_frontmatter_value("---\ndescription: >-\n    first\n  mode: primary\n---\n")
+                .is_err()
         );
     }
 

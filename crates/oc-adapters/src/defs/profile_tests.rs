@@ -1,6 +1,53 @@
 use super::*;
 
 #[test]
+fn cfg07_flow_permission_items_and_folded_skill_description_are_admitted() {
+    let temp = tempfile::tempdir().unwrap();
+    for (file, text) in [
+        (
+            "agents/Plan-DeepSeek.md",
+            "---\nmode: primary\nmodel: fixture/org/model#max\npermissions:\n  - { action: \"*\", resource: \"*\", effect: allow }\n  - { action: read, resource: \"*.env\", effect: deny } # keep this restriction\n  - { action: read, resource: \"*.env.example\", effect: allow }\n  - { action: shell, resource: \"echo \\\"hello # world\\\"\", effect: deny } # quoted hash\n---\nPlan body",
+        ),
+        (
+            "skills/demo/SKILL.md",
+            "---\ndescription: >-\n  First description line\n  and second line.\n---\nSkill body",
+        ),
+    ] {
+        let path = temp.path().join(file);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    }
+    let defs = load_definitions(&[DefRoot {
+        dir: temp.path().into(),
+        origin: "project".into(),
+    }]);
+    assert!(defs.diagnostics.is_empty(), "{:?}", defs.diagnostics);
+    assert!(defs.unknown_keys.is_empty(), "{:?}", defs.unknown_keys);
+    let agent = &defs.agents["Plan-DeepSeek"];
+    assert_eq!(agent.mode.as_deref(), Some("primary"));
+    assert_eq!(agent.model.as_deref(), Some("fixture/org/model"));
+    assert_eq!(agent.variant.as_deref(), Some("max"));
+    for (action, resource, expected) in [
+        ("shell", "ls", Permission::Allow),
+        ("read", "secret.env", Permission::Deny),
+        ("read", "secret.env.example", Permission::Allow),
+        ("shell", "echo \"hello # world\"", Permission::Deny),
+    ] {
+        assert_eq!(
+            agent
+                .permission_rules
+                .evaluate(&BTreeMap::new(), action, resource),
+            expected,
+            "{action}/{resource}"
+        );
+    }
+    assert_eq!(
+        defs.skills["demo"].description,
+        "First description line and second line."
+    );
+}
+
+#[test]
 fn w8_irrelevant_entries_do_not_hide_skills_commands_or_nested_agent_policy() {
     let temp = tempfile::tempdir().unwrap();
     for dir in ["skills/bundle", "commands", "agents/team"] {
