@@ -791,7 +791,7 @@ impl StdioClient {
         crate::mcp_result::project_rich(result).map_err(result_error)
     }
 
-    async fn tool_result(
+    pub(crate) async fn tool_result(
         &self,
         tool: &str,
         arguments: serde_json::Value,

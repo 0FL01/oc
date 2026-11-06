@@ -280,6 +280,12 @@ for SDK discovery and per-request metadata/headers, without legacy fallback.
 npx/browser/spawn/network effects. Local cwd/env inherit only the admitted product
 execution context and overlay, not authoring-agent configuration.
 
+Native file workflow specializes only `mcp.servers.codex_web` tools `generate_image`
+and `edit_image`, independently of `codemode`: required `output_path`, local edit paths,
+ordinary read/edit/external-directory gates and atomic no-clobber save. The bare remote
+API is unchanged; see [MCP transport](TOOLS_MCP.md#mcp-transport). Other server IDs keep
+their original tool schemas and media contracts; no plugin activation is required.
+
 Canonical `permissions` is an ordered array. Ordinary configuration follows agent
 defaults → top-level documents in config order → agent-specific documents in
 config order → existing session approval/grant handling. The last configured

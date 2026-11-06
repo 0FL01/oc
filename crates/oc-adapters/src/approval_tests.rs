@@ -54,6 +54,11 @@ async fn generic_tool_preview_keeps_action_separate_from_policy_resources_and_di
             serde_json::json!({"url":"https://example.com/"}),
             vec!["https://example.com/".into()],
         ),
+        (
+            "image_output",
+            serde_json::json!({"path":"pictures/new.png"}),
+            vec!["pictures/new.png".into()],
+        ),
     ] {
         call.name = name.into();
         call.arguments = arguments;
@@ -62,6 +67,15 @@ async fn generic_tool_preview_keeps_action_separate_from_policy_resources_and_di
             ApprovalPreview::Resource { values: resources }
         );
     }
+    assert_eq!(crate::config::legacy_key(&call.name), "apply_patch");
+    assert!(
+        !project.path().join("pictures").exists(),
+        "approval must not create output directories"
+    );
+    std::fs::create_dir(project.path().join("pictures")).unwrap();
+    std::fs::write(project.path().join("pictures/new.png"), b"occupied").unwrap();
+    let resources = crate::tools::permission_resources(&call).unwrap();
+    assert!(prepare(&ctx, &call, &resources).await.is_err());
 }
 
 #[test]

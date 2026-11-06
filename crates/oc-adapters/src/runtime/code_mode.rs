@@ -13,7 +13,7 @@ use oc_core::tool_output::{
 };
 use serde_json::Value as Json;
 
-use super::mcp::McpGeneration;
+use super::mcp::{McpGeneration, images};
 use super::*;
 use crate::codemode::{
     self, Catalog, CodeModeTool, ExecuteLimits, FetchRequest, FetchResponse, HostRequest,
@@ -189,24 +189,29 @@ pub(super) fn mcp_tool_defs(
         .iter()
         .filter(|entry| policy.tool_visible(&entry.namespaced))
     {
+        let image = images::Kind::for_entry(entry);
+        let description = image
+            .map(images::Kind::description)
+            .or_else(|| entry.description.clone());
+        let input_schema = image.map_or_else(
+            || entry.input_schema.clone(),
+            |kind| kind.schema(entry.input_schema.clone()),
+        );
         if attached.code_mode_server(&entry.server) {
             nested.push((
                 CodeModeTool {
                     path: entry.namespaced.clone(),
-                    description: entry.description.clone().unwrap_or_default(),
-                    input_schema: entry.input_schema.clone(),
-                    output_schema: None,
+                    description: description.unwrap_or_default(),
+                    input_schema,
+                    output_schema: image.map(|_| images::output_schema()),
                 },
                 vec![entry.server.clone(), entry.tool.clone()],
             ));
         } else {
             direct.push(ToolDef {
                 name: entry.namespaced.clone(),
-                description: entry
-                    .description
-                    .clone()
-                    .unwrap_or_else(|| format!("mcp {} tool", entry.tool)),
-                parameters: entry.input_schema.clone(),
+                description: description.unwrap_or_else(|| format!("mcp {} tool", entry.tool)),
+                parameters: input_schema,
             });
         }
     }
@@ -332,6 +337,20 @@ impl Runtime<'_> {
         let nested = inv.nested_call(&entry.namespaced, input);
         let display = format!("{}.{}", entry.server, entry.tool);
         self.admit_nested(inv, &nested, &display).await?;
+        let image = self
+            .prepare_mcp_image(
+                inv.issuing,
+                inv.session,
+                inv.turn,
+                inv.op,
+                &nested,
+                inv.ctx,
+                inv.policy,
+                inv.attached,
+                inv.agent.clone(),
+                inv.agent_digest.clone(),
+            )
+            .await?;
         let mut native = None;
         let (state, text) = self
             .execute_mcp(
@@ -341,6 +360,7 @@ impl Runtime<'_> {
                 inv.attached,
                 inv.cancel,
                 &mut native,
+                image,
             )
             .await;
         if state != "completed" {

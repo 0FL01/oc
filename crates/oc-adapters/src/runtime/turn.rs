@@ -6589,15 +6589,35 @@ impl<'a> Runtime<'a> {
                         (result.state, result.output)
                     }
                     Assembled::Call(call) => {
-                        self.execute_mcp(
-                            call,
-                            &op,
-                            turn_id,
-                            attached,
-                            cancel,
-                            &mut native_mcp_result,
-                        )
-                        .await
+                        match self
+                            .prepare_mcp_image(
+                                issuing,
+                                session,
+                                turn_id,
+                                &op,
+                                call,
+                                ctx,
+                                invocation_policy,
+                                attached,
+                                turn_log.display["agent"].as_str().map(str::to_owned),
+                                turn_log.active_agent_digest().map(str::to_owned),
+                            )
+                            .await
+                        {
+                            Ok(image) => {
+                                self.execute_mcp(
+                                    call,
+                                    &op,
+                                    turn_id,
+                                    attached,
+                                    cancel,
+                                    &mut native_mcp_result,
+                                    image,
+                                )
+                                .await
+                            }
+                            Err(error) => ("failed", format!("error: {error}")),
+                        }
                     }
                     Assembled::Failed(_) => unreachable!("assembly failure rejected above"),
                 }

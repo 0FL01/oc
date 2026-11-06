@@ -204,6 +204,19 @@ pub(crate) async fn prepare(
                 truncated: proposed.truncated,
             }
         }
+        // Internal image-output admission uses edit authority, not a model-visible tool.
+        "image_output" => {
+            let digest = crate::patch::ImageDestination::approval_digest(
+                ctx.files,
+                call.arguments["path"]
+                    .as_str()
+                    .ok_or("missing image output path")?,
+            )?;
+            hash.update(digest);
+            ApprovalPreview::Resource {
+                values: resources.to_vec(),
+            }
+        }
         "edit" | "write" => {
             let input = crate::patch::mutation::Input::parse(&call.name, &call.arguments)?;
             let (proposed, digest) = crate::patch::mutation::preview(ctx.files, &input)

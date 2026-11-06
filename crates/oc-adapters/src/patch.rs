@@ -23,6 +23,8 @@ use crate::files::{Files, glob_match};
 
 mod effects;
 mod fs;
+mod image;
+pub(crate) use image::ImageDestination;
 pub(crate) mod mutation;
 
 /// Legacy strict-patch registry helper; runtime selects its working file family.

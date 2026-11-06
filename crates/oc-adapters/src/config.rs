@@ -2072,7 +2072,7 @@ fn validate_dcp(raw: &serde_json::Value) -> Result<(), ConfigError> {
 /// Not config compatibility: these names are not OC2 rule actions (T66).
 pub fn legacy_key(key: &str) -> &str {
     match key {
-        "write" | "edit" | "patch" => "apply_patch",
+        "write" | "edit" | "patch" | "image_output" => "apply_patch",
         "shell" => "bash",
         // Internal `task` tool identity of the v2.0.12 `subagent` action.
         "task" => "subagent",

@@ -452,8 +452,16 @@ per-request metadata/headers без fallback. Выбор принадлежит 
 сохраняется: если endpoint строится как `{env:LUDKA2_API_URL}/mcp`, base уже должен
 содержать `/v1`. Не чинить URL probing/redirects автоматически. Image execution
 может длиться до240s; существующий `timeout.execution:300000` подходит для этого
-workflow. Bare MCP возвращает inline image, не файл; `output_path` и локальные input
-paths — отдельный клиентский workflow, не параметры remote API и не JS host oc2.
+workflow. Bare remote API возвращает inline image. Native specialization для exact
+server ID `codex_web` добавляет обязательный `output_path` к `generate_image`/`edit_image`
+в direct и Code Mode: относительный/абсолютный путь активной Location, local PNG/JPEG/WebP
+inputs с read admission, output с edit/external-directory admission до remote effect.
+Local inputs кодируются в data URLs; `output_path` не уходит на сервер. Сохраняется ровно
+один image, exact bytes, атомарно без overwrite (включая occupied/dangling/racing leaves).
+Edit использует новый destination, original остаётся неизменным. Успех возвращает только
+`{path,mime_type,bytes}` после сохранения, без base64 в provider history. Images ≤10MiB,
+edit inputs ≤18MiB decoded/24MiB canonical data URLs. Другие серверы сохраняют bare MCP
+contracts; JS host, автоматической regeneration и provider fallback ради save нет.
 
 HTTP client умеет JSON и SSE ответы там, где transport их предлагает. У OpenProxy
 stateless JSON mode отсутствие session ID или GET event stream не порождает reconnect

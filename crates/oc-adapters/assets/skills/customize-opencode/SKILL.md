@@ -237,8 +237,17 @@ no legacy fallback. `"auto"` and modern local stdio remain unsupported. Select
 the protocol from the server's contract, not its name or URL. Current OpenProxy
 `/v1/mcp` requires `"2026-07-28"` and `oauth:false`; image calls can take up to
 240 seconds, so use `"timeout":{"execution":300000}` when using its image tools.
-Bare image MCP returns inline media, not a saved workspace file: `output_path`
-and local image paths are not part of the remote API. No JS image plugin is run.
+For the exact server ID `codex_web`, native `generate_image` and `edit_image`
+require `output_path` (workspace-relative or absolute filename). Both direct tools
+and Code Mode save the exact returned image atomically without overwriting any
+existing entry, including dangling symlinks. Success returns `{path,mime_type,bytes}`.
+Edit accepts local PNG/JPEG/WebP paths, public URLs or data URLs and writes a new
+destination; local inputs require read admission, output requires edit and any
+external-directory admission, all before the remote call. Images are at most10MiB
+each; edit inputs at most18MiB decoded/24MiB canonical data URLs total.
+The remote API still only receives URLs/data URLs, never `output_path` or local paths.
+Other server IDs keep their bare MCP contracts. No JS image plugin or automatic
+regeneration/provider fallback is run to save a result.
 
 Project and global local MCP inherit the full captured parent environment, including
 credentials, then configured overlay wins. There is no credential-name/value filter

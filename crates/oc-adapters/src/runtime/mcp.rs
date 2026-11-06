@@ -3,6 +3,7 @@
 
 use super::*;
 
+pub(super) mod images;
 mod lifecycle;
 pub(super) use lifecycle::McpOwner;
 pub(super) use lifecycle::connection_diagnostic;
@@ -416,6 +417,7 @@ fn stdio_attach_error_at(server: &str, stage: &'static str, error: StdioError) -
 impl Runtime<'_> {
     /// Dispatch after the common permission and durable intent path. The lease
     /// and database owner are unchanged; a control cannot replay an unknown call.
+    #[allow(clippy::too_many_arguments)]
     pub(super) async fn execute_mcp(
         &self,
         call: &crate::tools::ToolCall,
@@ -424,6 +426,7 @@ impl Runtime<'_> {
         attached: &McpGeneration,
         cancel: &AtomicBool,
         native_result: &mut Option<crate::mcp_result::McpToolOutput>,
+        mut image: Option<images::Prepared>,
     ) -> (&'static str, String) {
         let Some(entry) = attached
             .entries
@@ -456,6 +459,11 @@ impl Runtime<'_> {
                 "error: mcp outcome unknown; issued client retired".into(),
             );
         }
+        enum Output {
+            Rich(crate::mcp_result::McpToolOutput),
+            Image(rmcp::model::CallToolResult),
+        }
+        let mut raw_image = None;
         let mut lease = McpCallLease {
             generation: attached,
             db: &self.db,
@@ -467,11 +475,24 @@ impl Runtime<'_> {
             cleanup_failed: &self.mcp_cleanup_failed,
             armed: true,
         };
+        let arguments = match image.as_mut() {
+            Some(image) => std::mem::take(&mut image.arguments),
+            None => call.arguments.clone(),
+        };
         let result = match server.client.as_ref() {
-            AttachedServer::Remote(client) => client
-                .call_tool_rich(&entry.tool, call.arguments.clone(), cancel)
-                .await
-                .map_or_else(
+            AttachedServer::Remote(client) => {
+                let output = if image.is_some() {
+                    client
+                        .tool_result(&entry.tool, arguments, cancel)
+                        .await
+                        .map(Output::Image)
+                } else {
+                    client
+                        .call_tool_rich(&entry.tool, arguments, cancel)
+                        .await
+                        .map(Output::Rich)
+                };
+                output.map_or_else(
                     |error| {
                         if matches!(
                             error,
@@ -499,14 +520,27 @@ impl Runtime<'_> {
                     |output| {
                         // The common boundary prepares the owned native DTO
                         // before deriving display text; no extra full clone here.
-                        *native_result = Some(output);
+                        match output {
+                            Output::Rich(output) => *native_result = Some(output),
+                            Output::Image(output) => raw_image = Some(output),
+                        }
                         ("completed", String::new())
                     },
-                ),
-            AttachedServer::Stdio(client) => client
-                .call_tool_rich(&entry.tool, call.arguments.clone(), cancel)
-                .await
-                .map_or_else(
+                )
+            }
+            AttachedServer::Stdio(client) => {
+                let output = if image.is_some() {
+                    client
+                        .tool_result(&entry.tool, arguments, cancel)
+                        .await
+                        .map(Output::Image)
+                } else {
+                    client
+                        .call_tool_rich(&entry.tool, arguments, cancel)
+                        .await
+                        .map(Output::Rich)
+                };
+                output.map_or_else(
                     |error| {
                         if matches!(
                             error,
@@ -530,12 +564,32 @@ impl Runtime<'_> {
                         stdio_mcp_failure(error, cancel)
                     },
                     |output| {
-                        *native_result = Some(output);
+                        match output {
+                            Output::Rich(output) => *native_result = Some(output),
+                            Output::Image(output) => raw_image = Some(output),
+                        }
                         ("completed", String::new())
                     },
-                ),
+                )
+            }
         };
         lease.armed = false;
+        if result.0 == "completed"
+            && let Some(image) = image
+        {
+            let output = raw_image.expect("completed raw image result");
+            match image.save(output, cancel) {
+                Ok(saved) => *native_result = Some(saved),
+                Err(error) => {
+                    return (
+                        "failed",
+                        format!(
+                            "error: remote image completed but file save failed: {error}; do not regenerate automatically"
+                        ),
+                    );
+                }
+            }
+        }
         result
     }
 }

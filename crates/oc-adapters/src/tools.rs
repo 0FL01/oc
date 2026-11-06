@@ -182,7 +182,7 @@ pub(crate) fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolE
             })
     };
     Ok(match call.name.as_str() {
-        "read" | "edit" | "write" => vec![string("path")?],
+        "read" | "edit" | "write" | "image_output" => vec![string("path")?],
         "glob" | "grep" => vec![string("pattern")?],
         "webfetch" => vec![string("url")?],
         "skill" => vec![string("id")?],

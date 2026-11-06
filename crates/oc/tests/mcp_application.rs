@@ -55,6 +55,9 @@ mod lookups;
 #[path = "mcp_application/media.rs"]
 mod media;
 
+#[path = "mcp_application/image_files.rs"]
+mod image_files;
+
 #[test]
 fn screen_waits_for_complete_synchronized_presentation() {
     let complete = "\x1b[?2026h\x1b[1;1Hold header\x1b[?2026l";
@@ -626,6 +629,7 @@ impl FakeMcp {
                     "tools/call" => {
                         let name = tool.as_deref().unwrap_or("");
                         let mut result = match name {
+                            "generate_image" | "edit_image" => image_files::result(name),
                             "mcp_media_mixed" => media::mixed_result(),
                             "mcp_media_sensitive" => {
                                 json!({"content":[{"type":"text","text":"do not publish partial media"},{"type":"audio","mimeType":"audio/wav","data":"bWNwLW1lZGlhLXByaXZhdGUtY2FuYXJ5"}]})
