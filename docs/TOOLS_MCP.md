@@ -442,9 +442,25 @@ and neither an infrastructure error nor an incomplete search authorizes replay.
 
 Использовать официальный Rust SDK rmcp; выбрать/pin version/features, которые реально проходят протокол нужного server. Наличие SDK dependency не означает готовый adapter. Не писать собственный MCP stack ради неподтверждённого недостатка; сначала bounded compatibility spike.
 
-`codex_web`: exact URL `{env:LUDKA2_API_URL}/mcp`, bearer из headers, enabled:true, oauth:false, timeout 60000 ms. Pinned OpenProxy route `/v1/mcp` принимает POST и JSON responses, требует negotiation/header version `2025-11-25`, предоставляет tool `search`; этот конкретный path проверен в [P3]. BaseURL обычно должен уже содержать `/v1`. Не чинить URL probing/redirects автоматически.
+Remote MCP: omitted/`legacy` protocol сохраняет initialize handshake без discovery
+probe; explicit `protocol:"2026-07-28"` использует SDK `server/discover` и обязательные
+per-request metadata/headers без fallback. Выбор принадлежит config, не имени сервера.
+`auto` и modern stdio не поддерживаются.
 
-HTTP client умеет JSON и SSE ответы там, где transport их предлагает. У OpenProxy stateless JSON mode отсутствие session ID или GET event stream не должно порождать reconnect loop. Если SDK optional GET получает 405 — не считать это отказом исправного POST path; соответствие спецификации и поведение SDK проверить. Отправлять нужный `MCP-Protocol-Version` после initialize; no OAuth auto-discovery при oauth:false. Remote service timeout может быть меньше нашего клиентского 60s — сохранять исходный error, не ложно ждать/повторять операцию.
+Актуальный OpenProxy `/v1/mcp` требует explicit `2026-07-28`, bearer из headers и
+`oauth:false`; предоставляет `search`, `generate_image`, `edit_image`. Exact URL
+сохраняется: если endpoint строится как `{env:LUDKA2_API_URL}/mcp`, base уже должен
+содержать `/v1`. Не чинить URL probing/redirects автоматически. Image execution
+может длиться до240s; существующий `timeout.execution:300000` подходит для этого
+workflow. Bare MCP возвращает inline image, не файл; `output_path` и локальные input
+paths — отдельный клиентский workflow, не параметры remote API и не JS host oc2.
+
+HTTP client умеет JSON и SSE ответы там, где transport их предлагает. У OpenProxy
+stateless JSON mode отсутствие session ID или GET event stream не порождает reconnect
+loop. SDK формирует согласованные protocol/method/name headers. Modern cancellation
+закрывает HTTP request локально, без legacy client notification; неизвестный effect
+не replay. No OAuth auto-discovery при oauth:false. Stage deadlines остаются
+настраиваемыми; ошибка сервера не разрешает повторный внешний effect.
 
 Remote MCP preserves query in the exact URL and has no private-host/DNS prelookup
 refusal; other URL/header validation, bounded protocol/lifecycle diagnostics and
@@ -471,7 +487,7 @@ Approved config/startup target — [T46 R6/R7](goals/2026-09-22-mcp-attach-parit
 legacy mcp.<name> и canonical mcp.servers/mcp.timeout через одну нормализацию;
 actual cwd/environment/stage deadlines, visible failed config/capability entries,
 async initial connections без ожидания всех серверов/первого turn. Invalid optional
-server не отменяет TUI или healthy siblings. No tools до initialize/catalog success;
+server не отменяет TUI или healthy siblings. No tools до handshake/catalog success;
 only safe-boundary publication, существующие clients/owner и responsive typed state.
 Полная field/capability matrix в T46, не предполагать поддержку OAuth/CodeMode/нового
 protocol или file-reference expansion. MCP09/MCP10 добавляют доказательство нового

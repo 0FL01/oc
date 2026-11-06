@@ -195,6 +195,33 @@ fn mcp09_positive_integer_json_spellings_follow_pinned_number_semantics() {
 }
 
 #[test]
+fn mcp_remote_explicit_discovery_preserves_legacy_default() {
+    for protocol in [None, Some("legacy"), Some("2026-07-28")] {
+        let mut raw = serde_json::json!({
+            "type":"remote", "url":"https://example.invalid/exact/mcp?fixture=1",
+            "headers":{"Authorization":"Bearer fixture"}, "oauth":false
+        });
+        if let Some(protocol) = protocol {
+            raw["protocol"] = protocol.into();
+        }
+        let generation = assemble(
+            &[source(
+                serde_json::json!({"mcp":{"servers":{"codex_web":raw}}}),
+            )],
+            &BTreeMap::new(),
+            None,
+        )
+        .unwrap();
+        let entry = &generation.mcp["codex_web"];
+        assert!(entry.failure.is_none(), "{:?}", entry.failure);
+        let config = crate::mcp_remote::CodexWebConfig::from_entry(entry).unwrap();
+        assert_eq!(config.protocol, protocol.unwrap_or("legacy"));
+        assert_eq!(config.url, "https://example.invalid/exact/mcp?fixture=1");
+        assert!(format!("{entry:?}").contains(&config.protocol));
+    }
+}
+
+#[test]
 fn mcp09_failed_recognized_matrix_keeps_healthy_and_disabled_entries() {
     use oc_core::queries::ServiceCode;
     let bad = [

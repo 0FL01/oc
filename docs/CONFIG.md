@@ -272,9 +272,11 @@ not an automatic migration rewrite. Since T60 (2026-10-13) omitted or `codemode:
 follows the donor default: the server's tools are reached only through `execute` as
 `tools.<server>.<tool>`. The donor `?codemode=false` URL query is not sent (declared
 difference). crw's URL gets no extra `/mcp`;
-oauth:false means no discovery, while native omitted OAuth is also no-OAuth (declared
-difference). Native protocol omitted/legacy negotiates up to2025-11-25; unsupported
-auto/2026-07-28 remains a per-entry capability failure. Disabled local chrome has zero
+oauth:false means no OAuth discovery, while native omitted OAuth is also no-OAuth (declared
+difference). Native protocol omitted/legacy keeps initialize negotiation up to2025-11-25
+without discovery probes. Remote HTTP also accepts explicit `protocol:"2026-07-28"`
+for SDK discovery and per-request metadata/headers, without legacy fallback.
+`auto` and modern local stdio remain per-entry capability failures. Disabled local chrome has zero
 npx/browser/spawn/network effects. Local cwd/env inherit only the admitted product
 execution context and overlay, not authoring-agent configuration.
 

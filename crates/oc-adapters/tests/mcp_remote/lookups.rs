@@ -39,6 +39,7 @@ fn config(url: String) -> CodexWebConfig {
         url,
         bearer: "test-key".into(),
         custom_headers: headers,
+        protocol: "legacy".into(),
         timeout: Duration::from_secs(2),
         startup_timeout: None,
         catalog_timeout: None,

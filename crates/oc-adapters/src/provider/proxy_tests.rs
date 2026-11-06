@@ -300,6 +300,7 @@ async fn child(case: &str) {
             url: format!("{base}/mcp?token=fixture"),
             bearer: "mcp-fixture".into(),
             custom_headers: Default::default(),
+            protocol: "legacy".into(),
             timeout: Duration::from_secs(2),
             startup_timeout: None,
             catalog_timeout: None,

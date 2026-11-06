@@ -254,7 +254,7 @@ pub struct McpEntry {
     /// Separate normalized startup/catalog/execution milliseconds.
     #[serde(default)]
     pub timeouts: McpTimeouts,
-    /// This adapter only admits legacy initialize negotiation.
+    /// Legacy initialize by default; remote entries also admit pinned discovery.
     #[serde(default = "mcp::legacy_protocol")]
     pub protocol: String,
     /// Typed payload-free failed inventory; no fallback to a previous entry.
@@ -297,10 +297,10 @@ impl std::fmt::Debug for McpEntry {
             .field("timeouts", &self.timeouts)
             .field(
                 "protocol",
-                &if self.protocol == "legacy" {
-                    "legacy"
-                } else {
-                    "<unsupported>"
+                &match self.protocol.as_str() {
+                    "legacy" => "legacy",
+                    "2026-07-28" if self.kind == "remote" => "2026-07-28",
+                    _ => "<unsupported>",
                 },
             )
             .field("failure", &self.failure)

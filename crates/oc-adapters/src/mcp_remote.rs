@@ -1,8 +1,8 @@
 //! Remote MCP `codex_web` client for T20 (MCP01–03).
 //!
 //! rmcp streamable-HTTP against the exact configured URL (no probing, no
-//! rewrite), protocol 2025-11-25, bearer auth, JSON responses, no session
-//! dependency. One attempt per request (no auto-reconnect; session recovery
+//! rewrite), legacy initialize or explicit 2026-07-28 discovery, bearer auth,
+//! JSON responses, no session dependency. One attempt per request (no auto-reconnect; session recovery
 //! disabled), methods on distinct connections with reused headers, 60 s
 //! client timeout, optional standalone GET answered 405 without affecting
 //! the POST path. Results map into a namespaced collision-safe registry
@@ -21,7 +21,7 @@ use reqwest::header::{
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 
-/// Required MCP wire version for `codex_web`.
+/// Required legacy MCP wire version for `codex_web`.
 pub const MCP_VERSION: &str = "2025-11-25";
 /// Client timeout per operation.
 pub const CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
@@ -168,11 +168,13 @@ pub struct CodexWebConfig {
     pub bearer: String,
     /// Typed, normalized safe custom headers (values never logged).
     pub custom_headers: HeaderMap,
+    /// `legacy` initialize or pinned `2026-07-28` discovery, without fallback.
+    pub protocol: String,
     /// Per-operation timeout.
     pub timeout: Duration,
-    /// Initialize deadline, separate from catalog and execution.
+    /// Handshake deadline, separate from catalog and execution.
     pub startup_timeout: Option<Duration>,
-    /// Catalog deadline, separate from initialize and execution.
+    /// Catalog deadline, separate from handshake and execution.
     pub catalog_timeout: Option<Duration>,
 }
 
@@ -182,6 +184,14 @@ impl std::fmt::Debug for CodexWebConfig {
             .field("url", &"<configured endpoint>")
             .field("bearer", &"<redacted>")
             .field("custom_headers", &RedactedHeaders(&self.custom_headers))
+            .field(
+                "protocol",
+                &match self.protocol.as_str() {
+                    "legacy" => "legacy",
+                    "2026-07-28" => "2026-07-28",
+                    _ => "<unsupported>",
+                },
+            )
             .field("timeout", &self.timeout)
             .field("startup_timeout", &self.startup_timeout)
             .field("catalog_timeout", &self.catalog_timeout)
@@ -196,7 +206,8 @@ impl CodexWebConfig {
     }
 
     fn validate_profile(&self, require_bearer: bool) -> Result<(), McpError> {
-        if self.url.trim().is_empty()
+        if !matches!(self.protocol.as_str(), "legacy" | "2026-07-28")
+            || self.url.trim().is_empty()
             || (require_bearer && self.bearer.trim().is_empty())
             || [
                 self.timeout,
@@ -248,7 +259,7 @@ impl CodexWebConfig {
             || !entry.enabled
             || entry.oauth
             || entry.failure.is_some()
-            || entry.protocol != "legacy"
+            || !matches!(entry.protocol.as_str(), "legacy" | "2026-07-28")
         {
             return Err(McpError::InvalidConfig);
         }
@@ -285,6 +296,7 @@ impl CodexWebConfig {
             url,
             bearer,
             custom_headers,
+            protocol: entry.protocol.clone(),
             timeout: Duration::from_millis(entry.timeouts.execution_ms(entry.timeout)),
             startup_timeout: Some(Duration::from_millis(entry.timeouts.startup_ms())),
             catalog_timeout: Some(Duration::from_millis(
@@ -500,12 +512,12 @@ pub struct CodexWebClient {
 }
 
 impl CodexWebClient {
-    /// Connect to the exact configured URL; 2025-11-25 is required.
+    /// Connect to the exact configured URL with strict selected-version checks.
     pub async fn connect(config: &CodexWebConfig) -> Result<Self, McpError> {
         Self::connect_cancellable(config, true, &AtomicBool::new(false)).await
     }
 
-    /// Generic streamable HTTP: use SDK protocol negotiation and optional
+    /// Generic streamable HTTP: use the selected SDK lifecycle and optional
     /// configured bearer. No OAuth or URL rewriting is introduced.
     pub async fn connect_remote(config: &CodexWebConfig) -> Result<Self, McpError> {
         Self::connect_cancellable(config, false, &AtomicBool::new(false)).await
@@ -553,11 +565,19 @@ impl CodexWebClient {
             );
         let events = ClientEvents::default();
         let tools_changed = events.tools_changed.clone();
+        let legacy = config.protocol == "legacy";
+        let lifecycle = if legacy {
+            rmcp::ClientLifecycleMode::Initialize
+        } else {
+            rmcp::ClientLifecycleMode::Discover {
+                preferred_versions: vec![rmcp::model::ProtocolVersion::V_2026_07_28],
+            }
+        };
         let handshake = tokio::select! {
             biased;
             () = crate::provider::wait_cancel(cancel) => Err(McpError::Cancelled),
             (bytes, limit) = message_fault.wait() => Err(McpError::MessageLimited { bytes, limit }),
-            result = tokio::time::timeout_at(startup_deadline, rmcp::service::serve_client(events, transport)) => {
+            result = tokio::time::timeout_at(startup_deadline, rmcp::service::serve_client_with_lifecycle(events, transport, lifecycle)) => {
                 result.map_err(|_| McpError::Deadline).and_then(|result| result.map_err(|e| {
                     message_fault.get().map_or_else(|| classify_handshake(&e), |(bytes, limit)| McpError::MessageLimited { bytes, limit })
                 }))
@@ -570,13 +590,18 @@ impl CodexWebClient {
                 return Err(error);
             }
         };
-        // The negotiated version must be exactly 2025-11-25 for codex_web.
+        // Discovery is pinned. Only the legacy generic profile negotiates older versions.
         let version = running
             .peer()
             .peer_info()
             .map(|info| info.protocol_version.to_string())
             .unwrap_or_default();
-        if !legacy_version(&version) || (codex_web && version != MCP_VERSION) {
+        let compatible = if legacy {
+            legacy_version(&version) && (!codex_web || version == MCP_VERSION)
+        } else {
+            version == config.protocol
+        };
+        if !compatible {
             let closed = close_running(&mut running).await;
             let cleaned = cleanup.close().await;
             cleaned?;
@@ -599,7 +624,7 @@ impl CodexWebClient {
         })
     }
 
-    /// Bounded server guidance from initialize.
+    /// Bounded server guidance from the selected handshake.
     pub fn instructions(&self) -> Option<&str> {
         self.instructions.as_deref()
     }

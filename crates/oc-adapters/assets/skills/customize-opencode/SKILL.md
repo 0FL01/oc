@@ -229,6 +229,17 @@ Entries live under `mcp.servers` and use `disabled`; timeouts are
 `{startup, catalog, execution}` in ms. Local MCP uses an explicit `command`
 argv array (plus admitted cwd/env); external `npx` is only a user-approved installed
 dependency, never an internal JS host or automatic package installation.
+
+MCP `protocol` omitted or `"legacy"` keeps the initialize handshake without a
+discovery probe. Remote HTTP also accepts explicit `"protocol":"2026-07-28"`:
+the SDK uses `server/discover` and self-contained request metadata/headers, with
+no legacy fallback. `"auto"` and modern local stdio remain unsupported. Select
+the protocol from the server's contract, not its name or URL. Current OpenProxy
+`/v1/mcp` requires `"2026-07-28"` and `oauth:false`; image calls can take up to
+240 seconds, so use `"timeout":{"execution":300000}` when using its image tools.
+Bare image MCP returns inline media, not a saved workspace file: `output_path`
+and local image paths are not part of the remote API. No JS image plugin is run.
+
 Project and global local MCP inherit the full captured parent environment, including
 credentials, then configured overlay wins. There is no credential-name/value filter
 or credential-domain refusal. Cwd/resource admission and status/stderr protection

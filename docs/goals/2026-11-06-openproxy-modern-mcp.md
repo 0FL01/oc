@@ -27,8 +27,10 @@ proven external blocker or approved budget boundary; record the smallest unlock.
     inline image results use the existing registry/result owners, including complete
     results and tool/JSON-RPC failures. No fallback to initialize.
   - Primary evidence: strict OpenProxy-like HTTP fixture plus one native application roundtrip.
-  - Status: pending
-  - Evidence: none yet.
+  - Status: verified
+  - Evidence: strict modern remote tests 3/3 PASS (0.02s); MCP config tests 9/9 PASS.
+    `cargo test -p oc2 --test mcp_application --locked mcp_modern -- --test-threads=4`
+    PASS 2/2 (0.50s): ordered inline media in the next provider request and native cancellation/quarantine.
 - R2: Legacy compatibility and captured lifecycle/effect boundaries remain intact.
   - Source: latest user decision and approved plan contract.
   - Acceptance: omission/`legacy` keeps initialize with zero discovery probes;
@@ -36,8 +38,11 @@ proven external blocker or approved budget boundary; record the smallest unlock.
     no unsupported client notification and never replays a dispatched call.
     Existing auth, exact URL, permissions, leases, cleanup and quarantine are preserved.
   - Primary evidence: existing legacy tests and focused modern cancellation/application assertions.
-  - Status: pending
-  - Evidence: none yet.
+  - Status: verified
+  - Evidence: pinned mismatch/no-fallback and modern cancellation/no-wire-notification
+    tests PASS; legacy defaults/config admission PASS. Native actual-binary interruption
+    proves durable unknown, HTTP closure and zero overlapping retry. The full nextest run
+    passed all MCP remote/stdio/application cases, including the retained legacy media/cancel tests.
 - R3: Document, verify, commit/push and build the implementation.
   - Source: approved plan step 3 and latest execution instruction.
   - Acceptance: config manual describes both modes and image execution timeout;
@@ -45,8 +50,17 @@ proven external blocker or approved budget boundary; record the smallest unlock.
     `target/release/oc2`; own commits reach verified `origin/master` by normal push.
     Actual failures and unverified live behavior are reported without overstating PASS.
   - Primary evidence: command results, reviewed diff, release artifact and remote Git SHA.
-  - Status: pending
-  - Evidence: none yet.
+  - Status: in_progress
+  - Evidence: goal committed as `3e23b2312`; config manual/contracts updated;
+    `python3 scripts/check_docs.py`, scoped rustfmt and `git diff --check` PASS.
+    `cargo clippy -p oc-adapters -p oc2 --all-targets --locked -- -D warnings` PASS.
+    One full gate: fmt/workspace Clippy PASS; nextest 2721/2723 PASS, 2 FAIL,
+    26 skipped (491.241s after cold test build 11m55s). Not a wholly green gate.
+    Exact DNS retest without proxy env PASS (0.05s); exact isolated background-child
+    retest PASS (3.29s), no source/assertion/deadline changes. Remaining workspace
+    doctest check PASS (zero examples), debug build/help/version PASS; release build
+    PASS (7m04s). `target/release/oc2`, version0.2.0, SHA256
+    `8cc8dc08f56265f4d9d19586911f36f8cc21707949f1201f7f74e085ea7a3c32`.
 
 ### Constraints / Non-goals
 - Default stays legacy. Protocol selection uses config, never server/model/URL inference.
@@ -74,16 +88,29 @@ proven external blocker or approved budget boundary; record the smallest unlock.
 - Git: normal commits on current `master`; origin verified as `git@github.com:0FL01/oc.git`.
 
 ## Current Checkpoint
-- Closes: R1–R2.
-- Smallest next action: implement protocol admission/SDK lifecycle and strict wire regression.
-- Expected evidence: modern remote tests pass; legacy config and remote/stdio tests retain behavior.
-- Stop or replan if: rmcp cannot satisfy the observed upstream contract without expanding the envelope.
+- Closes: R3 (Git delivery only).
+- Smallest next action: commit the reviewed runtime/tests/docs and push normally to verified origin/master.
+- Expected evidence: remote Git SHA contains this implementation and the goal commit.
+- Stop or replan if: an unexpected worktree/remote change prevents normal delivery.
 
 ## Current State
-- Resolved: read-only RECON; upstream hard-cut and installed SDK support confirmed.
-- Last relevant evidence: worktree has no tracked diff; only foreign untracked test script.
-- Blocker: none.
-- Next: implement the first checkpoint.
+- Resolved: protocol admission and existing SDK lifecycle implemented; strict wire/config evidence PASS.
+- Last relevant evidence: 3 modern transport tests and 9 MCP config tests PASS;
+  2 modern native application tests and scoped strict Clippy PASS. Runtime/test/doc
+  diff reviewed against the frozen scope; no dependency, storage or stdio runtime changes.
+- Full-gate failures: unchanged `webfetch::format_tests::tool17_dns_is_inside_total_deadline`
+  got HTTP502 instead of Deadline: its prepared reqwest client allows inherited system
+  proxies, bypassing the injected HeldDns resolver. Unchanged
+  `background_children::background_admission_caps_before_child_prompt_or_effect` hit
+  `foreground_children.rs:337`'s five-second provider barrier watchdog under the full run.
+- Slow-case diagnosis: unchanged `storage::fork::tests::w8_fork_copies_history_above_old_row_and_byte_budgets`
+  passed in103.554s; its setup individually appends5000 small rows and32×600KiB rows
+  to durable databases before forking (`storage_fork.rs:1745`). No MCP path is used;
+  the expensive durable fixture setup is outside this goal. No workload/threshold weakened.
+- Retests: DNS test with proxy environment removed PASS; background-child test
+  isolated PASS. Original full-gate failures remain reported, not relabeled green.
+- Blocker: none; all implementation/build evidence complete, Git delivery pending.
+- Next: commit/push own files, confirm remote SHA, close this goal. No live qualification claimed.
 
 ## Material Decisions
 - 2026-11-06: latest user decision supersedes the intermediate modern-only hard cut.
@@ -91,6 +118,15 @@ proven external blocker or approved budget boundary; record the smallest unlock.
 
 ## Checkpoint History
 - 2026-11-06: contract frozen before implementation; no live effects authorized or performed.
+- 2026-11-06: strict modern wire/config checkpoint PASS. Rich-media and cancellation
+  fixtures reuse existing legacy application assertions; no stdio runtime or storage change.
+- 2026-11-06: actual-binary media and cancellation checkpoint PASS 2/2; scoped Clippy
+  PASS. Frozen diff scope reviewed; full offline gate/release pipeline started once.
+- 2026-11-06: full nextest finished2721/2723 PASS with two unrelated failures above.
+  All MCP cases PASS. Only those failures are retested; the full gate is not repeated.
+- 2026-11-06: exact failure retests PASS without source changes; remaining doctest,
+  debug build/help/version and release build PASS. Release SHA recorded; own diff
+  remains inside the frozen envelope, foreign test script untouched.
 
 ## Completion
-- Pending implementation, checks, release build and Git delivery.
+- R1/R2 verified; implementation/checks/release complete. R3 awaits normal Git delivery.

@@ -351,6 +351,7 @@ async fn live_workflow_harness() {
             url,
             bearer: key,
             custom_headers: reqwest::header::HeaderMap::new(),
+            protocol: "2026-07-28".into(),
             timeout: Duration::from_secs(60),
             startup_timeout: None,
             catalog_timeout: None,

@@ -209,6 +209,28 @@ fn write_json(socket: &mut TcpStream, id: Value, result: Value) {
     write_http(socket, 200, "application/json", &body);
 }
 
+fn modern_request_valid(request: &HttpRequest) -> bool {
+    let method = request.body["method"].as_str();
+    let params = &request.body["params"];
+    let meta = &params["_meta"];
+    request.method == "POST"
+        && request.path == "/strict/v1/mcp"
+        && request.body["jsonrpc"] == "2.0"
+        && (request.body["id"].is_string() || request.body["id"].is_u64())
+        && request
+            .headers
+            .get("mcp-protocol-version")
+            .map(String::as_str)
+            == Some("2026-07-28")
+        && request.headers.get("mcp-method").map(String::as_str) == method
+        && (method != Some("tools/call")
+            || request.headers.get("mcp-name").map(String::as_str) == params["name"].as_str())
+        && meta["io.modelcontextprotocol/protocolVersion"] == "2026-07-28"
+        && meta["io.modelcontextprotocol/clientCapabilities"].is_object()
+        && !request.headers.contains_key("mcp-session-id")
+        && !request.headers.contains_key("last-event-id")
+}
+
 #[derive(Debug, Clone)]
 struct McpRecord {
     http_method: String,
@@ -238,6 +260,14 @@ impl FakeMcp {
     }
 
     fn stalled_request(held_method: &'static str, reject_cancel: bool) -> Self {
+        Self::stalled_request_with_protocol(held_method, reject_cancel, false)
+    }
+
+    fn stalled_request_with_protocol(
+        held_method: &'static str,
+        reject_cancel: bool,
+        modern: bool,
+    ) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         listener.set_nonblocking(true).unwrap();
         let url = format!("http://{}/strict/v1/mcp", listener.local_addr().unwrap());
@@ -270,6 +300,7 @@ impl FakeMcp {
                     .as_str()
                     .unwrap_or_default()
                     .to_string();
+                let valid = !modern || modern_request_valid(&request);
                 captured.lock().unwrap().push(McpRecord {
                     http_method: request.method,
                     path: request.path,
@@ -279,9 +310,20 @@ impl FakeMcp {
                     request_id: request.body.get("id").cloned(),
                     arguments: request.body.get("params").cloned(),
                 });
+                if !valid {
+                    write_http(&mut socket, 400, "text/plain", b"Invalid modern request");
+                    continue;
+                }
                 let id = request.body.get("id").cloned().unwrap_or(Value::Null);
                 match method.as_str() {
-                    "initialize" => write_json(
+                    "server/discover" if modern => write_json(
+                        &mut socket,
+                        id,
+                        json!({"resultType":"complete","supportedVersions":["2026-07-28"],
+                            "capabilities":{"tools":{}},"ttlMs":0,"cacheScope":"private",
+                            "_meta":{"io.modelcontextprotocol/serverInfo":{"name":"stall","version":"1"}}}),
+                    ),
+                    "initialize" if !modern => write_json(
                         &mut socket,
                         id,
                         json!({
@@ -291,16 +333,20 @@ impl FakeMcp {
                     "notifications/cancelled" if reject_cancel => {
                         write_http(&mut socket, 500, "text/plain", b"PRIVATE_CANCEL_FAILURE")
                     }
-                    "notifications/initialized" | "notifications/cancelled" => {
+                    "notifications/initialized" | "notifications/cancelled" if !modern => {
                         write_http(&mut socket, 202, "application/json", b"")
                     }
-                    "tools/list" => write_json(
-                        &mut socket,
-                        id,
-                        json!({"tools":[{
+                    "tools/list" => {
+                        let mut result = json!({"tools":[{
                             "name":"ping","inputSchema":{"type":"object","properties":{}}
-                        }]}),
-                    ),
+                        }]});
+                        if modern {
+                            result["resultType"] = "complete".into();
+                            result["ttlMs"] = 0.into();
+                            result["cacheScope"] = "private".into();
+                        }
+                        write_json(&mut socket, id, result);
+                    }
                     method if method == held_method => {
                         socket.set_nonblocking(true).unwrap();
                         stalled.push(socket); // ignores cancellation; remote effect may continue
@@ -476,6 +522,10 @@ impl FakeMcp {
     }
 
     fn start(label: &str, bearer: &str, tools: &[&str]) -> Self {
+        Self::start_with_protocol(label, bearer, tools, false)
+    }
+
+    fn start_with_protocol(label: &str, bearer: &str, tools: &[&str], modern: bool) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").expect("fake MCP listener");
         listener.set_nonblocking(true).expect("nonblocking MCP");
         let address = listener.local_addr().expect("MCP address");
@@ -527,9 +577,20 @@ impl FakeMcp {
                     );
                     continue;
                 }
+                if modern && !modern_request_valid(&request) {
+                    write_http(&mut socket, 400, "text/plain", b"Invalid modern request");
+                    continue;
+                }
                 let id = request.body.get("id").cloned().unwrap_or(Value::Null);
                 match rpc_method.as_str() {
-                    "initialize" => write_json(
+                    "server/discover" if modern => write_json(
+                        &mut socket,
+                        id,
+                        json!({"resultType":"complete","supportedVersions":["2026-07-28"],
+                            "capabilities":{"tools":{}},"ttlMs":0,"cacheScope":"private",
+                            "_meta":{"io.modelcontextprotocol/serverInfo":{"name":label,"version":"test"}}}),
+                    ),
+                    "initialize" if !modern => write_json(
                         &mut socket,
                         id,
                         json!({
@@ -538,13 +599,11 @@ impl FakeMcp {
                             "serverInfo": {"name": label, "version": "test"},
                         }),
                     ),
-                    "notifications/initialized" => {
+                    "notifications/initialized" if !modern => {
                         write_http(&mut socket, 202, "application/json", b"")
                     }
-                    "tools/list" => write_json(
-                        &mut socket,
-                        id,
-                        json!({"tools": tools.iter().map(|name| json!({
+                    "tools/list" => {
+                        let mut result = json!({"tools": tools.iter().map(|name| json!({
                             "name": name,
                             "description": format!("{label} {name}"),
                             "inputSchema": if name == "search" { json!({
@@ -556,11 +615,17 @@ impl FakeMcp {
                                 "required": ["query"],
                                 "additionalProperties": false,
                             }) } else { json!({"type": "object", "properties": {}}) },
-                        })).collect::<Vec<_>>() }),
-                    ),
+                        })).collect::<Vec<_>>() });
+                        if modern {
+                            result["resultType"] = "complete".into();
+                            result["ttlMs"] = 0.into();
+                            result["cacheScope"] = "private".into();
+                        }
+                        write_json(&mut socket, id, result);
+                    }
                     "tools/call" => {
                         let name = tool.as_deref().unwrap_or("");
-                        let result = match name {
+                        let mut result = match name {
                             "mcp_media_mixed" => media::mixed_result(),
                             "mcp_media_sensitive" => {
                                 json!({"content":[{"type":"text","text":"do not publish partial media"},{"type":"audio","mimeType":"audio/wav","data":"bWNwLW1lZGlhLXByaXZhdGUtY2FuYXJ5"}]})
@@ -600,6 +665,9 @@ impl FakeMcp {
                                 "isError": false,
                             }),
                         };
+                        if modern {
+                            result["resultType"] = "complete".into();
+                        }
                         write_json(&mut socket, id, result);
                     }
                     _ => {
@@ -3471,13 +3539,24 @@ fn v01_remote_pending_cancel_closes_request_before_fake_release() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
+    remote_inflight_cancel_keeps_unknown(false).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn mcp_modern_remote_cancel_keeps_unknown_without_notification_or_replay() {
+    remote_inflight_cancel_keeps_unknown(true).await;
+}
+
+async fn remote_inflight_cancel_keeps_unknown(modern: bool) {
     let responses = FakeResponses::start(ResponsesScript::ToolEveryTurn);
-    let mcp = FakeMcp::stalled_call();
+    let mcp = FakeMcp::stalled_request_with_protocol("tools/call", false, modern);
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
         json!({"servers": {"stall": {
-            "type":"remote", "codemode": false, "url":mcp.url, "oauth":false, "timeout":{"catalog": 10000, "execution": 10000}
+            "type":"remote", "codemode": false, "url":mcp.url, "oauth":false,
+            "protocol":if modern {"2026-07-28"} else {"legacy"},
+            "timeout":{"catalog": 10000, "execution": 10000}
         }}}),
         json!([{"action": "stall__ping", "resource": "*", "effect": "allow"}]),
     );
@@ -3503,32 +3582,34 @@ async fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retr
             .any(|r| r.rpc_method == "notifications/cancelled")
     );
     tui.interrupt(); // real PTY keys, not a direct runtime cancel
-    while !mcp
-        .records()
-        .iter()
-        .any(|r| r.rpc_method == "notifications/cancelled")
-    {
-        assert!(
-            Instant::now() < deadline,
-            "request-specific cancellation not sent"
+    if !modern {
+        while !mcp
+            .records()
+            .iter()
+            .any(|r| r.rpc_method == "notifications/cancelled")
+        {
+            assert!(
+                Instant::now() < deadline,
+                "request-specific cancellation not sent"
+            );
+            std::thread::sleep(POLL);
+        }
+        let records = mcp.records();
+        let call = records
+            .iter()
+            .find(|r| r.rpc_method == "tools/call")
+            .unwrap();
+        let cancelled = records
+            .iter()
+            .find(|r| r.rpc_method == "notifications/cancelled")
+            .unwrap();
+        assert_eq!(
+            cancelled.arguments.as_ref().unwrap()["requestId"],
+            call.request_id.clone().unwrap()
         );
-        std::thread::sleep(POLL);
+        assert_eq!(cancelled.http_method, "POST");
+        assert_eq!(cancelled.protocol_version.as_deref(), Some("2025-11-25"));
     }
-    let records = mcp.records();
-    let call = records
-        .iter()
-        .find(|r| r.rpc_method == "tools/call")
-        .unwrap();
-    let cancelled = records
-        .iter()
-        .find(|r| r.rpc_method == "notifications/cancelled")
-        .unwrap();
-    assert_eq!(
-        cancelled.arguments.as_ref().unwrap()["requestId"],
-        call.request_id.clone().unwrap()
-    );
-    assert_eq!(cancelled.http_method, "POST");
-    assert_eq!(cancelled.protocol_version.as_deref(), Some("2025-11-25"));
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
     while db
         .query_row(
@@ -3576,6 +3657,14 @@ async fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retr
             .success()
     );
     assert_eq!(responses.requests().len(), first_provider_requests);
+    if modern {
+        let records = mcp.records();
+        assert_eq!(records[0].rpc_method, "server/discover");
+        assert!(records.iter().all(|record| matches!(
+            record.rpc_method.as_str(),
+            "server/discover" | "tools/list" | "tools/call"
+        )));
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

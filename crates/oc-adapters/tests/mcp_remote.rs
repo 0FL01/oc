@@ -1,5 +1,5 @@
 //! T20 (MCP01–03): remote `codex_web` against a fake streamable-HTTP MCP
-//! server — exact URL, 2025-11-25, bearer, pagination, errors, cancel.
+//! server — exact URL, legacy/modern lifecycles, bearer, pagination, errors, cancel.
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -23,6 +23,9 @@ mod config_admission;
 #[path = "mcp_remote/lookups.rs"]
 mod lookups;
 
+#[path = "mcp_remote/modern.rs"]
+mod modern;
+
 #[tokio::test]
 async fn connect_failure_has_safe_typed_cause() {
     // Hold a bound, non-listening socket so another process cannot take the port.
@@ -32,6 +35,7 @@ async fn connect_failure_has_safe_typed_cause() {
         url: format!("http://{}/mcp", socket.local_addr().unwrap()),
         bearer: "fixture".into(),
         custom_headers: Default::default(),
+        protocol: "legacy".into(),
         timeout: Duration::from_secs(2),
         startup_timeout: None,
         catalog_timeout: None,
@@ -50,6 +54,7 @@ async fn protocol_mismatch_observes_stalled_session_cleanup() {
         url: format!("http://{}/mcp", listener.local_addr().unwrap()),
         bearer: "fixture".into(),
         custom_headers: Default::default(),
+        protocol: "legacy".into(),
         timeout: Duration::from_secs(5),
         startup_timeout: None,
         catalog_timeout: None,
@@ -127,6 +132,8 @@ struct Record {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Mode {
     Ok,
+    Modern,
+    ModernVersionMismatch,
     VersionMismatch,
     Always401,
     InvalidJson,
@@ -193,7 +200,12 @@ impl Fake {
             headers: headers.clone(),
             body: body_text.clone(),
         });
-        let (status, payload, content_type) = self.route(&method, &body_text);
+        let (status, payload, content_type) =
+            if matches!(self.mode, Mode::Modern | Mode::ModernVersionMismatch) {
+                modern::route(self.mode, self.slow, &method, &headers, &body_text)
+            } else {
+                self.route(&method, &body_text)
+            };
         Self::respond(&mut reader, status, &payload, content_type);
     }
 
@@ -507,6 +519,7 @@ fn config_for(url: &str) -> CodexWebConfig {
         url: url.to_string(),
         bearer: "test-key".to_string(),
         custom_headers: Default::default(),
+        protocol: "legacy".into(),
         timeout: CLIENT_TIMEOUT,
         startup_timeout: None,
         catalog_timeout: None,
@@ -554,6 +567,7 @@ async fn handshake_uses_exact_url_and_bearer() {
         methods.contains(&"initialize".to_string()),
         "methods: {methods:?}"
     );
+    assert!(!methods.iter().any(|method| method == "server/discover"));
     assert_eq!(
         seen.iter().filter(|record| record.method == "GET").count(),
         0,
@@ -878,6 +892,7 @@ fn config_validation_needs_no_network() {
             url: url.to_string(),
             bearer: "k".to_string(),
             custom_headers: Default::default(),
+            protocol: "legacy".into(),
             timeout: CLIENT_TIMEOUT,
             startup_timeout: None,
             catalog_timeout: None,
@@ -892,6 +907,7 @@ fn config_validation_needs_no_network() {
         url: "https://example.com/v1/mcp".to_string(),
         bearer: "".to_string(),
         custom_headers: Default::default(),
+        protocol: "legacy".into(),
         timeout: CLIENT_TIMEOUT,
         startup_timeout: None,
         catalog_timeout: None,
@@ -1288,6 +1304,7 @@ async fn live_search_harness() {
         url,
         bearer: key,
         custom_headers: Default::default(),
+        protocol: "2026-07-28".into(),
         timeout: CLIENT_TIMEOUT,
         startup_timeout: None,
         catalog_timeout: None,

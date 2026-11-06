@@ -496,7 +496,7 @@ fn parse_entry(raw: &Value, entry: &mut McpEntry) -> Result<(), (&'static str, S
     if let Some(raw) = map.get("protocol") {
         entry.protocol = raw.as_str().ok_or(("protocol", InvalidConfig))?.to_string();
     }
-    if entry.protocol != "legacy" {
+    if entry.protocol != "legacy" && !(entry.kind == "remote" && entry.protocol == "2026-07-28") {
         return Err((
             "protocol",
             if matches!(entry.protocol.as_str(), "auto" | "2026-07-28") {

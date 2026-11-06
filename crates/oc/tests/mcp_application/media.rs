@@ -13,17 +13,31 @@ pub(super) fn mixed_result() -> Value {
 
 #[test]
 fn mcp12_actual_binary_mixed_media_reaches_next_responses_request_with_exact_call_graph() {
+    mixed_media_roundtrip(false);
+}
+
+#[test]
+fn mcp_modern_actual_binary_mixed_media_reaches_next_responses_request() {
+    mixed_media_roundtrip(true);
+}
+
+fn mixed_media_roundtrip(modern: bool) {
     let responses =
         FakeResponses::start(ResponsesScript::ToolNamed("media__mcp_media_mixed".into()));
-    let mcp = FakeMcp::start(
+    let mcp = FakeMcp::start_with_protocol(
         "media-fixture",
         "Bearer mcp-media-private-canary",
         &["mcp_media_mixed"],
+        modern,
     );
+    let mut entry = remote_entry(&mcp, "Authorization", "Bearer mcp-media-private-canary");
+    if modern {
+        entry["protocol"] = "2026-07-28".into();
+    }
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"servers": {"media":remote_entry(&mcp,"Authorization","Bearer mcp-media-private-canary")}}),
+        json!({"servers": {"media":entry}}),
         json!([{"action": "media__mcp_media_mixed", "resource": "*", "effect": "allow"}]),
     );
     let bytes = fs::read(fixture.home.join("config/opencode/opencode.json")).unwrap();
@@ -95,7 +109,12 @@ fn mcp12_actual_binary_mixed_media_reaches_next_responses_request_with_exact_cal
     assert_eq!(
         mcp.records()
             .iter()
-            .filter(|r| r.rpc_method == "initialize")
+            .filter(|r| r.rpc_method
+                == if modern {
+                    "server/discover"
+                } else {
+                    "initialize"
+                })
             .count(),
         1
     );
@@ -117,6 +136,12 @@ fn mcp12_actual_binary_mixed_media_reaches_next_responses_request_with_exact_cal
     );
     assert!(!process.output().contains(PNG));
     assert!(!process.diagnostics().contains(PNG));
+    if modern {
+        assert!(mcp.records().iter().all(|record| matches!(
+            record.rpc_method.as_str(),
+            "server/discover" | "tools/list" | "tools/call"
+        )));
+    }
 }
 
 #[test]
