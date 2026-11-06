@@ -5,17 +5,11 @@ use oc_core::queries::{
 };
 
 #[test]
-fn w6_native_environment_notice_is_info_without_overwriting_warnings_or_parked_replay() {
+fn w6_native_channel_has_no_startup_environment_notice() {
     let (app, _inbox, _control, _events, _admissions) = CoreApp::native_channel(2, 1);
     let mut state = TuiState::new_home(app);
     state.set_service_feedback_visible(true);
-    assert_eq!(
-        state.note(),
-        Some(
-            "Native owner uses the environment captured when it started; later clients' environment is not adopted."
-        )
-    );
-    assert_eq!(state.note.as_ref().unwrap().1, NoteVariant::Info);
+    assert!(state.note().is_none());
     state.push_note_variant("important warning", NoteVariant::Warning);
     state.set_service_feedback_visible(true);
     assert_eq!(state.note(), Some("important warning"));

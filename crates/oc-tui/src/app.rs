@@ -947,7 +947,6 @@ pub struct TuiState {
     /// Pending is not recovery; stable status/removal/Location drops the baseline.
     service_pending_issues: Vec<services::ServiceIssue>,
     service_feedback_visible: bool,
-    native_owner_notice_pending: bool,
     /// One captured pre-acceptance refusal, not the new binding's readiness or
     /// a diagnostic history. Cleared by acceptance, another refusal or Location.
     refused_submission: Option<oc_core::queries::ServiceDiagnostic>,
@@ -1078,7 +1077,6 @@ impl TuiState {
             .duration_since(UNIX_EPOCH)
             .map_or(0, |now| now.subsec_nanos() as usize % HOME_EXAMPLES.len());
         let home = session.is_none();
-        let native_owner_notice_pending = app.shares_workspace();
         Self {
             chrome: Default::default(),
             parent_id: None,
@@ -1208,7 +1206,6 @@ impl TuiState {
             service_note: false,
             service_pending_issues: Vec::new(),
             service_feedback_visible: true,
-            native_owner_notice_pending,
             refused_submission: None,
             toast_expiry: None,
             toast_down: false,

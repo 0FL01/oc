@@ -250,7 +250,6 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
     );
     let diagnostic = String::from_utf8_lossy(&output.stderr);
     if !unknown_limits && title.is_none() {
-        assert!(diagnostic.contains("Native owner uses the environment captured when it started; later clients' environment is not adopted."));
         assert!(!diagnostic.contains("fixture-not-a-secret"));
     }
     if let Some(expected_output) = title_output {

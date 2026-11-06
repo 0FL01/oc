@@ -79,8 +79,6 @@ pub async fn run_once_to_writers(
                     .into_iter().next().map(|entry| entry.id)
                     .unwrap_or_else(|| SessionId(format!("s-{}", nanos())))
             } else { SessionId(format!("s-{}", nanos())) };
-            writeln!(err, "info: {}", oc_adapters::native::OWNER_ENVIRONMENT_NOTICE)
-                .map_err(|error| error.to_string())?;
             let mut default = if let Some(agent) = &agent {
                 // Validate explicit addressing before creating a session or an
                 // approval consumer. Hidden primary/all profiles remain valid.

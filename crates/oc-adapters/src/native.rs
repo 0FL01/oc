@@ -21,9 +21,6 @@ pub enum Lease {
 pub use client::attach;
 pub use server::serve;
 
-/// Nonsecret attachment guidance shared by native frontends.
-pub const OWNER_ENVIRONMENT_NOTICE: &str = "Native owner uses the environment captured when it started; later clients' environment is not adopted.";
-
 fn issue(code: oc_core::queries::ServiceCode) -> crate::application::SpawnDiagnostic {
     use crate::application::{SpawnDiagnostic, SpawnFailure};
     let category = match code {
