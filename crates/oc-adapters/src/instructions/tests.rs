@@ -4,11 +4,11 @@ use std::collections::BTreeMap;
 use std::os::unix::fs::symlink;
 
 #[test]
-fn prm01_automatic_ask_sources_are_not_opened_in_either_resource_form() {
+fn tool_use_and_automatic_ask_sources_are_not_opened_in_either_resource_form() {
     use std::os::fd::FromRawFd as _;
     use std::os::unix::ffi::OsStrExt as _;
     let mut observations = Vec::new();
-    for absolute in [false, true] {
+    for (absolute, tool_use) in [(false, false), (true, false), (false, true), (true, true)] {
         let temp = tempfile::tempdir().unwrap();
         let project = temp.path().join("project");
         let data = temp.path().join("data");
@@ -29,7 +29,10 @@ fn prm01_automatic_ask_sources_are_not_opened_in_either_resource_form() {
         } else {
             "nested/AGENTS.md".into()
         };
-        let rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({"permissions":[{"action":"read","resource":"*","effect":"allow"},{"action":"read","resource":"nested/file.txt","effect":"allow"},{"action":"read","resource":source_rule,"effect":"ask"}]})).unwrap();
+        let mut rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({"permissions":[{"action":"read","resource":"*","effect":"allow"},{"action":"read","resource":"nested/file.txt","effect":"allow"},{"action":"read","resource":source_rule,"effect":if tool_use {"allow"} else {"ask"}}]})).unwrap();
+        if tool_use {
+            rules.set_tool_use(vec![(format!("read:{source_rule}"), false)]);
+        }
         let policy = RuntimePolicy::with_rules(&permissions, &rules).with_root(&project);
         let name = std::ffi::CString::new(source_path.as_os_str().as_bytes()).unwrap();
         // SAFETY: a new owned inotify fd, valid NUL path and IN_OPEN mask.
@@ -63,13 +66,19 @@ fn prm01_automatic_ask_sources_are_not_opened_in_either_resource_form() {
         };
         observations.push((
             absolute,
+            tool_use,
             opened,
             sources.iter().any(|s| s.content.is_some()),
         ));
     }
     assert_eq!(
         observations,
-        vec![(false, false, false), (true, false, false)]
+        vec![
+            (false, false, false, false),
+            (true, false, false, false),
+            (false, true, false, false),
+            (true, true, false, false)
+        ]
     );
 }
 

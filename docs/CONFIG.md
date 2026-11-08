@@ -46,7 +46,20 @@ headless stderr и TUI Services, без values. Package
 `@ai-sdk/{openai,anthropic,openai-compatible}` и `@opencode/ai/providers/*` одинаково
 выбирают нативный адаптер и в `oc2`, и в TS V2 (`AISDKNative.rewrite`).
 
-`experimental.policies` с `action: "permission"` (donor deny-hook) не поддержан и
+Root `policies` и `experimental.policies` поддерживают `provider.use` и `tool.use`
+с `effect: "allow" | "deny"` и строковым `resource`. Для `tool.use` wildcard
+сопоставляется с целой строкой `<public action>:<checked resource>` (например,
+`read:private/*`, `edit:*`, `shell:git *`, MCP `server_tool:*`). Последнее
+совпадение в composed config побеждает: deny запрещает весь вызов при отказе хотя бы
+одного ресурса; allow лишь снимает этот hook, но не выдаёт permission и не обходит
+Ask/Deny, agent/Plan/parent ceilings или captured launch policy. Read deny также
+фильтрует search/directory results и live nested instructions до чтения; уже
+admitted config/instruction snapshots не скрываются задним числом. Shell не sandbox.
+Policy sources идут в обратном порядке (global последний), root перед experimental;
+обычные `permissions` сохраняют свой отдельный порядок. Reload публикуется атомарно,
+issued requests/batches и children сохраняют captured authority.
+
+`policies`/`experimental.policies` с `action: "permission"` (donor deny-hook) не поддержан и
 отказывает typed capability error: молча проигнорированный deny расширил бы права.
 
 ### Read-only provider compatibility — W9

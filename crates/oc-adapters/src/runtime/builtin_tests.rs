@@ -11,6 +11,61 @@ fn entry() -> mcp_remote::RegistryEntry {
 }
 
 #[test]
+fn tool_use_public_actions_mcp_alias_and_each_checked_resource_are_hard_denied() {
+    let permissions = BTreeMap::from([("*".into(), Permission::Allow)]);
+    let entries = [entry()];
+    let mut rules = crate::permissions::PermissionRules::default();
+    rules.set_tool_use(vec![
+        ("edit:protected".into(), false),
+        ("shell:printf protected".into(), false),
+        ("subagent:protected".into(), false),
+        ("arbitrary_rotate_widget:protected".into(), false),
+        ("arbitrary__rotate_widget:wire-only".into(), false),
+        ("read:protected".into(), false),
+    ]);
+    let policy = RuntimePolicy::with_rules(&permissions, &rules).with_mcp(&entries);
+    for action in [
+        "edit",
+        "write",
+        "apply_patch",
+        "patch",
+        "image_output",
+        "subagent",
+        "task",
+        "read",
+        "arbitrary__rotate_widget",
+    ] {
+        assert_eq!(
+            policy.effect(action, "protected"),
+            Permission::Deny,
+            "{action}"
+        );
+        assert_eq!(
+            policy.effect(action, "public"),
+            Permission::Allow,
+            "{action}"
+        );
+    }
+    assert_eq!(policy.effect("shell", "printf protected"), Permission::Deny);
+    assert_eq!(policy.effect("bash", "printf protected"), Permission::Deny);
+    assert_eq!(
+        policy.effect(&entries[0].namespaced, "wire-only"),
+        Permission::Allow
+    );
+    let call = crate::tools::ToolCall {
+        id: "call".into(),
+        name: "apply_patch".into(),
+        arguments: serde_json::json!({"patchText":"*** Begin Patch\n*** Add File: public\n+safe\n*** Add File: protected\n+denied\n*** End Patch\n"}),
+    };
+    assert!(matches!(
+        policy.check_call(&call),
+        Err(ToolError::Denied { .. })
+    ));
+    assert!(policy.search_path_denied("protected"));
+    assert!(!policy.automatic_instruction_source_allowed("protected"));
+}
+
+#[test]
 fn registered_mcp_default_and_alias_visibility_obey_independent_constraints() {
     let permissions = BTreeMap::from([("read".into(), Permission::Allow)]);
     let entries = [entry()];

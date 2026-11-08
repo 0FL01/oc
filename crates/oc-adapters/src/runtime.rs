@@ -405,7 +405,7 @@ impl<'a> RuntimePolicy<'a> {
     /// Resolve the permission effect without turning ask into allow.
     pub fn effect(&self, tool: &str, resource: &str) -> Permission {
         let alias = self.mcp_alias(tool);
-        let mut actions = vec![crate::config::legacy_key(tool)];
+        let mut actions = vec![tool];
         if let Some(alias) = &alias {
             actions.push(alias);
         }

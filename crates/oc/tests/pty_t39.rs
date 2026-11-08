@@ -293,6 +293,7 @@ impl Drop for Fixture {
 /// One scripted peer response, including bounded multi-round tool fixtures.
 enum Script {
     Cfg10DeniedRead,
+    ToolUsePublicRead,
     Text(String),
     HighRateBurst,
     WheelHeldRows,
@@ -324,6 +325,17 @@ fn variant_mut<'a>(model: &'a mut serde_json::Value, id: &str) -> &'a mut serde_
 }
 
 fn script(body: &serde_json::Value) -> Script {
+    if last_user_text(body).as_deref() == Some(fatal_diagnostics::CONTROL_PROMPT)
+        && !body["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .rev()
+            .take_while(|item| item["type"] != "message" || item["role"] != "user")
+            .any(|item| item["type"] == "function_call_output")
+    {
+        return Script::ToolUsePublicRead;
+    }
     if has_function_call_output(body) {
         if last_user_text(body).as_deref() == Some(question::PROMPT) {
             return Script::Text(question::DONE.into());
@@ -602,6 +614,9 @@ fn respond(
         }
         Script::Cfg10DeniedRead => {
             finish_call(socket, "read", r#"{"path":"cfg10-denied-note.txt"}"#)
+        }
+        Script::ToolUsePublicRead => {
+            finish_call(socket, "read", r#"{"path":"tool-use-public.txt"}"#)
         }
         Script::S07Read => {
             let reasoning = serde_json::json!({"type": "response.reasoning_summary_text.delta",

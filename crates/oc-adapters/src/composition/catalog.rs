@@ -80,38 +80,11 @@ pub(crate) fn provider_filters(sources: &[config::Source]) -> Result<ProviderPol
                 ));
             }
         }
-        for (rules, field) in [
-            (value.get("policies"), &["policies"][..]),
-            (
-                value.pointer("/experimental/policies"),
-                &["experimental", "policies"][..],
-            ),
-        ] {
-            let Some(rules) = rules else { continue };
-            let rules = rules
-                .as_array()
-                .ok_or_else(|| invalid(&source.path, field))?;
-            for rule in rules {
-                let text = |key: &str| rule.get(key).and_then(serde_json::Value::as_str);
-                let allow = match text("effect") {
-                    Some("allow") => true,
-                    Some("deny") => false,
-                    _ => return Err(invalid(&source.path, field)),
-                };
-                let resource = text("resource").ok_or_else(|| invalid(&source.path, field))?;
-                match text("action") {
-                    Some("provider.use") => policy.rules.push((resource.to_string(), allow)),
-                    // Ignoring a permission deny would widen authority: refuse instead.
-                    Some("permission") => {
-                        return Err(failure(
-                            &source.path,
-                            field,
-                            ServiceStage::Capability,
-                            ServiceCode::UnsupportedCapability,
-                        ));
-                    }
-                    _ => return Err(invalid(&source.path, field)),
-                }
+        for statement in
+            config::policies::decode(&value).map_err(|error| config_error(&source.path, &error))?
+        {
+            if statement.action == config::policies::Action::ProviderUse {
+                policy.rules.push((statement.resource, statement.allow));
             }
         }
     }

@@ -2,6 +2,73 @@ use super::*;
 use oc_core::approval::{ApprovalDecision, ApprovalPreview, ApprovalReply, ApprovalRequest};
 
 #[tokio::test]
+async fn tool_use_autoapproval_and_search_cannot_expose_denied_read_resources() {
+    let (harness, mut generation) = make_harness(allow_all());
+    std::fs::write(
+        harness._project.path().join("private.txt"),
+        "TOOL_USE_PRIVATE_CONTENT",
+    )
+    .unwrap();
+    std::fs::write(
+        harness._project.path().join("public.txt"),
+        "TOOL_USE_PUBLIC_CONTENT",
+    )
+    .unwrap();
+    generation.permission_rules = oc_adapters::config::assemble(&[
+        oc_adapters::config::Source {
+            path:"/synthetic/opencode.json".into(), trusted:true,
+            text:serde_json::json!({
+                "permissions":[{"action":"*","resource":"*","effect":"allow"},{"action":"read","resource":"*","effect":"ask"}],
+                "policies":[{"action":"tool.use","resource":"read:private.txt","effect":"deny"}]
+            }).to_string(),
+        }
+    ], &BTreeMap::new(), None).unwrap().permission_rules;
+    let script = [
+        ("denied", "read", serde_json::json!({"path":"private.txt"})),
+        ("control", "read", serde_json::json!({"path":"public.txt"})),
+        ("directory", "read", serde_json::json!({"path":"."})),
+        ("glob", "glob", serde_json::json!({"pattern":"*.txt"})),
+        ("grep", "grep", serde_json::json!({"pattern":"TOOL_USE_"})),
+    ]
+    .into_iter()
+    .map(|(id, name, args)| sse_tool_call(id, name, &args) + &sse_completed())
+    .chain([sse_delta("done") + &sse_completed()])
+    .collect();
+    let (base, _, requests) = Fake::start_recording(script, Duration::ZERO);
+    let runtime = runtime_of(&harness, generation, vec![]);
+    let _events = consumer(&runtime);
+    runtime.register_approval_consumer(true);
+    runtime.create_session("tool-use").unwrap();
+    let report = runtime
+        .run_turn(params(
+            "tool-use",
+            "invoke",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.calls.len(), 5);
+    assert!(report.calls[0].output.contains("denied read"));
+    assert!(report.calls[1].output.contains("TOOL_USE_PUBLIC_CONTENT"));
+    for call in &report.calls[2..] {
+        assert_eq!(call.state, "completed", "{}", call.output);
+        assert!(call.output.contains("public.txt"), "{}", call.output);
+        assert!(!call.output.contains("private.txt"), "{}", call.output);
+    }
+    assert!(
+        !requests
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|request| request.to_string().contains("TOOL_USE_PRIVATE_CONTENT"))
+    );
+    assert!(runtime.pending_approvals().is_empty());
+}
+
+#[tokio::test]
 async fn root_read_aliases_keep_nonempty_resource_and_original_provider_arguments() {
     let (harness, generation) = make_harness(allow_all());
     let root = harness._project.path();

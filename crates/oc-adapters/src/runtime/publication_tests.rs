@@ -500,6 +500,41 @@ fn hot01_captured_publication_keeps_its_workspace_and_policy() {
 }
 
 #[test]
+fn tool_use_publication_keeps_captured_lane_and_restores_old_lane_without_hooks() {
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    let owner = binding_replay_tests::owner(&db, project.path());
+    workspace(&owner, "G1", Permission::Allow);
+    let captured = owner.current.read().unwrap().clone();
+    let issuing = owner.primary_lane(&captured);
+    let old_json = serde_json::to_string(&issuing).unwrap();
+    assert!(!old_json.contains("tool_use"));
+    let old_lane: TurnLane = serde_json::from_str(&old_json).unwrap();
+    assert_eq!(serde_json::to_string(&old_lane).unwrap(), old_json);
+    owner.update_execution(|view| {
+        view.generation
+            .config
+            .permission_rules
+            .set_tool_use(vec![("read:protected".into(), false)]);
+    });
+    let current = owner.current.read().unwrap().clone();
+    let fresh = owner.primary_lane(&current);
+    assert_eq!(
+        RuntimePolicy::with_rules(&issuing.permissions, &issuing.permission_rules)
+            .effect("read", "protected"),
+        Permission::Allow
+    );
+    assert_eq!(
+        RuntimePolicy::with_rules(&fresh.permissions, &fresh.permission_rules)
+            .effect("read", "protected"),
+        Permission::Deny
+    );
+    let restored: TurnLane = serde_json::from_str(&serde_json::to_string(&fresh).unwrap()).unwrap();
+    assert_eq!(restored.permission_rules, fresh.permission_rules);
+}
+
+#[test]
 fn hot01_profile_history_keeps_closed_pairs_and_each_request_origin() {
     use oc_core::queries::{ModelRef, RequestIdentity, RequestProfile};
     use serde_json::json;

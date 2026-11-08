@@ -20,6 +20,7 @@ pub(crate) mod admission;
 pub(crate) mod diagnostic;
 mod formatter;
 pub(crate) mod mcp;
+pub(crate) mod policies;
 mod providers;
 pub use crate::tools::output::Limits as ToolOutputLimits;
 pub use formatter::Formatter;
@@ -1182,6 +1183,7 @@ fn assemble_with_admission(
     let mut mcp_provenance = BTreeMap::new();
     let mut permissions_source = None;
     let mut permission_rules = crate::permissions::PermissionRules::configuration();
+    let mut tool_use_sources = Vec::new();
     let mut terminal_copy_source = None;
     let mut terminal_copy = None;
     let mut markdown_copy_source = None;
@@ -1214,6 +1216,15 @@ fn assemble_with_admission(
                 field: source.path.clone(),
                 reason: "root must be an object".to_string(),
             })?;
+            tool_use_sources.push(
+                policies::decode(&value)?
+                    .into_iter()
+                    .filter_map(|statement| {
+                        (statement.action == policies::Action::ToolUse)
+                            .then_some((statement.resource, statement.allow))
+                    })
+                    .collect::<Vec<_>>(),
+            );
             // Owning parsers ignore excess fields; direct callers still receive
             // payload-free warnings, while composition publishes structured notes.
             for finding in admission::scan_document(&value) {
@@ -1380,6 +1391,8 @@ fn assemble_with_admission(
         })()
         .map_err(|error| diagnostic::LocatedError::new(&source.path, error))?;
     }
+
+    permission_rules.set_tool_use(tool_use_sources.into_iter().rev().flatten().collect());
 
     // Substitute + selected-only credential check (no network/process here).
     let mut out_providers = BTreeMap::new();

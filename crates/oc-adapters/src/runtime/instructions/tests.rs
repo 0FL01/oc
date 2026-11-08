@@ -119,8 +119,9 @@ async fn w10_configured_nested_path_stays_captured_across_reads_and_old_nested_f
 }
 
 #[tokio::test]
-async fn cfg17_saved_allow_cannot_bypass_final_configured_deny() {
-    for denied in [false, true] {
+async fn tool_use_and_configured_deny_cannot_be_bypassed_by_saved_allow() {
+    for mode in ["allow", "configured-deny", "tool-use-deny"] {
+        let denied = mode != "allow";
         let data = tempfile::tempdir().unwrap();
         let project = tempfile::tempdir().unwrap();
         std::fs::write(
@@ -137,8 +138,10 @@ async fn cfg17_saved_allow_cannot_bypass_final_configured_deny() {
             },
             crate::config::Source {
                 path: "/last.json".into(), trusted: false,
-                text: if denied {
+                text: if mode == "configured-deny" {
                     serde_json::json!({"permissions":[{"action":"read","resource":"blocked.txt","effect":"deny"}]})
+                } else if mode == "tool-use-deny" {
+                    serde_json::json!({"policies":[{"action":"tool.use","resource":"read:blocked.txt","effect":"deny"}]})
                 } else { serde_json::json!({}) }.to_string(),
             },
         ];

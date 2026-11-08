@@ -5,6 +5,70 @@ use serde_json::{Value, json};
 
 const CANARY: &str = "CFG10_NATIVE_AUTH_ENV_PATH_SECRET_1963";
 pub(super) const POLICY_PROMPT: &str = "cfg10 prove retained read Deny";
+pub(super) const CONTROL_PROMPT: &str = "tool.use unprotected control";
+
+#[test]
+fn tool_use_root_policy_reaches_home_denies_protected_read_and_allows_control() {
+    let fixture = Fixture::new();
+    let mut config: Value =
+        serde_json::from_slice(&std::fs::read(config_path(&fixture)).unwrap()).unwrap();
+    config["policies"] = json!([
+        {"action":"tool.use","resource":"read:cfg10-denied-*","effect":"deny"}
+    ]);
+    std::fs::write(config_path(&fixture), config.to_string()).unwrap();
+    std::fs::write(
+        fixture.root.path().join("project/cfg10-denied-note.txt"),
+        CANARY,
+    )
+    .unwrap();
+    std::fs::write(
+        fixture.root.path().join("project/tool-use-public.txt"),
+        "TOOL_USE_PUBLIC_CONTENT",
+    )
+    .unwrap();
+    let mut pty = PtySession::spawn_sized(fixture.clone(), "tool-use", None, 120, 40);
+    wait_screen_row(&pty, READY, DEADLINE);
+    wait_idle(&pty);
+    assert_no_remote_effects(&fixture);
+    submit(&mut pty, POLICY_PROMPT);
+    wait_screen_row(&pty, "answer:compressed", DEADLINE);
+    wait_idle(&pty);
+    submit(&mut pty, CONTROL_PROMPT);
+    wait_idle(&pty);
+    let requests = fixture.wait_requests(4);
+    let continuation = requests.last().unwrap();
+    let input = continuation["input"].as_array().unwrap();
+    assert!(input.iter().any(|item| {
+        item["type"] == "function_call_output"
+            && item["output"]
+                .as_str()
+                .is_some_and(|text| text.contains("denied read"))
+    }));
+    assert!(input.iter().any(|item| {
+        item["type"] == "function_call_output"
+            && item["output"]
+                .as_str()
+                .is_some_and(|text| text.contains("TOOL_USE_PUBLIC_CONTENT"))
+    }));
+    assert!(
+        !requests
+            .iter()
+            .any(|request| request.to_string().contains(CANARY))
+    );
+    pty.send(b"/exit\r");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert_eq!(status.code(), Some(0));
+    assert!(pty.restored());
+    assert!(!String::from_utf8_lossy(&output).contains(CANARY));
+
+    let fixture = Fixture::new();
+    std::fs::write(
+        fixture.root.path().join("project/opencode.jsonc"),
+        r#"{"policies":[{"action":"tool.use","resource":"read:*","effect":"ask"}]}"#,
+    )
+    .unwrap();
+    fatal(fixture, "invalid_config", "config", "policies");
+}
 
 fn config_path(fixture: &Fixture) -> PathBuf {
     fixture

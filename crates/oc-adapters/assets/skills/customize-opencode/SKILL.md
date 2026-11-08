@@ -138,6 +138,16 @@ Top-level `model` also accepts `{providerID, model, variant?}`. Only an unselect
 configuration default can fall back to an admitted ready text model; saved/user choices,
 profile pins and accepted requests retain their exact selection. Root `policies` with
 `provider.use` uses the existing policy owner; experimental rules still take precedence.
+Root and experimental `policies` also support `tool.use`: string `resource` wildcards
+match the entire `<public action>:<checked resource>`, e.g. `read:private/*`,
+`edit:*`, `shell:git *`, or MCP `server_tool:*`. Last matching rule wins within
+the composed config (reverse source order, global last; root before experimental).
+`deny` on any checked resource refuses the whole call, independently of ordinary
+permissions, agent overrides, saved approvals and autoaccept. `allow` is neutral,
+not a permission grant; captured parent/launch ceilings still intersect. Read denies
+also filter search/directory results and live nested instructions before reading,
+not previously admitted config/instruction snapshots. Shell remains unsandboxed.
+Only `allow`/`deny` effects are supported; `action:"permission"` remains unsupported.
 `snapshots:true` only warns, without filesystem snapshots. Unsupported `share`, `username`,
 `watcher` warn by name, never by value. Only global `formatter` declarations are
 honored (`command` argv, `environment`, `extensions`, `disabled`; boolean resets).

@@ -37,6 +37,9 @@ pub struct PermissionRules {
     // central/profile/parent rules remain independently intersected.
     builtin_grants: Vec<Rule>,
     plan_ceilings: Vec<Vec<Rule>>,
+    // One last-match hook per composed config; captured authorities intersect.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    tool_use: Vec<Vec<(String, bool)>>,
 }
 
 /// Keep source phases distinct so a child selects its own agent before the
@@ -85,6 +88,32 @@ fn strictest(a: Permission, b: Permission) -> Permission {
 }
 
 impl PermissionRules {
+    pub(crate) fn set_tool_use(&mut self, rules: Vec<(String, bool)>) {
+        if !rules.is_empty() {
+            self.tool_use.push(rules);
+        }
+    }
+
+    fn tool_use_denied(&self, action: &str, resource: &str) -> bool {
+        if self.tool_use.is_empty() {
+            return false;
+        }
+        let action = match action {
+            "write" | "patch" | "apply_patch" | "image_output" => "edit",
+            "bash" => "shell",
+            "task" => "subagent",
+            action => action,
+        };
+        let target = format!("{action}:{resource}");
+        self.tool_use.iter().any(|layer| {
+            layer
+                .iter()
+                .rev()
+                .find(|(pattern, _)| wildcard(&target, pattern))
+                .is_some_and(|(_, allow)| !allow)
+        })
+    }
+
     /// Ordinary evaluation has no implicit grant; selecting an agent supplies
     /// its pinned defaults before documents and agent-specific overrides.
     pub(crate) fn configuration() -> Self {
@@ -187,6 +216,7 @@ impl PermissionRules {
         self.builtin_defaults.extend(rules.builtin_defaults.clone());
         self.builtin_grants.extend(rules.builtin_grants.clone());
         self.plan_ceilings.extend(rules.plan_ceilings.clone());
+        self.tool_use.extend(rules.tool_use.clone());
     }
 
     /// Child ordinary overrides are based on the same documents, not on its
@@ -372,6 +402,7 @@ impl PermissionRules {
         self.builtin_defaults.extend(other.builtin_defaults);
         self.builtin_grants.extend(other.builtin_grants);
         self.plan_ceilings.extend(other.plan_ceilings);
+        self.tool_use.extend(other.tool_use);
     }
 
     pub(super) fn plan_defaults() -> Self {
@@ -476,6 +507,7 @@ impl PermissionRules {
         self.builtin_defaults.extend(rules.builtin_defaults.clone());
         self.builtin_grants.extend(rules.builtin_grants.clone());
         self.plan_ceilings.extend(rules.plan_ceilings.clone());
+        self.tool_use.extend(rules.tool_use.clone());
     }
 
     /// Add a native module's explicit grant, still bounded by existing rules.
@@ -517,6 +549,18 @@ impl PermissionRules {
         registered_mcp: bool,
         project: Option<&std::path::Path>,
     ) -> Permission {
+        // Registered MCP uses its public server_tool alias, not its wire name.
+        let policy_actions = if registered_mcp {
+            &actions[actions.len().saturating_sub(1)..]
+        } else {
+            actions
+        };
+        if policy_actions
+            .iter()
+            .any(|action| self.tool_use_denied(action, resource))
+        {
+            return Permission::Deny;
+        }
         let actions: Vec<_> = actions.iter().map(|action| legacy_key(action)).collect();
         let actions = actions.as_slice();
         // One native path has both Location-relative and absolute spellings.
@@ -590,6 +634,9 @@ impl PermissionRules {
         action: &str,
         resource: &str,
     ) -> bool {
+        if self.tool_use_denied(action, resource) {
+            return true;
+        }
         let actions = [legacy_key(action)];
         if self.configured.as_ref().is_some_and(|configured| {
             evaluate_layer(configured.iter(), &actions, resource) == Some(Permission::Deny)
@@ -618,6 +665,9 @@ impl PermissionRules {
         resolved: &str,
         location: &str,
     ) -> bool {
+        if self.tool_use_denied("read", resolved) || self.tool_use_denied("read", location) {
+            return false;
+        }
         let layer_effect = |layer: &[Rule]| {
             let mut effect = None;
             for rule in layer {

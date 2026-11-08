@@ -10,6 +10,99 @@ fn fixture() -> Value {
 }
 
 #[test]
+fn tool_use_ordered_hooks_are_neutral_allows_and_independent_ceilings() {
+    let source = |value: Value| Source {
+        path: "/synthetic/opencode.json".into(),
+        trusted: true,
+        text: value.to_string(),
+    };
+    let global = source(json!({"policies":[
+        {"action":"tool.use","resource":"*:private:*","effect":"deny"},
+        {"action":"tool.use","resource":"read:private:public","effect":"allow"}
+    ],"experimental":{"policies":[
+        {"action":"tool.use","resource":"read:private:experimental","effect":"allow"}
+    ]}}));
+    let local = source(json!({"policies":[
+        {"action":"tool.use","resource":"*","effect":"allow"}
+    ]}));
+    let mut rules = assemble(&[global, local], &BTreeMap::new(), None)
+        .unwrap()
+        .permission_rules;
+    let agent = PermissionRules::from_document(&json!({"permissions":[
+        {"action":"*","resource":"*","effect":"allow"}
+    ]}))
+    .unwrap();
+    rules.configure_agent(&BTreeMap::new(), &BTreeMap::new(), &agent);
+    assert_eq!(
+        rules.evaluate(&BTreeMap::new(), "read", "private:secret"),
+        Permission::Deny
+    );
+    assert_eq!(
+        rules.evaluate(&BTreeMap::new(), "read", "private:public"),
+        Permission::Allow
+    );
+    assert_eq!(
+        rules.evaluate(&BTreeMap::new(), "read", "private:experimental"),
+        Permission::Allow
+    );
+    assert!(rules.denied_by_rule(&BTreeMap::new(), "read", "private:secret"));
+    assert!(!rules.automatic_source_allowed(&BTreeMap::new(), "private:secret", "other"));
+
+    let mut child = rules.clone();
+    child.configure_child(&BTreeMap::new(), &BTreeMap::new(), &agent);
+    let fresh = assemble(
+        &[source(json!({"policies":[
+            {"action":"tool.use","resource":"*","effect":"allow"}
+        ]}))],
+        &BTreeMap::new(),
+        None,
+    )
+    .unwrap()
+    .permission_rules;
+    child.extend(fresh.clone());
+    assert_eq!(
+        child.evaluate(&BTreeMap::new(), "read", "private:secret"),
+        Permission::Deny
+    );
+    let mut rebound = fresh;
+    rebound.narrow(&BTreeMap::new(), &BTreeMap::new(), &child);
+    rebound.configure_child(&BTreeMap::new(), &BTreeMap::new(), &agent);
+    assert_eq!(
+        rebound.evaluate(&BTreeMap::new(), "read", "private:secret"),
+        Permission::Deny
+    );
+
+    for effect in [Permission::Ask, Permission::Deny] {
+        let fallback = BTreeMap::from([("read".into(), effect)]);
+        let mut neutral = PermissionRules::default();
+        neutral.set_tool_use(vec![("*".into(), true)]);
+        assert_eq!(neutral.evaluate(&fallback, "read", "file"), effect);
+        assert_eq!(
+            neutral.evaluate(&BTreeMap::new(), "read", "file"),
+            Permission::Deny
+        );
+    }
+}
+
+#[test]
+fn tool_use_empty_serialization_preserves_recovery_fingerprint() {
+    use sha2::Digest as _;
+    let old = r#"{"authorities":[],"constraints":[],"builtin_defaults":[],"builtin_grants":[],"plan_ceilings":[]}"#;
+    let mut restored: PermissionRules = serde_json::from_str(old).unwrap();
+    restored.set_tool_use(Vec::new());
+    assert_eq!(serde_json::to_string(&restored).unwrap(), old);
+    let old_fingerprint = format!("{:x}", sha2::Sha256::digest(old.as_bytes()));
+    assert_eq!(old_fingerprint, crate::compaction::fingerprint(&restored));
+    restored.set_tool_use(vec![("read:*".into(), false)]);
+    let serialized = serde_json::to_string(&restored).unwrap();
+    assert_ne!(old_fingerprint, crate::compaction::fingerprint(&restored));
+    assert_eq!(
+        serde_json::from_str::<PermissionRules>(&serialized).unwrap(),
+        restored
+    );
+}
+
+#[test]
 fn cfg17_ordinary_rule_evaluator_asks_without_a_match() {
     for case in fixture()["permission_evaluator_cases"].as_array().unwrap() {
         let sources = [Source {

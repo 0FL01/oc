@@ -1,6 +1,79 @@
 use super::*;
 
 #[tokio::test]
+async fn tool_use_mixed_policy_namespaces_admit_catalog_without_granting_providers() {
+    let (root, env) = fixture(json!({
+        "enabled_providers":["blocked"], "disabled_providers":["blocked"],
+        "policies":[
+            {"action":"provider.use","resource":"allowed","effect":"allow"},
+            {"action":"tool.use","resource":"read:private/*","effect":"deny","extra":true}
+        ],
+        "experimental":{"policies":[
+            {"action":"provider.use","resource":"blocked","effect":"deny"},
+            {"action":"tool.use","resource":"read:private/public","effect":"allow"}
+        ]},
+        "providers":{"allowed":{"models":{"m":{}}},"blocked":{"models":{"m":{}}}}
+    }));
+    let listing = load_catalog_with_env(root.path(), env).await.unwrap();
+    assert!(listing.complete);
+    assert_eq!(listing.references, ["allowed/m"]);
+}
+
+#[test]
+fn tool_use_malformed_and_unsupported_policies_keep_safe_fatal_diagnostics() {
+    for (rule, code, stage) in [
+        (
+            json!({"action":"tool.use","resource":"sensitive-canary","effect":"ask"}),
+            ServiceCode::InvalidConfig,
+            ServiceStage::Config,
+        ),
+        (
+            json!({"action":"tool.use","resource":42,"effect":"deny"}),
+            ServiceCode::InvalidConfig,
+            ServiceStage::Config,
+        ),
+        (
+            json!({"action":"unknown","resource":"sensitive-canary","effect":"deny"}),
+            ServiceCode::InvalidConfig,
+            ServiceStage::Config,
+        ),
+        (
+            json!({"action":"permission","resource":"sensitive-canary","effect":"deny"}),
+            ServiceCode::UnsupportedCapability,
+            ServiceStage::Capability,
+        ),
+    ] {
+        for experimental in [false, true] {
+            let value = if experimental {
+                json!({"experimental":{"policies":[rule]}})
+            } else {
+                json!({"policies":[rule]})
+            };
+            let sources = [config::Source {
+                path: "/synthetic/opencode.json".into(),
+                trusted: true,
+                text: value.to_string(),
+            }];
+            let Err(LoadFailure::Configuration(diagnostic)) = provider_filters(&sources) else {
+                panic!("policy must fail")
+            };
+            assert_eq!(diagnostic.code, code);
+            assert_eq!(diagnostic.stage, stage);
+            assert_eq!(
+                diagnostic.field,
+                if experimental {
+                    vec!["experimental", "policies"]
+                } else {
+                    vec!["policies"]
+                }
+            );
+            assert!(!diagnostic.to_string().contains("sensitive-canary"));
+            assert!(config::assemble(&sources, &BTreeMap::new(), None).is_err());
+        }
+    }
+}
+
+#[tokio::test]
 async fn conn05_saved_custom_catalog_is_read_only_complete_empty_and_revision_aware() {
     struct NoNetwork;
     impl discovery::DiscoveryClient for NoNetwork {
