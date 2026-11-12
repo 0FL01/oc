@@ -204,6 +204,8 @@ impl SubmissionReceipt {
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CoreEvent {
+    /// Original OpenCode projection, never a native journal/turn event.
+    OpenCode(Box<crate::opencode::Event>),
     /// Native TUI projection cursor. Frontends discard hints already covered by
     /// an authoritative snapshot, without dropping newer queued deltas.
     Projection {
@@ -529,6 +531,10 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    OpenCode {
+        request: crate::opencode::Request,
+        ack: oneshot::Sender<Result<crate::opencode::Reply, CoreError>>,
+    },
     SessionViewed {
         session: SessionId,
         idle_seq: u64,
@@ -1032,6 +1038,7 @@ struct ActiveTurn {
 /// Cloneable application handle over a bounded worker inbox.
 #[derive(Debug, Clone)]
 pub struct CoreApp {
+    opencode: Option<Arc<crate::opencode::Init>>,
     /// Native attachment id; a reattached interactive client gets a new one.
     attachment: Arc<AtomicU64>,
     inbox: InboxSender,
@@ -1454,6 +1461,7 @@ impl CoreApp {
         let (inbox, receiver) = mpsc::channel(capacity);
         (
             Self {
+                opencode: None,
                 attachment: Arc::default(),
                 inbox: InboxSender {
                     sender: inbox,
@@ -1486,6 +1494,56 @@ impl CoreApp {
         (app, inbox, receiver, events, admissions)
     }
 
+    /// External TUI projection uses the existing work/control lanes, not the
+    /// native authority's shared workspace or admission/cancellation metadata.
+    pub fn opencode_channel(
+        capacity: usize,
+        init: crate::opencode::Init,
+    ) -> (
+        Self,
+        mpsc::Receiver<InboxMsg>,
+        mpsc::Receiver<NativeControl>,
+        broadcast::Sender<CoreEvent>,
+    ) {
+        let (mut app, inbox, events) = Self::channel(capacity);
+        let (control, receiver) = mpsc::channel(16);
+        app.opencode = Some(Arc::new(init));
+        app.control = Some(control);
+        (app, inbox, receiver, events)
+    }
+
+    pub fn is_opencode(&self) -> bool {
+        self.opencode.is_some()
+    }
+
+    pub fn opencode_init(&self) -> Option<&crate::opencode::Init> {
+        self.opencode.as_deref()
+    }
+
+    pub fn request_opencode(
+        &self,
+        request: crate::opencode::Request,
+    ) -> Result<crate::opencode::Receipt, CoreError> {
+        if !self.is_opencode() {
+            return Err(CoreError::Application("OpenCode bridge unavailable".into()));
+        }
+        let (ack, reply) = oneshot::channel();
+        self.inbox
+            .try_send(InboxMsg::OpenCode { request, ack })
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(()) => CoreError::QueueFull,
+                mpsc::error::TrySendError::Closed(()) => CoreError::Shutdown,
+            })?;
+        Ok(crate::opencode::Receipt(reply))
+    }
+
+    pub async fn opencode(
+        &self,
+        request: crate::opencode::Request,
+    ) -> Result<crate::opencode::Reply, CoreError> {
+        self.request_opencode(request)?.wait().await
+    }
+
     /// The worker or native owner bridge that served this handle is gone; every
     /// later request fails with [`CoreError::Shutdown`] until a new attachment.
     pub fn is_closed(&self) -> bool {
@@ -1494,7 +1552,7 @@ impl CoreApp {
 
     /// Native frontends mirror the authority's workspace, not a private deck.
     pub fn shares_workspace(&self) -> bool {
-        self.control.is_some()
+        self.control.is_some() && !self.is_opencode()
     }
 
     pub fn attachment(&self) -> u64 {
@@ -3115,6 +3173,9 @@ fn elapsed_ms(started: std::time::Instant) -> u64 {
 fn scripted_unsupported(message: InboxMsg) {
     let error = || CoreError::Application("query unsupported by scripted worker".to_string());
     match message {
+        InboxMsg::OpenCode { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::SessionViewed { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -3377,6 +3438,7 @@ mod tests {
                 .expect("event timeout")
                 .expect("event channel");
             match ev {
+                CoreEvent::OpenCode(_) => panic!("unexpected OpenCode source in scripted runtime"),
                 CoreEvent::SessionModelSelected { .. }
                 | CoreEvent::SelectionNoticeCommitted { .. }
                 | CoreEvent::InboxChanged { .. }
@@ -3847,6 +3909,7 @@ mod tests {
                 .expect("timeout")
                 .expect("event");
             match ev {
+                CoreEvent::OpenCode(_) => panic!("unexpected OpenCode source in scripted runtime"),
                 CoreEvent::SessionModelSelected { .. }
                 | CoreEvent::SelectionNoticeCommitted { .. }
                 | CoreEvent::InboxChanged { .. }

@@ -48,6 +48,10 @@ macro_rules! rpc {
                 let (request, ack) = match message {
                     $( InboxMsg::$name { $( $field, )* ack } => (Request::$name { $( $field, )* }, Ack::$name(ack)), )*
                     $( InboxMsg::$special { $( $sfield, )* ack } => (Request::$special { $( $sfield, )* }, Ack::$special(ack)), )*
+                    InboxMsg::OpenCode { ack, .. } => {
+                        let _ = ack.send(Err(CoreError::Application("OpenCode operation is not a native operation".into())));
+                        return None;
+                    }
                     InboxMsg::Shutdown => return None,
                 };
                 let cancel = request.cancellation();

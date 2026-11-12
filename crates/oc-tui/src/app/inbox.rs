@@ -143,6 +143,9 @@ impl TuiState {
         if text.is_empty() {
             return KeyOutcome::default();
         }
+        if self.app.is_opencode() {
+            return self.opencode_enter_delivery(InboxDelivery::Queue);
+        }
         if self.active_turn.is_some() {
             return self.enqueue_input(InboxDelivery::Queue);
         }

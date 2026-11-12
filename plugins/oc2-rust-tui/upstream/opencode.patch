@@ -1,0 +1,294 @@
+--- a/packages/plugin/src/tui/context.ts
++++ b/packages/plugin/src/tui/context.ts
+@@ -546,6 +546,19 @@
+   readonly location: LocationRef | undefined
+   readonly app: App
+   readonly renderer: CliRenderer
++  readonly lifecycle: {
++    /** True as soon as host shutdown starts. Do not start a terminal handoff after this. */
++    readonly shuttingDown: boolean
++    /**
++     * Register synchronously before transferring the terminal. The host awaits these callbacks before
++     * destroying its renderer. Stop and join external processes, then await renderer.resume() for your
++     * own completed terminal suspension here; the host must not resume a suspension owned by someone else.
++     * Callbacks must bound their own cleanup. Callbacks may run concurrently with setup's returned cleanup.
++     * Registration throws after shutdown starts; unregister is also automatic on activation disposal.
++     * Direct renderer destruction, native terminal failure and process death cannot provide this boundary.
++     */
++    onShutdown(callback: () => Promise<void>): () => void
++  }
+   readonly client: OpenCodeClient
+   readonly data: Data
+   readonly attention: Attention
+--- a/packages/tui/src/context/runtime.tsx
++++ b/packages/tui/src/context/runtime.tsx
+@@ -33,6 +33,7 @@
+ }>
+
+ export type TuiLifecycle = Readonly<{
++  shuttingDown(): boolean
+   add(finalizer: () => Promise<void>): () => void
+ }>
+
+--- a/packages/tui/src/plugin/api.tsx
++++ b/packages/tui/src/plugin/api.tsx
+@@ -30,7 +30,7 @@
+ import { useData } from "../context/data"
+ import { Keymap } from "../context/keymap"
+ import { useRoute } from "../context/route"
+-import { useTuiApp, useTuiPaths } from "../context/runtime"
++import { useTuiApp, useTuiLifecycle, useTuiPaths } from "../context/runtime"
+ import { useLocation } from "../context/location"
+ import { useThemes } from "../context/theme"
+ import { DialogAlert } from "../ui/dialog-alert"
+@@ -86,6 +86,7 @@
+     shortcuts: Keymap.useShortcuts(),
+     keymapState: Keymap.useState(),
+     app: useTuiApp(),
++    lifecycle: useTuiLifecycle(),
+     paths: useTuiPaths(),
+     location: useLocation(),
+     themes: useThemes(),
+@@ -174,6 +175,16 @@
+     },
+     app: { version: host.app.version, channel: host.app.channel },
+     renderer: host.renderer,
++    lifecycle: {
++      get shuttingDown() {
++        return host.lifecycle.shuttingDown()
++      },
++      onShutdown(callback) {
++        const unregister = host.lifecycle.add(callback)
++        input.owned.push(async () => unregister())
++        return unregister
++      },
++    },
+     client: host.client.api,
+     data: host.data,
+     attention: host.attention,
+--- a/packages/tui/src/plugin/context.tsx
++++ b/packages/tui/src/plugin/context.tsx
+@@ -148,9 +148,11 @@
+   }
+
+   const activate = async (id: string) => {
++    if (lifecycle.shuttingDown()) return false
+     const item = store.registrations[id]
+     if (!item) return false
+     await deactivate(id)
++    if (lifecycle.shuttingDown()) return false
+     batch(() => {
+       clearContributions(id)
+       setStore("registrations", id, "cleanups", [])
+--- a/packages/tui/src/app.tsx
++++ b/packages/tui/src/app.tsx
+@@ -201,6 +201,7 @@
+   environment?: Readonly<Record<string, string>>
+   terminalHandoff?: () => Promise<
+     | {
++        /** Must be created with exitSignals: []; this host owns signal teardown. */
+         readonly renderer: CliRenderer
+         readonly mode: ThemeMode | null
+         readonly complete: () => void
+@@ -253,6 +254,8 @@
+         targetFps: 60,
+         gatherStats: false,
+         exitOnCtrlC: false,
++        // OpenTUI's synchronous signal handlers would bypass awaited resource cleanup.
++        exitSignals: [],
+         useKittyKeyboard: {},
+         autoFocus: false,
+         openConsoleOnError: false,
+@@ -297,33 +300,43 @@
+           ),
+       )
+       const finalizers = new Set<() => Promise<void>>()
++      let shuttingDown = false
++      const shutdown = yield* Latch.make()
++      const requestShutdown = () => {
++        shuttingDown = true
++        shutdown.openUnsafe()
++      }
++      // Preserve OpenTUI's signal coverage, but route it through the awaited host teardown.
++      const signals: NodeJS.Signals[] =
++        process.platform === "win32"
++          ? ["SIGINT", "SIGTERM", "SIGBREAK"]
++          : ["SIGINT", "SIGTERM", "SIGQUIT", "SIGABRT", "SIGHUP", "SIGPIPE", "SIGBUS"]
++      yield* Effect.acquireRelease(
++        Effect.sync(() => signals.forEach((signal) => process.on(signal, requestShutdown))),
++        () => Effect.sync(() => signals.forEach((signal) => process.off(signal, requestShutdown))),
++      )
++      renderer.once("destroy", requestShutdown)
+       yield* Effect.addFinalizer(() =>
+         Effect.promise(async () => {
+-          const results = await Promise.allSettled([...finalizers].reverse().map((finalizer) => finalizer()))
++          shuttingDown = true
++          const results = await Promise.allSettled([...finalizers].reverse().map(async (finalizer) => finalizer()))
+           results
+             .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+             .forEach((result) => log("error", "Failed to dispose TUI resource", { error: result.reason }))
+         }),
+       )
+-      const shutdown = yield* Latch.make()
+-      const onSighup = () => destroyRenderer(renderer)
+-      yield* Effect.acquireRelease(
+-        Effect.sync(() => process.on("SIGHUP", onSighup)),
+-        () => Effect.sync(() => process.off("SIGHUP", onSighup)),
+-      )
+-      renderer.once("destroy", () => shutdown.openUnsafe())
+       yield* Effect.tryPromise(async () => {
+         const mode = handoff?.mode ?? (await renderer.waitForThemeMode(1000)) ?? "dark"
+-        if (renderer.isDestroyed) return
++        if (shuttingDown || renderer.isDestroyed) return
+
+         await render(() => {
+           return (
+             <LogProvider log={log}>
+               <ExitProvider
+                 exit={(reason) => {
+-                  if (renderer.isDestroyed) return
++                  if (shuttingDown || renderer.isDestroyed) return
+                   exit.reason = reason
+-                  destroyRenderer(renderer)
++                  requestShutdown()
+                 }}
+               >
+                 <EpilogueProvider
+@@ -351,7 +364,9 @@
+                         <StorageProvider>
+                           <TuiLifecycleProvider
+                             value={{
++                              shuttingDown: () => shuttingDown,
+                               add(finalizer) {
++                                if (shuttingDown) throw new Error("TUI is shutting down")
+                                 finalizers.add(finalizer)
+                                 return () => finalizers.delete(finalizer)
+                               },
+--- a/packages/tui/test/app-lifecycle.test.tsx
++++ b/packages/tui/test/app-lifecycle.test.tsx
+@@ -10,7 +10,7 @@
+ import path from "node:path"
+ import { Writable } from "node:stream"
+ import { createEventStream, createFetch, directory, json } from "./fixture/tui-client"
+-import { tmpdir } from "./fixture/fixture"
++import { copyPlugin, tmpdir } from "./fixture/fixture"
+ import { createAppFixture } from "./fixture/app"
+ import { waitForHighlightedFrame } from "./fixture/frame"
+ import type { PluginInfo } from "@opencode/client"
+@@ -235,8 +235,28 @@
+   )
+ })
+
+-test("SIGHUP clears title and disposes scoped resources once", async () => {
++test("SIGHUP awaits plugin shutdown before terminal restoration and destruction, even on cleanup failure", async () => {
+   await using state = await tmpdir()
++  await using plugin = await copyPlugin("awaited-shutdown")
++  const order: string[] = []
++  const registered = Promise.withResolvers<void>()
++  const began = Promise.withResolvers<void>()
++  let release: (() => void) | undefined
++  const onReady = () => registered.resolve()
++  const onBegin = (
++    lifecycle: { shuttingDown: boolean; onShutdown(callback: () => Promise<void>): () => void },
++    done: () => void,
++  ) => {
++    order.push("shutdown")
++    release = done
++    expect(lifecycle.shuttingDown).toBe(true)
++    expect(() => lifecycle.onShutdown(async () => {})).toThrow("TUI is shutting down")
++    began.resolve()
++  }
++  const onEnd = () => order.push("joined")
++  process.on("fixture.shutdown.ready", onReady)
++  process.on("fixture.shutdown.begin", onBegin)
++  process.on("fixture.shutdown.end", onEnd)
+   const output: string[] = []
+   const setup = await createTestRenderer({
+     width: 80,
+@@ -250,6 +270,12 @@
+     }) as NodeJS.WriteStream,
+   })
+   await setup.renderer.setupTerminal()
++  const resume = setup.renderer.resume.bind(setup.renderer)
++  setup.renderer.resume = async () => {
++    order.push("restore")
++    await resume()
++  }
++  setup.renderer.once("destroy", () => order.push("destroy"))
+   let started!: () => void
+   const ready = new Promise<void>((resolve) => {
+     started = resolve
+@@ -269,7 +295,7 @@
+       run({
+         app: { name: "test", version: "test", channel: "test" },
+         server: { endpoint: { url: server.url.toString() } },
+-        config: { get: async () => ({}), update: async () => ({}) },
++        config: { get: async () => ({ plugins: [plugin.directory] }), update: async () => ({}) },
+         packages: { prepare: async () => ({ directory: "" }) },
+         terminalHandoff: async () => ({ renderer: setup.renderer, mode: "dark", complete: () => {} }),
+         args: {},
+@@ -277,16 +303,43 @@
+       }).pipe(Effect.provide(Global.layerWith({ state: state.path })), Effect.provide(FileSystem.layerNoop({}))),
+     )
+     await ready
++    await registered.promise
+     process.emit("SIGHUP")
++    await began.promise
++    process.emit("SIGHUP")
++    expect(setup.renderer.isDestroyed).toBe(false)
++    expect(order).toEqual(["shutdown"])
++    release!()
+     await task
+
++    expect(order).toEqual(["shutdown", "joined", "restore", "destroy"])
+     expect(setup.renderer.isDestroyed).toBe(true)
+     expect(output.join("")).toContain("\x1b]0;\x07")
+     expect(process.listeners("SIGHUP").every((listener) => listeners.has(listener))).toBe(true)
+   } finally {
++    release?.()
++    process.off("fixture.shutdown.ready", onReady)
++    process.off("fixture.shutdown.begin", onBegin)
++    process.off("fixture.shutdown.end", onEnd)
+     if (!setup.renderer.isDestroyed) setup.renderer.destroy()
+     await setup.renderer.closed
+     await server.stop()
++  }
++})
++
++test("SIGHUP does not resume a suspension owned outside the plugin lifecycle", async () => {
++  await using app = await createAppFixture()
++  await app.ready
++  await app.waitForFrame((frame) => frame.includes("commands"))
++  // The built-in external editor also suspends without registering a plugin handoff.
++  await app.renderer.suspend()
++  const resume = spyOn(app.renderer, "resume")
++  try {
++    process.emit("SIGHUP")
++    await app.renderer.closed
++    expect(resume).not.toHaveBeenCalled()
++  } finally {
++    resume.mockRestore()
+   }
+ })
+
+--- /dev/null
++++ b/packages/tui/test/fixture/plugin/awaited-shutdown/tui.tsx
+@@ -0,0 +1,18 @@
++import { Plugin } from "@opencode/plugin/tui"
++import type { EventEmitter } from "node:events"
++
++const events: EventEmitter = process
++
++export default Plugin.define({
++  id: "fixture.awaited-shutdown",
++  async setup(context) {
++    context.lifecycle.onShutdown(async () => {
++      await new Promise<void>((resolve) => events.emit("fixture.shutdown.begin", context.lifecycle, resolve))
++      events.emit("fixture.shutdown.end")
++      await context.renderer.resume()
++      throw new Error("fixture shutdown failure")
++    })
++    await context.renderer.suspend()
++    events.emit("fixture.shutdown.ready")
++  },
++})

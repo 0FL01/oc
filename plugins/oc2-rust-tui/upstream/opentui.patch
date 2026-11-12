@@ -1,0 +1,71 @@
+--- a/packages/native/src/ansi.zig
++++ b/packages/native/src/ansi.zig
+@@ -334,6 +334,7 @@
+     pub const disableAnyEventTracking = "\x1b[?1003l";
+     pub const enableSGRMouseMode = "\x1b[?1006h";
+     pub const disableSGRMouseMode = "\x1b[?1006l";
++    pub const disableURXVTMouseMode = "\x1b[?1015l";
+     pub const mouseSetPixels = "\x1b[?1002;1003;1004;1016h";
+
+     // Terminal capability queries
+--- a/packages/native/src/session.zig
++++ b/packages/native/src/session.zig
+@@ -1211,6 +1211,13 @@
+                 progress.step = .setup_screen;
+             },
+             .setup_screen => {
++                if (progress.phase == .resuming) {
++                    // External programs may leave modes enabled without updating our tracked state.
++                    // Normalize before .enable reapplies the host's detected features and mouse policy.
++                    try candidate.setFocusTracking(writer, false);
++                    try candidate.forceDisableMouseMode(writer);
++                    try writer.writeAll(ansi.ANSI.disableURXVTMouseMode);
++                }
+                 try writer.writeAll(ansi.ANSI.saveCursorState);
+                 if (value.useAlternateScreen) try candidate.enterAltScreen(writer);
+                 progress.step = if (progress.rows_remaining == 0) .enable else .reserve_rows;
+--- a/packages/native/src/tests/session-terminal_test.zig
++++ b/packages/native/src/tests/session-terminal_test.zig
+@@ -206,6 +206,42 @@
+     try testing.expectError(error.TerminalInactive, f.owner.resizeSessionRenderer(f.id, 4, 2));
+     try f.drive(&now_ns, .active);
+     _ = try f.owner.scenePaint(f.id, .{ 0, 0, 0, 255 }, false, 0);
++}
++
++test "Session resume normalizes external input modes before restoring host policy" {
++    for ([_]bool{ false, true }) |enabled| {
++        const f = try Fixture.init(testing.allocator, testing.io, 4, 2);
++        defer f.deinit();
++        f.cli.terminal.caps.focus_tracking = enabled;
++        var now_ns: u64 = 0;
++        var bytes: [16 * 1024]u8 = undefined;
++        var far = try vt_decode.newTerminal(4, 2);
++        defer far.deinit(testing.allocator);
++        var stream = far.vtStream();
++        defer stream.deinit();
++        try f.owner.setupSessionTerminal(f.id, .{});
++        stream.nextSlice(try f.driveOutput(&now_ns, .active, &bytes, 256));
++        try f.value.control(.{ .mouse = if (enabled) .motion else .disabled });
++        stream.nextSlice(try f.drain(&bytes));
++        try f.owner.suspendSession(f.id);
++        stream.nextSlice(try f.driveOutput(&now_ns, .suspended, &bytes, 256));
++        // A crashed child cannot restore its guard, and does not update the host's tracked modes.
++        stream.nextSlice("\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h\x1b[?1015h\x1b[?1004h");
++        try testing.expect(far.modes.get(.focus_event));
++        try f.owner.resumeSession(f.id);
++        const resumed = try f.driveOutput(&now_ns, .active, &bytes, 256);
++        stream.nextSlice(resumed);
++        try testing.expectEqual(enabled, far.modes.get(.focus_event));
++        try testing.expectEqual(enabled, f.cli.terminal.state.mouse);
++        for ([_][]const u8{ "\x1b[?1000l", "\x1b[?1002l", "\x1b[?1003l", "\x1b[?1006l", "\x1b[?1015l", "\x1b[?1004l" }) |reset| {
++            const at = std.mem.find(u8, resumed, reset) orelse return error.TestUnexpectedResult;
++            if (enabled) try testing.expect(at < (std.mem.find(u8, resumed, ansi.ANSI.enableSGRMouseMode) orelse return error.TestUnexpectedResult));
++        }
++        try f.owner.beginSessionClose(f.id);
++        stream.nextSlice(try f.driveOutput(&now_ns, .restored, &bytes, 256));
++        try testing.expect(!far.modes.get(.focus_event));
++        try testing.expectEqual(.primary, far.screens.active_key);
++    }
+ }
+
+ test "Session terminal rejects invalid setup and preserves a rejected control draft" {

@@ -3252,6 +3252,11 @@ async fn query(
     message: InboxMsg,
 ) {
     match message {
+        InboxMsg::OpenCode { ack, .. } => {
+            let _ = ack.send(Err(CoreError::Application(
+                "OpenCode operation is not a native operation".into(),
+            )));
+        }
         InboxMsg::Workspace { ack, .. } => {
             let _ = ack.send(Err(CoreError::Application(
                 "shared workspace requires native attachment".into(),

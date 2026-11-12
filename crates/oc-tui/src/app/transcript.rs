@@ -584,7 +584,7 @@ impl TuiState {
             .iter()
             .enumerate()
             .filter_map(|(index, row)| {
-                let identity = row.reasoning.as_ref()?.identity?;
+                let identity = row.reasoning.as_ref()?.identity.clone()?;
                 self.reasoning_expanded
                     .contains(&identity)
                     .then(|| CompletionPart::capture(&old_rows, index, old_live == Some(index)))
@@ -608,7 +608,7 @@ impl TuiState {
             .iter()
             .filter_map(|part| {
                 let index = part.resolve(&rows)?;
-                rows[index].reasoning.as_ref()?.identity
+                rows[index].reasoning.as_ref()?.identity.clone()
             })
             .collect();
         if let Some((part, row_offset)) = anchor {
@@ -2259,7 +2259,7 @@ impl TuiState {
             .compose_structure(true)
             .0
             .iter()
-            .filter_map(|row| row.reasoning.as_ref()?.identity)
+            .filter_map(|row| row.reasoning.as_ref()?.identity.clone())
             .collect();
         self.reasoning_expanded.retain(|id| retained.contains(id));
         self.reasoning_down = self
@@ -2540,7 +2540,7 @@ impl TuiState {
             if let Some(id) = row
                 .reasoning
                 .as_ref()
-                .and_then(|reasoning| reasoning.identity)
+                .and_then(|reasoning| reasoning.identity.clone())
             {
                 runs.last_mut().expect("reasoning run").push(id);
             }

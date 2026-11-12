@@ -195,6 +195,30 @@ impl Jobs {
                             }
                         }
                         Request::List => {
+                            if owner.is_opencode() {
+                                let oc_core::opencode::Reply::Sessions { sessions } = owner
+                                    .opencode(oc_core::opencode::Request::Sessions {
+                                        search: query,
+                                    })
+                                    .await?
+                                else {
+                                    return Err(CoreError::Application(
+                                        "Invalid OpenCode session list".into(),
+                                    ));
+                                };
+                                let context = oc_core::queries::SessionPickerContext {
+                                    all_projects: true,
+                                    project_name: None,
+                                    canonical: Some(
+                                        owner
+                                            .opencode_init()
+                                            .expect("OpenCode metadata")
+                                            .location
+                                            .clone(),
+                                    ),
+                                };
+                                return Ok(Data::List(context, opencode::entries(sessions)));
+                            }
                             let context = owner.session_picker_context(scope).await?;
                             let entries = owner.session_list(query, context.all_projects).await?;
                             Ok(Data::List(context, entries))

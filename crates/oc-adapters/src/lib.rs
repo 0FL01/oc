@@ -29,6 +29,7 @@ pub mod memory;
 pub mod models;
 pub mod models_dev;
 pub mod native;
+pub mod opencode;
 pub mod patch;
 pub mod permissions;
 mod plan;

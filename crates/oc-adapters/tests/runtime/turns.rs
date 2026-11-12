@@ -2939,6 +2939,7 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             | CoreEvent::OwnerDisconnected
             | CoreEvent::OwnerReattached
             | CoreEvent::OwnerUnrecoverable { .. } => {}
+            CoreEvent::OpenCode(_) => panic!("native worker emitted an OpenCode event"),
         }
     };
     assert_eq!(reasoning, "**Planning**\n\n", "reasoning delta surfaces");

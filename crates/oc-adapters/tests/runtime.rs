@@ -941,6 +941,7 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             | CoreEvent::OwnerDisconnected
             | CoreEvent::OwnerReattached
             | CoreEvent::OwnerUnrecoverable { .. } => {}
+            CoreEvent::OpenCode(_) => panic!("native worker emitted an OpenCode event"),
         }
     }
     let (started_op, started_name, started_input) = started.expect("tool call started event");

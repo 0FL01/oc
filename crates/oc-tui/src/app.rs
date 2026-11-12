@@ -966,6 +966,7 @@ pub struct TuiState {
     /// interrupts it (pinned prompt/index.tsx:499–528).
     interrupt_armed_until: Option<Instant>,
     pending: Option<PendingSubmission>,
+    opencode: Option<opencode::State>,
     submission_intent: Option<PanelIntent>,
     user_shell: user_shell::UserShellState,
     compress_turn: Option<WorkerTurnId>,
@@ -1077,6 +1078,9 @@ impl TuiState {
             .duration_since(UNIX_EPOCH)
             .map_or(0, |now| now.subsec_nanos() as usize % HOME_EXAMPLES.len());
         let home = session.is_none();
+        let opencode = app
+            .opencode_init()
+            .map(|init| opencode::State::with_catalog(init.catalog.clone()));
         Self {
             chrome: Default::default(),
             parent_id: None,
@@ -1221,6 +1225,7 @@ impl TuiState {
             foreground_hint: None,
             interrupt_armed_until: None,
             pending: None,
+            opencode,
             submission_intent: None,
             user_shell: Default::default(),
             composer: Default::default(),
@@ -1497,11 +1502,17 @@ impl TuiState {
             .as_ref()
             .is_some_and(PendingSubmission::outstanding)
             || self.user_shell_pending()
+            || self.opencode.as_ref().is_some_and(opencode::State::pending)
     }
 
     /// Failed admissions occupy the recovery slot but require no polling.
     pub fn has_occupied_submission(&self) -> bool {
-        self.pending.is_some() || self.submission_intent.is_some()
+        self.pending.is_some()
+            || self.submission_intent.is_some()
+            || self
+                .opencode
+                .as_ref()
+                .is_some_and(opencode::State::submitting)
     }
 
     /// Active view deadlines only; input/provider paints never reset these
@@ -1808,7 +1819,8 @@ impl TuiState {
 
     /// True while an input, turn, Shell or compaction is in flight.
     pub fn is_busy(&self) -> bool {
-        self.active_turn.is_some()
+        self.opencode.as_ref().is_some_and(opencode::State::busy)
+            || self.active_turn.is_some()
             || self
                 .pending
                 .as_ref()
@@ -2027,6 +2039,7 @@ pub use input::ClipboardTarget;
 mod live;
 mod mcp;
 mod model_selection;
+mod opencode;
 pub use model_selection::ComposerModelDraft;
 mod projection;
 mod services;

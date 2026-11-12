@@ -223,6 +223,16 @@ impl ScriptDriver {
                 state.apply_child_jobs(jobs);
             }
             match event {
+                Ok(Ok(CoreEvent::OpenCode(event))) => {
+                    if let oc_core::opencode::Event::Unavailable { reason } = event.as_ref() {
+                        state.push_note(reason);
+                        return PumpOutcome::Closed;
+                    }
+                    if state.opencode_event(&event).is_err() {
+                        return PumpOutcome::Closed;
+                    }
+                    state.flush_opencode();
+                }
                 Ok(Ok(CoreEvent::ParentContinuationRefused {
                     session,
                     diagnostic,
@@ -1744,6 +1754,10 @@ impl TuiState {
 
     // Input/paint callers must not consume a deferred controller action.
     pub(super) fn poll_submission_receipts(&mut self) {
+        if self.app.is_opencode() {
+            self.poll_opencode();
+            return;
+        }
         self.poll_command_recovery();
         if let Some(intent) = self.poll_submission_inner() {
             self.submission_intent = Some(intent);
@@ -1877,7 +1891,7 @@ impl TuiState {
         // Native acceptance/adoption is owned through ACK by the authority, even
         // after this viewer leaves. Waiting here before releasing the TUI lease
         // would deadlock a last-viewer quit on a pre-acceptance Ask.
-        if self.app.shares_workspace() {
+        if self.app.shares_workspace() || self.app.is_opencode() {
             return Ok(());
         }
         self.reconcile_user_shell_quit().await?;
@@ -2362,7 +2376,7 @@ impl TuiState {
                     self.reasoning_epoch,
                     slot,
                 ))
-                && let Some(identity) = row.and_then(|row| row.reasoning.as_ref()?.identity)
+                && let Some(identity) = row.and_then(|row| row.reasoning.as_ref()?.identity.clone())
             {
                 self.reasoning_expanded.insert(identity);
             }

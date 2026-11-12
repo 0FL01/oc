@@ -154,6 +154,23 @@ struct NoticeOrderState {
 }
 
 impl HistoryWindow {
+    /// External rows already have their public identities and opaque paging
+    /// owner. They never populate native sequence/part cursor coordinates.
+    pub(crate) fn set_opencode_rows(
+        &mut self,
+        mut rows: Vec<HistoryRow>,
+        older: bool,
+        newer: bool,
+    ) {
+        share_unchanged_cards(&self.rows, &mut rows);
+        self.rows = rows;
+        self.notice_orders.clear();
+        self.total = 0; // OpenCode does not report a total message count here.
+        self.has_older = older;
+        self.has_newer = newer;
+        self.revision = self.revision.wrapping_add(1);
+        self.enforce(Evict::Oldest);
+    }
     /// Empty window.
     pub fn new() -> Self {
         Self::default()

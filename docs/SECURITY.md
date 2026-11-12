@@ -82,4 +82,17 @@ provider projection only: original image history and native provenance remain in
 
 DCP upstream license идентифицирована как AGPL-3.0-or-later [D1/D2]. До push translation/borrowed prompts/tests получить pinned LICENSE, сохранить notices и paths/revisions, применить соответствующее лицензирование производного кода. No binary publishing не означает, что можно отбросить notices при push исходников. У любых дополнительных зависимостей проверять реальные license/security metadata в T01/T29. Эта инженерная процедура не заменяет правовую оценку нестандартного последующего распространения.
 
+OpenCode plugin mode — отдельный source: JS исполняется существующим TS plugin host,
+а не native loader. TS остаётся единственным sessions/tools/model/config/storage
+owner. Private inherited IPC имеет finite typed whitelist, frame/queue bounds и
+fail-stop без replay; endpoint/auth discovery и credentials в Rust не передаются.
+Display/clipboard environment сохраняет транспорт UI, не provider/config authority.
+Native-only actions отклоняются до соответствующих UI effects; исходные TS
+permission/form identities проверяются отдельно от numeric widget IDs и native
+display bindings. Неподдерживаемая form остаётся pending. Закрытие viewer не
+отменяет backend execution; interrupt и inbox cancellation — явные отдельные API.
+Qualification только в capability-dropped private loopback namespace с synthetic
+provider/data; инструкции в `plugins/oc2-rust-tui/README.md` не разрешают заменять
+пользовательский binary, config или service.
+
 Resource caps in TOML — secondary guard; checks/cleanup/report всё равно нужны. Heavy builds не в tmpfs. Memory safety языка не исключает unbounded caches/queues или filesystem exhaustion. `cargo test` user crate build scripts исполняют код, поэтому контур аккаунта/runner важен даже без live LLM.

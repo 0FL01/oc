@@ -127,6 +127,9 @@ impl Reads {
     }
 
     fn queue(&mut self, view: &TuiState, history: bool, resources: bool) {
+        if view.is_opencode() {
+            return;
+        }
         let Some(route) = Route::capture(view) else {
             return;
         };

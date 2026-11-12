@@ -44,6 +44,9 @@ pub struct Args {
 /// Native runtime and read-only catalog commands.
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Private UI-only child of the configured OpenCode plugin.
+    #[command(name = "__opencode-tui", hide = true)]
+    OpenCodeTui,
     /// Private same-UID owner role, launched only with an inherited startup socket.
     #[command(name = "__native-owner", hide = true)]
     NativeOwner {

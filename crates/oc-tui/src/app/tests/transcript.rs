@@ -1694,7 +1694,7 @@ async fn adjacent_reasoning_click_opens_and_recloses_one_group_across_live_bound
     }));
     click(&mut state, y);
     assert_eq!(
-        state.reasoning_expanded.iter().copied().collect::<Vec<_>>(),
+        state.reasoning_expanded.iter().cloned().collect::<Vec<_>>(),
         [ReasoningIdentity::Durable(9, 0)]
     );
     let lines: Vec<_> = state
@@ -1714,7 +1714,7 @@ async fn adjacent_reasoning_click_opens_and_recloses_one_group_across_live_bound
     click(&mut state, y);
     assert!(state.reasoning_expanded.is_empty());
     let first = ReasoningIdentity::Durable(9, 0);
-    state.reasoning_expanded.insert(first);
+    state.reasoning_expanded.insert(first.clone());
     state.prepend_page(&page(vec![msg(8, Role::User, "earlier")], 9, false, true));
     state.append_page(&page(vec![msg(10, Role::User, "later")], 10, true, false));
     assert!(state.reasoning_expanded.contains(&first));
@@ -1827,7 +1827,7 @@ async fn reasoning_click_is_independent_across_same_seq_parts_and_owned_by_viewp
     assert!(state.reasoning_expanded.is_empty());
     click(&mut state, area, x, y);
     assert_eq!(
-        state.reasoning_expanded.iter().copied().collect::<Vec<_>>(),
+        state.reasoning_expanded.iter().cloned().collect::<Vec<_>>(),
         [ReasoningIdentity::Durable(9, 0)]
     );
     assert!(
@@ -1848,7 +1848,7 @@ async fn reasoning_click_is_independent_across_same_seq_parts_and_owned_by_viewp
     assert_eq!(state.reasoning_expanded.len(), 2);
     click(&mut state, area, rect.x + 6, y);
     assert_eq!(
-        state.reasoning_expanded.iter().copied().collect::<Vec<_>>(),
+        state.reasoning_expanded.iter().cloned().collect::<Vec<_>>(),
         [ReasoningIdentity::Durable(9, 2)]
     );
     state.run_command(crate::commands::CommandAction::ToggleThinking);
@@ -2218,7 +2218,7 @@ async fn redacted_only_durable_reasoning_leaves_no_mouse_target_or_spacer() {
     state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left)), area);
     state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left)), area);
     assert_eq!(
-        state.reasoning_expanded.iter().copied().collect::<Vec<_>>(),
+        state.reasoning_expanded.iter().cloned().collect::<Vec<_>>(),
         [crate::messages::ReasoningIdentity::Durable(9, 1)]
     );
     assert_eq!(
@@ -2315,6 +2315,7 @@ async fn reasoning_addresses_survive_paging_and_live_eviction_then_reset() {
         .as_ref()
         .unwrap()
         .identity
+        .clone()
         .unwrap();
     assert_eq!(first, ReasoningIdentity::Live(state.reasoning_epoch, 0));
     state.live_reasoning = "retained".into();
@@ -2326,7 +2327,7 @@ async fn reasoning_addresses_survive_paging_and_live_eviction_then_reset() {
         state
             .transcript_rows()
             .iter()
-            .find_map(|row| row.reasoning.as_ref().and_then(|r| r.identity)),
+            .find_map(|row| row.reasoning.as_ref().and_then(|r| r.identity.clone())),
         Some(retained),
         "retained part keeps its ordinal after head eviction"
     );
@@ -2336,7 +2337,7 @@ async fn reasoning_addresses_survive_paging_and_live_eviction_then_reset() {
         .transcript_rows()
         .iter()
         .rev()
-        .find_map(|row| row.reasoning.as_ref().and_then(|r| r.identity))
+        .find_map(|row| row.reasoning.as_ref().and_then(|r| r.identity.clone()))
         .unwrap();
     assert_ne!(first, last);
     assert_eq!(
@@ -2463,7 +2464,7 @@ async fn running_reasoning_click_survives_freeze_but_resize_releases_press() {
     let down = mouse(MouseEventKind::Down(MouseButton::Left));
     let up = mouse(MouseEventKind::Up(MouseButton::Left));
     let id = ReasoningIdentity::Live(state.reasoning_epoch, 0);
-    assert_eq!(state.reasoning_hit(area, x, y), Some(id));
+    assert_eq!(state.reasoning_hit(area, x, y), Some(id.clone()));
     state.thinking_expanded = true;
     assert!(
         state
@@ -2514,7 +2515,7 @@ async fn running_reasoning_click_survives_freeze_but_resize_releases_press() {
             .as_ref()
             .unwrap()
             .identity,
-        Some(id)
+        Some(id.clone())
     );
     assert!(
         state
@@ -2530,7 +2531,7 @@ async fn running_reasoning_click_survives_freeze_but_resize_releases_press() {
     assert!(state.transcript_rows().iter().any(|row| {
         row.reasoning
             .as_ref()
-            .is_some_and(|r| r.identity == Some(id) && r.expanded && !r.running)
+            .is_some_and(|r| r.identity == Some(id.clone()) && r.expanded && !r.running)
     }));
     state.handle_mouse(down, area);
     state.set_session(sid("another-running-session"));

@@ -11,6 +11,7 @@ pub mod context_plan;
 pub mod core_app;
 pub mod dcp_view;
 pub mod domain;
+pub mod opencode;
 pub mod patch;
 pub mod ports;
 pub mod prompt;

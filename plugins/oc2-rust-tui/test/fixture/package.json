@@ -1,0 +1,9 @@
+{
+  "name": "oc2-rust-tui-lifecycle-fixture",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./server.ts",
+    "./tui": "./tui.ts"
+  }
+}

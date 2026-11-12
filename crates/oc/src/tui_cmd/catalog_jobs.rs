@@ -31,6 +31,8 @@ impl Request {
 }
 #[derive(Clone, PartialEq, Eq)]
 struct Fence {
+    opencode: Option<oc_core::opencode::Selection>,
+    source_catalog: Option<std::sync::Arc<oc_core::opencode::Catalog>>,
     identity: (u64, u64),
     session: Option<SessionId>,
     route: Option<SessionId>,
@@ -51,6 +53,8 @@ impl Fence {
 }
 fn fence(view: &TuiState) -> Fence {
     Fence {
+        opencode: view.opencode_selection(),
+        source_catalog: view.opencode_catalog(),
         identity: view.view_identity(),
         session: view.attached_session().cloned(),
         route: view.tab_route_session().cloned(),
@@ -210,10 +214,104 @@ async fn selection(
     home: bool,
     action: SelectionAction,
 ) -> Result<CatalogSnapshot, CoreError> {
+    if let Some(mut source) = fence.opencode.clone() {
+        if let Some(choice) = &fence.choice {
+            source.model = Some(oc_core::queries::ModelRef {
+                provider: choice.binding.provider.clone(),
+                id: choice.model_id.clone(),
+                variant: choice.variant.clone(),
+            });
+        }
+        let metadata = fence.source_catalog.as_ref().expect("OpenCode metadata");
+        match action {
+            SelectionAction::Current => {}
+            SelectionAction::Preview(agent) | SelectionAction::Agent(agent) => {
+                if !metadata.agents.iter().any(|entry| entry.id == agent) {
+                    return Err(CoreError::SessionNotFound);
+                }
+                source.agent = Some(agent.clone());
+                if let Some(model) = metadata.agent_models.get(&agent) {
+                    source.model = Some(model.clone());
+                }
+            }
+            _ => {
+                return Err(CoreError::Application(
+                    "Use the OpenCode composer to commit this selection".into(),
+                ));
+            }
+        }
+        let provider = source
+            .model
+            .as_ref()
+            .map(|model| model.provider.clone())
+            .unwrap_or_default();
+        let model_id = source
+            .model
+            .as_ref()
+            .map(|model| model.id.clone())
+            .unwrap_or_default();
+        return Ok(CatalogSnapshot {
+            agent_id: source.agent,
+            provider: provider.clone(),
+            model_id,
+            variant: source
+                .model
+                .and_then(|model| model.variant)
+                .filter(|variant| variant != "default"),
+            models: metadata
+                .models
+                .iter()
+                .filter(|model| model.provider == provider)
+                .map(|model| model.entry.clone())
+                .collect(),
+            agents: metadata.agents.clone(),
+            chrome: oc_core::queries::TuiChrome {
+                location: fence.location.clone(),
+                selection_generation: fence.generation,
+                ..Default::default()
+            },
+            auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
+            commands: Vec::new(),
+            command_descriptions: Default::default(),
+        });
+    }
     if let Some(session) = &fence.session {
         app.session_selection(session.clone(), home, action).await
     } else {
         app.home_selection(action).await
+    }
+}
+fn source_directory(
+    metadata: &oc_core::opencode::Catalog,
+    current: &CatalogSnapshot,
+) -> ModelCatalogs {
+    let providers: std::collections::BTreeSet<_> = metadata
+        .models
+        .iter()
+        .map(|model| model.provider.clone())
+        .collect();
+    let catalogs = providers
+        .into_iter()
+        .map(|provider| {
+            let mut catalog = current.clone();
+            if catalog.provider != provider {
+                catalog.model_id.clear();
+                catalog.variant = None;
+            }
+            catalog.models = metadata
+                .models
+                .iter()
+                .filter(|model| model.provider == provider)
+                .map(|model| model.entry.clone())
+                .collect();
+            catalog.provider = provider;
+            catalog
+        })
+        .collect();
+    // A catalog is not evidence of a usable provider credential.
+    ModelCatalogs {
+        connected: false,
+        catalogs,
     }
 }
 async fn prepare(
@@ -253,10 +351,18 @@ async fn prepare(
                 prepared.catalog =
                     Some(selection(app, &fence, home, SelectionAction::Current).await?);
             }
-            prepared.directory = Some((
-                app.model_catalogs().await?,
-                app.model_preference(None).await.unwrap_or_default(),
-            ));
+            if let Some(metadata) = &fence.source_catalog {
+                let current = selection(app, &fence, home, SelectionAction::Current).await?;
+                prepared.directory = Some((
+                    source_directory(metadata, &current),
+                    ModelPreference::default(),
+                ));
+            } else {
+                prepared.directory = Some((
+                    app.model_catalogs().await?,
+                    app.model_preference(None).await.unwrap_or_default(),
+                ));
+            }
         }
         Request::Preference { action, home } => {
             if let Some(commit) = home {
@@ -267,15 +373,29 @@ async fn prepare(
             }
         }
         Request::Provider => {
-            prepared.catalog = Some(selection(app, &fence, home, SelectionAction::Current).await?);
-            if let Some(provider) = picker {
-                prepared.picker = app.provider_catalog(provider).await.ok();
-            }
-            if directory {
-                prepared.directory = Some((
-                    app.model_catalogs().await?,
-                    app.model_preference(None).await.unwrap_or_default(),
-                ));
+            let current = selection(app, &fence, home, SelectionAction::Current).await?;
+            if let Some(metadata) = &fence.source_catalog {
+                let catalogs = source_directory(metadata, &current);
+                prepared.picker = catalogs
+                    .catalogs
+                    .iter()
+                    .find(|catalog| Some(&catalog.provider) == picker.as_ref())
+                    .cloned();
+                if directory {
+                    prepared.directory = Some((catalogs, ModelPreference::default()));
+                }
+                prepared.catalog = Some(current);
+            } else {
+                prepared.catalog = Some(current);
+                if let Some(provider) = picker {
+                    prepared.picker = app.provider_catalog(provider).await.ok();
+                }
+                if directory {
+                    prepared.directory = Some((
+                        app.model_catalogs().await?,
+                        app.model_preference(None).await.unwrap_or_default(),
+                    ));
+                }
             }
         }
         Request::Custom(binding) => {

@@ -1,0 +1,15 @@
+{
+  "name": "oc2-rust-tui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/server.ts",
+    "./tui": "./src/tui.ts"
+  },
+  "peerDependencies": {
+    "@opencode/plugin": ">=2.2.7",
+    "@opencode/client": ">=2.2.7",
+    "effect": "^4.0.0-beta.0"
+  }
+}

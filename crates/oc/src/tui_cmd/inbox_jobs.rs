@@ -46,6 +46,51 @@ impl Jobs {
         }
         let session = require_session(view)?;
         let route = read_jobs::Route::capture(view).ok_or("no session yet")?;
+        if app.is_opencode() {
+            let InboxAction::Remove { id } = action else {
+                return Err("This pending-input action is unavailable in the OpenCode bridge; use stock TUI".into());
+            };
+            if restore {
+                return Err("Restoring pending input is unavailable in the OpenCode bridge; nothing cancelled".into());
+            }
+            let owner = app.clone();
+            let target = session.clone();
+            let removed = view
+                .inbox_items()
+                .iter()
+                .find(|item| item.id == id)
+                .cloned();
+            self.admissions.insert(
+                identity.0,
+                Admission {
+                    session,
+                    route,
+                    phase: Phase::Deliver,
+                    job: Some(oc_core::wake::spawn(async move {
+                        use oc_core::opencode::{Reply, Request};
+                        owner
+                            .opencode(Request::CancelInput {
+                                session: target.clone(),
+                                id,
+                            })
+                            .await?;
+                        let Reply::View { view } =
+                            owner.opencode(Request::Open { session: target }).await?
+                        else {
+                            return Err(CoreError::Application(
+                                "Unexpected OpenCode pending-input projection".into(),
+                            ));
+                        };
+                        Ok(InboxSnapshot {
+                            items: view.inbox,
+                            removed,
+                            prompt: None,
+                        })
+                    })),
+                },
+            );
+            return Ok(());
+        }
         let (request, phase) = if restore {
             let InboxAction::Remove { id } = &action else {
                 return Err("invalid inbox restore".into());

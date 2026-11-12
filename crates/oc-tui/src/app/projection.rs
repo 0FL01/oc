@@ -111,11 +111,11 @@ pub(super) fn finish_reasoning(
         if crate::styled::render_cancelled() {
             return;
         }
-        let first = run.iter().copied().find(|id| {
+        let first = run.iter().find(|id| {
             rows.iter().any(|row| {
                 row.reasoning
                     .as_ref()
-                    .is_some_and(|reasoning| reasoning.identity == Some(*id))
+                    .is_some_and(|reasoning| reasoning.identity.as_ref() == Some(*id))
                     && crate::messages::visible_reasoning(row)
             })
         });
@@ -123,7 +123,7 @@ pub(super) fn finish_reasoning(
             let Some(id) = row
                 .reasoning
                 .as_ref()
-                .and_then(|part| part.identity)
+                .and_then(|part| part.identity.as_ref())
                 .filter(|id| run.contains(id))
             else {
                 continue;
@@ -132,7 +132,8 @@ pub(super) fn finish_reasoning(
                 first.unwrap_or(id)
             } else {
                 id
-            };
+            }
+            .clone();
             if let Some(reasoning) = &mut row.reasoning {
                 reasoning.expanded = thinking || expanded.contains(&selected);
                 reasoning.toggleable = !thinking;

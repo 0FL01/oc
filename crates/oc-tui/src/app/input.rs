@@ -441,6 +441,25 @@ impl TuiState {
     }
 
     pub fn command_unavailable(&self, action: &CommandAction) -> Option<&'static str> {
+        if self.is_opencode()
+            && !matches!(
+                action,
+                CommandAction::OpenSettings
+                    | CommandAction::OpenCommands
+                    | CommandAction::ToggleSidebar
+                    | CommandAction::ToggleThinking
+                    | CommandAction::Quit
+                    | CommandAction::OpenModelPicker
+                    | CommandAction::OpenVariants
+                    | CommandAction::NewSession
+                    | CommandAction::CloseTab
+                    | CommandAction::OpenAgents
+                    | CommandAction::OpenSessions
+                    | CommandAction::Help(_)
+            )
+        {
+            return Some("Not available in the OpenCode bridge; use stock TUI");
+        }
         if matches!(
             action,
             CommandAction::NewSession | CommandAction::OpenSessions
@@ -1478,6 +1497,15 @@ impl TuiState {
     }
 
     pub fn paste_clipboard_image(&mut self, png: std::sync::Arc<[u8]>) -> KeyOutcome {
+        if self.is_opencode() {
+            return KeyOutcome {
+                note: Some(
+                    "Image attachments are unavailable in the OpenCode bridge; use stock TUI"
+                        .into(),
+                ),
+                ..Default::default()
+            };
+        }
         let Some(target) = self.clipboard_target() else {
             return KeyOutcome::default();
         };
@@ -2404,7 +2432,7 @@ impl TuiState {
                         && painted == area
                         && requested == self.scroll
                         && (x, y) == (event.column, event.row)
-                        && self.reasoning_hit(area, x, y) == Some(id)
+                        && self.reasoning_hit(area, x, y) == Some(id.clone())
                     {
                         let rect = crate::shell::transcript_area(self, area);
                         if let Some((now, displayed)) = self.reasoning_geometry(area) {
@@ -2426,7 +2454,7 @@ impl TuiState {
                                 })
                                 .flatten();
                             self.prune_reasoning();
-                            if !self.reasoning_expanded.insert(id) {
+                            if !self.reasoning_expanded.insert(id.clone()) {
                                 self.reasoning_expanded.remove(&id);
                             }
                             if let Some((part, row, screen_row)) = anchor {
@@ -3294,6 +3322,15 @@ impl TuiState {
                 && self.pending.is_none()
                 && !self.user_shell_pending()
             {
+                if self.is_opencode() {
+                    return KeyOutcome {
+                        note: Some(
+                            "Shell mode is unavailable in the OpenCode bridge; use stock TUI"
+                                .into(),
+                        ),
+                        ..Default::default()
+                    };
+                }
                 self.change_prompt_shell_mode(true);
                 return KeyOutcome::default();
             }
@@ -3526,7 +3563,10 @@ impl TuiState {
                     // Pending submission cancellation retains its existing
                     // safety semantics. Once a turn is accepted, the focused
                     // prompt follows the original's two-Esc interrupt guard.
-                    if self.active_turn.is_some() || self.is_compacting() {
+                    if self.active_turn.is_some()
+                        || self.is_compacting()
+                        || self.opencode.as_ref().is_some_and(opencode::State::running)
+                    {
                         let now = Instant::now();
                         if self.interrupt_armed_until.is_none_or(|until| now >= until) {
                             self.interrupt_armed_until = now.checked_add(Duration::from_secs(5));
@@ -3651,6 +3691,14 @@ impl TuiState {
             };
         }
         if self.prompt_shell_mode() {
+            if self.app.is_opencode() {
+                return KeyOutcome {
+                    note: Some(
+                        "Shell control is unavailable in the OpenCode bridge; use stock TUI".into(),
+                    ),
+                    ..Default::default()
+                };
+            }
             return self.submit_user_shell();
         }
         if self.user_shell_pending() {
@@ -3658,6 +3706,11 @@ impl TuiState {
                 note: Some("shell admission pending; Esc to cancel".into()),
                 ..Default::default()
             };
+        }
+        if self.app.is_opencode()
+            && (self.input.trim().is_empty() || !self.input.trim_start().starts_with('/'))
+        {
+            return self.opencode_enter();
         }
         if self.has_occupied_submission() {
             if let Some(action) = dispatch(self.input.trim())
@@ -4141,6 +4194,12 @@ impl TuiState {
         }
         if self.panel == TuiPanel::Sessions {
             if matches!(action, KeyAction::Rename | KeyAction::DeleteOrQuit) {
+                if self.app.is_opencode() {
+                    return KeyOutcome {
+                        note: Some("Rename/delete sessions in stock OpenCode".into()),
+                        ..Default::default()
+                    };
+                }
                 let Some(id) = self.sessions.get(self.sessions_cursor).cloned() else {
                     return KeyOutcome::default();
                 };

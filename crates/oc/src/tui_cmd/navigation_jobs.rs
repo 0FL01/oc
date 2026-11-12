@@ -60,8 +60,15 @@ fn scope_ready(state: &TuiState, deck: &LoopState) -> bool {
 }
 struct View {
     id: SessionId,
-    page: oc_core::queries::HistoryPage,
     catalog: CatalogSnapshot,
+    content: Content,
+}
+enum Content {
+    Native(Box<NativeView>),
+    OpenCode(Box<oc_core::opencode::View>),
+}
+struct NativeView {
+    page: oc_core::queries::HistoryPage,
     compactions: Vec<oc_core::compaction::CompactionSnapshot>,
     attached: Option<shared::Attached>,
     mcp: Option<oc_core::queries::McpSnapshot>,
@@ -95,6 +102,26 @@ async fn view(
     page: Option<oc_core::queries::HistoryPage>,
     catalog: Option<CatalogSnapshot>,
 ) -> Result<View, String> {
+    if app.is_opencode() {
+        let oc_core::opencode::Reply::View { view } = app
+            .opencode(oc_core::opencode::Request::Open {
+                session: id.clone(),
+            })
+            .await
+            .map_err(|error| error.to_string())?
+        else {
+            return Err("Invalid OpenCode session projection".into());
+        };
+        let mut catalog = app.catalog().await.map_err(|error| error.to_string())?;
+        // Common route fences use the opened session's actual Location. The
+        // source content below owns its complete model/agent catalog.
+        catalog.chrome.location = Some(view.session.location.clone());
+        return Ok(View {
+            id,
+            catalog,
+            content: Content::OpenCode(view),
+        });
+    }
     let initial = page.is_none();
     let page = match page {
         Some(page) => Ok(page),
@@ -134,14 +161,16 @@ async fn view(
     refresh_failed |= attached.is_err();
     Ok(View {
         id,
-        page,
         catalog,
-        compactions: compactions.unwrap_or_default(),
-        attached: attached.ok().flatten(),
-        mcp,
-        shells,
-        executes,
-        refresh_failed,
+        content: Content::Native(Box::new(NativeView {
+            page,
+            compactions: compactions.unwrap_or_default(),
+            attached: attached.ok().flatten(),
+            mcp,
+            shells,
+            executes,
+            refresh_failed,
+        })),
     })
 }
 pub(super) fn start(
@@ -208,6 +237,32 @@ pub(super) fn start(
         prepared: None,
         task: Some(oc_core::wake::spawn(async move {
             let (location, catalog, saved, selected, first) = match request {
+                Request::Open(target) if owner.is_opencode() => {
+                    let first = view(&owner, target.clone(), None, None).await?;
+                    let catalog = first.catalog.clone();
+                    let location = catalog
+                        .chrome
+                        .location
+                        .clone()
+                        .ok_or("OpenCode location unavailable")?;
+                    let mut saved = saved;
+                    if !saved.sessions.contains(&target) {
+                        if saved.sessions.len() >= MAX_TABS {
+                            return Err("Close a local tab before opening another".into());
+                        }
+                        saved.sessions.push(target.clone());
+                        if !saved.new_session_titles.is_empty() {
+                            saved.new_session_titles.push(false);
+                        }
+                    }
+                    saved.active = Some(target.clone());
+                    saved.location = location.clone();
+                    let saved = owner
+                        .save_tab_deck(saved)
+                        .await
+                        .map_err(|error| error.to_string())?;
+                    (location, catalog, Ok(saved), Some(target), Some(first))
+                }
                 Request::Open(target) => {
                     let receipt = owner
                         .open_picker_session(target.clone(), search, all, saved)
@@ -335,8 +390,16 @@ fn remember_drafts(state: &TuiState, deck: &mut LoopState) {
 }
 async fn build(app: &CoreApp, prepared: View) -> TuiState {
     let mut view = TuiState::new(app.clone(), prepared.id);
-    view.attach_page(&prepared.page);
     view.apply_catalog(prepared.catalog);
+    let prepared = match prepared.content {
+        Content::OpenCode(source) => {
+            view.apply_opencode_view(*source);
+            view.flush_opencode();
+            return view;
+        }
+        Content::Native(native) => *native,
+    };
+    view.attach_page(&prepared.page);
     view.apply_compaction_history(prepared.compactions);
     if let Some(mcp) = prepared.mcp {
         view.apply_mcp_snapshot(mcp);
@@ -633,8 +696,15 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
                     if !navigation_changed {
                         view.close_panel();
                     }
-                    if metadata_current && let Some(title) = prepared.page.title {
-                        view.session_title = Some(title);
+                    if metadata_current {
+                        match prepared.content {
+                            Content::OpenCode(source) => view.apply_opencode_view(*source),
+                            Content::Native(native) => {
+                                if let Some(title) = native.page.title {
+                                    view.session_title = Some(title);
+                                }
+                            }
+                        }
                     }
                     jobs.request(view, false);
                 }

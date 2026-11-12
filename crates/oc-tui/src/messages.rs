@@ -1098,10 +1098,11 @@ pub struct ReasoningBlock {
     pub(crate) identity: Option<ReasoningIdentity>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ReasoningIdentity {
     Durable(i64, usize),
     Live(u64, usize),
+    OpenCode(String, usize),
 }
 
 /// Assistant footer data, projected from durable turns or live events.
@@ -3459,7 +3460,7 @@ fn visible_transcript_indexed(
         }
         if let Some(group) = reasoning_group(rows, index) {
             grouped_until = index + group.members.len();
-            if let Some(id) = group.first().identity {
+            if let Some(id) = group.first().identity.clone() {
                 record_region(
                     options,
                     &[reasoning_group_header(&group, theme, width)],
@@ -3471,7 +3472,7 @@ fn visible_transcript_indexed(
                 );
             }
             if let Some((x, y)) = options.point
-                && let Some(id) = group.first().identity
+                && let Some(id) = group.first().identity.clone()
                 && position + 1 == start + y
                 && position + 1 < end
             {
@@ -4055,7 +4056,7 @@ fn visible_transcript_indexed(
                 .reasoning
                 .as_ref()
                 .filter(|r| r.toggleable && !reasoning_content(r).is_empty())
-                && let Some(id) = reasoning.identity
+                && let Some(id) = reasoning.identity.clone()
             {
                 record_region(
                     options,
@@ -4072,7 +4073,7 @@ fn visible_transcript_indexed(
                     .reasoning
                     .as_ref()
                     .filter(|r| r.toggleable && !reasoning_content(r).is_empty())
-                && let Some(id) = reasoning.identity
+                && let Some(id) = reasoning.identity.clone()
             {
                 let header_start = position + 1; // reasoning's leading spacer
                 if header_start == start + y && header_start < end {

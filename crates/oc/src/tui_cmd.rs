@@ -54,11 +54,26 @@ mod display_rate;
 mod idle_release;
 mod inbox_jobs;
 mod notice_jobs;
+mod opencode;
 mod read_jobs;
 mod shared;
 mod tab_activity;
 mod terminal_controls;
 mod work_controls;
+
+pub(crate) async fn run_opencode(bridge: oc_adapters::opencode::Bridge) -> ExitCode {
+    install_panic_hook();
+    let session = bridge.init.session.clone();
+    let (app, guard) = bridge.start();
+    let result = drive_ui(&app, session, None, false).await;
+    let _ = app.shutdown().await;
+    let cleanup = guard.join_diagnostic().await;
+    ExitCode::from(if result == Ok(0) && cleanup.is_ok() {
+        0
+    } else {
+        1
+    })
+}
 
 /// Qualification probe (T26): when set, panic right after entering the
 /// terminal so PTY tests can verify panic-path restoration. Never set in
@@ -1400,6 +1415,9 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
 }
 
 async fn refresh_approvals(app: &CoreApp, state: &mut TuiState) -> Result<(), String> {
+    if app.is_opencode() {
+        return Ok(());
+    }
     refresh_approvals_in_views(app, state, None).await
 }
 
@@ -1519,6 +1537,9 @@ async fn drive_ui(
     let mut rx = app.subscribe();
     let (mut state, mut loop_state) = match restore_initial(app, session).await {
         Ok(restored) => restored,
+        Err(_) if app.is_opencode() => {
+            return Err("OpenCode startup projection failed; returning to stock TUI".into());
+        }
         Err(failure) => return startup_failure(&mut terminal, failure).map(|_| 1),
     };
     loop_state.cli_auto = cli_auto;
@@ -1559,8 +1580,9 @@ async fn drive_ui(
     let idle_release = idle_release::IdleRelease::spawn();
     let mut worker_ready = None;
     let mut input_pending = std::collections::VecDeque::new();
+    let mut bridge_failure = None;
 
-    loop {
+    'ui: loop {
         // Sample before polling any lane: a completion after this point wakes
         // the wait below immediately instead of being missed.
         let wake_seen = oc_core::wake::generation();
@@ -1578,7 +1600,11 @@ async fn drive_ui(
             state.has_pending_submission(),
             state.has_pending_model_commit(),
         );
-        state.questions.share_drafts(&loop_state.questions);
+        // Source families reconcile independently; retained source views own
+        // their drafts rather than pruning the native all-session store.
+        if !app.is_opencode() {
+            state.questions.share_drafts(&loop_state.questions);
+        }
         let job_lanes = loop_state.job_lanes();
         let job_ready = loop_state.ready_job(&state);
         let (changed, tabs_changed) = state.tick_ui_parts(Instant::now());
@@ -1737,6 +1763,7 @@ async fn drive_ui(
         dirty |= state.tick_delegations(Instant::now());
         dirty |= state.tick_tool_spinners(Instant::now());
         if (dirty || tabs_dirty) && Instant::now() >= pacing.due(input_dirty) {
+            state.flush_opencode();
             let frame_start = Instant::now();
             let draw_start = frame_metrics
                 .as_ref()
@@ -1899,6 +1926,10 @@ async fn drive_ui(
                 {
                     Ok(event) => event,
                     Err(tokio::sync::broadcast::error::TryRecvError::Lagged(_)) => {
+                        if app.is_opencode() {
+                            bridge_failure = Some("OpenCode event queue overflow".to_string());
+                            break 'ui;
+                        }
                         if app.shares_workspace() {
                             loop_state.shared_refresh = true;
                             loop_state.shared_gap = true;
@@ -1941,6 +1972,24 @@ async fn drive_ui(
                 (event, event_revision)
             };
             match &event {
+                CoreEvent::OpenCode(event) => {
+                    if let oc_core::opencode::Event::Unavailable { reason } = event.as_ref() {
+                        bridge_failure = Some(reason.clone());
+                        break 'ui;
+                    }
+                    for view in read_jobs::views_mut(&mut state, &mut loop_state) {
+                        if let Err(reason) = view.opencode_event(event) {
+                            bridge_failure = Some(reason);
+                            break;
+                        }
+                    }
+                    if bridge_failure.is_some() {
+                        break 'ui;
+                    }
+                    loop_state.sync_tabs(&mut state);
+                    dirty = true;
+                    continue;
+                }
                 CoreEvent::SessionViewed { .. } => {
                     loop_state.sync_tabs(&mut state);
                     dirty = true;
@@ -2116,6 +2165,7 @@ async fn drive_ui(
                 match result {
                     Ok(event) => worker_ready = Some(event),
                     Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                        if app.is_opencode() { bridge_failure = Some("OpenCode event queue overflow".to_string()); break 'ui; }
                         loop_state.shared_refresh = true;
                         loop_state.shared_gap = true;
                         if let Some(metrics) = &mut frame_metrics {
@@ -2184,7 +2234,7 @@ async fn drive_ui(
     if let Some(job) = loop_state.reload_job.take() {
         let _ = job.await;
     }
-    Ok(0)
+    bridge_failure.map_or(Ok(0), Err)
 }
 
 async fn settle_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
@@ -2652,6 +2702,9 @@ async fn initial_state(
     app: &CoreApp,
     session: Option<SessionId>,
 ) -> Result<TuiState, StartupFailure> {
+    if app.is_opencode() {
+        return opencode::load(app, session).await.map_err(startup_query);
+    }
     let Some(session) = session else {
         let snapshot = app
             .home_selection(SelectionAction::Current)
@@ -2809,6 +2862,23 @@ async fn restore_initial(
     app: &CoreApp,
     explicit: Option<SessionId>,
 ) -> Result<(TuiState, LoopState), StartupFailure> {
+    if app.is_opencode() {
+        let mut state = opencode::load(app, explicit).await.map_err(startup_query)?;
+        let saved = app.tab_deck().await.map_err(startup_query)?;
+        let mut deck = LoopState {
+            location: state.chrome.location.clone(),
+            revision: saved.revision.clone(),
+            authoritative_deck: Some(saved),
+            ..Default::default()
+        };
+        if state.attached_session().is_some() {
+            deck.active_tab = Some(0);
+            deck.tabs.push(None);
+            deck.tab_cards_before.push(None);
+        }
+        deck.sync_tabs(&mut state);
+        return Ok((state, deck));
+    }
     let mut deck = LoopState::default();
     let stored = match app.tab_deck().await {
         Ok(snapshot) => snapshot,
@@ -2941,6 +3011,9 @@ async fn restore_initial(
 }
 
 async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
+    if app.is_opencode() {
+        return opencode::load(app, Some(id)).await;
+    }
     let page = app
         .transcript_page(id.clone(), None, None, HISTORY_PAGE_LIMIT)
         .await?;
@@ -3447,6 +3520,38 @@ async fn apply_owned_intent(
     typed_new: bool,
     preserve_pointer: bool,
 ) -> Result<(), String> {
+    if app.is_opencode()
+        && !matches!(
+            &intent,
+            PanelIntent::CancelSession {
+                cancel_compaction: false,
+                ..
+            } | PanelIntent::ReplyApproval(_)
+                | PanelIntent::ReplyQuestion(_)
+                | PanelIntent::Inbox {
+                    action: oc_core::queries::InboxAction::Remove { .. },
+                    restore: false
+                }
+                | PanelIntent::LoadCatalog
+                | PanelIntent::LoadSessions
+                | PanelIntent::LoadModelDirectory
+                | PanelIntent::NewSession
+                | PanelIntent::AddSessionTab
+                | PanelIntent::ActivateTab { .. }
+                | PanelIntent::MoveTab { .. }
+                | PanelIntent::CloseTab { .. }
+                | PanelIntent::SetTabRailWidth { .. }
+                | PanelIntent::SelectModel { .. }
+                | PanelIntent::ChooseModel { .. }
+                | PanelIntent::CycleVariant
+                | PanelIntent::SelectAgent { .. }
+                | PanelIntent::SwitchSession { .. }
+                | PanelIntent::LoadOlder
+                | PanelIntent::LoadNewer
+        )
+    {
+        return Err("Not available in the OpenCode bridge; use stock TUI".into());
+    }
     let terminal_control = matches!(
         intent,
         PanelIntent::Terminal {
@@ -3923,6 +4028,11 @@ async fn apply_owned_intent(
                 return Err("agent selection preparing; model draft unchanged".into());
             }
             state.draft_model(&id)?;
+            if app.is_opencode() {
+                // The source picker is a draft; native preference storage is
+                // neither its owner nor a prerequisite for the later setter.
+                return Ok(());
+            }
             // Pinned `model.set(..., { recent: true })` ignores storage failures.
             loop_state.catalogs.request(
                 app,
@@ -4245,6 +4355,10 @@ async fn apply_owned_intent(
             )?;
         }
         PanelIntent::LoadOlder => {
+            if app.is_opencode() {
+                state.opencode_history(true);
+                return Ok(());
+            }
             require_session(state)?;
             let before = state
                 .history()
@@ -4270,6 +4384,10 @@ async fn apply_owned_intent(
             }
         }
         PanelIntent::LoadNewer => {
+            if app.is_opencode() {
+                state.opencode_history(false);
+                return Ok(());
+            }
             require_session(state)?;
             let after = state
                 .history()
@@ -4620,6 +4738,10 @@ async fn handle_worker_event_at(
         return Ok(());
     }
     let owner = match &event {
+        CoreEvent::OpenCode(event) => {
+            state.opencode_event(event)?;
+            return Ok(());
+        }
         CoreEvent::Projection { .. }
         | CoreEvent::WorkspaceChanged { .. }
         | CoreEvent::SessionViewed { .. }
@@ -4672,6 +4794,7 @@ async fn handle_worker_event_at(
         return Ok(());
     }
     match event {
+        CoreEvent::OpenCode(_) => unreachable!("handled above"),
         CoreEvent::ParentContinuationRefused { diagnostic, .. } => {
             state.push_transient_note(
                 &format!("Background continuation refused: {diagnostic}"),

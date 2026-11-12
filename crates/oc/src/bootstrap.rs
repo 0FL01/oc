@@ -8,6 +8,14 @@ use crate::headless;
 
 /// Run the parsed CLI; never mixes diagnostics into stdout payloads.
 pub async fn run(args: Args) -> ExitCode {
+    if matches!(args.command, Some(Command::OpenCodeTui)) {
+        // Handshake and Activate precede terminal access, tracing and native
+        // data-root discovery. This role never attaches to the native authority.
+        let Ok(bridge) = oc_adapters::opencode::Bridge::handshake().await else {
+            return ExitCode::from(2);
+        };
+        return crate::tui_cmd::run_opencode(bridge).await;
+    }
     if args.smoke && args.command.is_none() {
         return legacy_smoke();
     }
@@ -104,6 +112,7 @@ pub async fn run(args: Args) -> ExitCode {
         }
     };
     match args.command {
+        Some(Command::OpenCodeTui) => unreachable!("OpenCode child dispatch precedes runtime"),
         Some(Command::NativeOwner { .. }) => {
             unreachable!("internal owner dispatch precedes runtime")
         }
@@ -174,6 +183,7 @@ pub async fn run(args: Args) -> ExitCode {
 
 fn subcommand_kind(command: &Option<Command>) -> &'static str {
     match command {
+        Some(Command::OpenCodeTui) => "opencode-tui",
         Some(Command::NativeOwner { .. }) => "native-owner",
         None => "none",
         Some(Command::Run { .. }) => "run",

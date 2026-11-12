@@ -24,6 +24,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 - UI completion wake (receipts/jobs wake the event loop instead of a timer poll): `wake.rs`. Tests: unit `wake::`.
 - Questions/prompt images/tool facts: `question.rs`, `prompt.rs`, `tool_output.rs`. Tests: unit `question::`, `prompt::`, `tool_output::`.
 - Selection/accounts/auth/PTY DTOs: `queries/model_preference.rs`, `queries/accounts.rs`, `queries/auth.rs`, `queries/terminals.rs`. Tests: unit `queries::`.
+- External OpenCode source DTOs/receipts: `opencode.rs`, `core_app.rs`; bounded worker/IPC and process-local deck: `crates/oc-adapters/src/opencode.rs`; source admission/parts/permission mapping: `crates/oc-tui/src/app/opencode.rs`. Tests: each owner's `opencode/tests.rs` (filters `opencode::tests` and `app::opencode::tests`).
 
 ## Authority/application — `crates/oc-adapters/src/`
 
@@ -93,6 +94,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 
 - `crates/oc/src/tui_cmd.rs`, `tui_cmd/shared.rs` — event loop/shared deck; `tui_cmd/display_rate.rs` — paint cap from the display refresh (unit `tui_cmd::display_rate`); `tui_cmd/{child_controls,terminal_controls,auth_controls,connect_controls,clipboard}.rs` — captured effects/ACKs. Tests: binary unit `tui_cmd::`; targets `pty_t39`, `pty_t42`, `terminals`, `auth_tui`, `mcp_application`; opt-in long-session perf probe `perf_long_session`, retained-memory gate/probe `memory_soak` (see TEST_PLAN).
 - `crates/oc/src/{cli,bootstrap,headless,models_cmd,auth_cmd}.rs`, `clipboard/read.rs` — CLI/cancel/catalog/auth/PNG. Tests: binary unit `models_cmd`, `auth_cmd`, `clipboard`; targets `responses`, `configured_workspace`, `auth_cli`.
+- Original TS backend/Rust UI: `plugins/oc2-rust-tui/src/{tui,protocol,projection}.ts`, private bootstrap `__opencode-tui`, `tui_cmd/opencode.rs`. Actual isolated PTY checks: `plugins/oc2-rust-tui/test/{functional,lifecycle}.py`; pinned awaited-host candidate: `plugins/oc2-rust-tui/upstream/`. Setup/limits: plugin README.
 - `crates/oc-adapters/tests/runtime.rs`, `tests/runtime/`, `tests/fixtures/` — fake-wire suites. `crates/oc/tests/pty_t39.rs`, `tests/pty_t39/`, `tests/support/` — actual-binary PTY fixtures; не отдельные targets на каждый файл.
 - `scripts/bounded_live.py`, `scripts/test_bounded_live.py`, `crates/oc/tests/live_bounded/envelope.rs` — live guards; `scripts/tui_capture/`, `tui-recovery/scripts/` — capture/comparator tooling, не runtime dependency. Запуск только по TEST_PLAN.
 

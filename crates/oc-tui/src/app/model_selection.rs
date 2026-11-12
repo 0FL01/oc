@@ -396,6 +396,9 @@ impl TuiState {
 
     /// Ctrl+A (`model.dialog.provider`) replaces the dialog with the integration list.
     pub(super) fn model_dialog_provider(&mut self) -> KeyOutcome {
+        if self.app.is_opencode() {
+            return self.run_command(CommandAction::OpenAccounts);
+        }
         self.open_accounts(true)
     }
 
@@ -772,6 +775,9 @@ impl TuiState {
     }
 
     pub(super) fn commit_composer_model(&mut self) -> Result<(), String> {
+        if self.app.is_opencode() {
+            return Ok(());
+        }
         if self.home || self.session.is_none() {
             return Ok(());
         }

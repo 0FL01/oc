@@ -184,6 +184,36 @@ impl Controls {
         }
         let owner = app.clone();
         let (reply, job) = match intent {
+            PanelIntent::ReplyApproval(reply) if owner.is_opencode() => {
+                let request = view
+                    .opencode_permission(&reply)
+                    .map_err(|error| error.to_string())?;
+                (
+                    Reply::Approval,
+                    oc_core::wake::spawn(async move {
+                        owner
+                            .opencode(request)
+                            .await
+                            .map(|_| ())
+                            .map_err(|error| error.to_string())
+                    }),
+                )
+            }
+            PanelIntent::ReplyQuestion(reply) if owner.is_opencode() => {
+                let request = view
+                    .opencode_form(&reply)
+                    .map_err(|error| error.to_string())?;
+                (
+                    Reply::Question(Box::new(reply)),
+                    oc_core::wake::spawn(async move {
+                        owner
+                            .opencode(request)
+                            .await
+                            .map(|_| ())
+                            .map_err(|error| error.to_string())
+                    }),
+                )
+            }
             PanelIntent::ReplyApproval(reply) => (
                 Reply::Approval,
                 oc_core::wake::spawn(async move {
@@ -291,6 +321,12 @@ impl Controls {
             }
             self.request();
             changed = true;
+        }
+        if app.is_opencode() {
+            // Source requests are projected by OpenCode reads/events. Keep the
+            // reply lane above, never poll native approval/question authority.
+            self.dirty = false;
+            return changed;
         }
         if self.job.as_ref().is_some_and(|job| job.is_finished()) {
             let result = self
