@@ -1,6 +1,6 @@
 # Goal: Rust TUI as an OpenCode 2 plugin
 
-Status: complete
+Status: blocked
 Source: user-approved RECON plan and execution request, 2026-11-12
 Last updated: 2026-11-12
 
@@ -114,7 +114,8 @@ expected result; record the exact evidence and smallest unlock.
     all three corrections now pass eight source UI/four adapter regressions and
     the affected selection/tools PTY cases. Incremental Sol review accepts source
     tree `f7358cc0759b417ff0d15f54627cd9a10101fa03`. Native integration gates
-    also pass, and R5 release/delivery is complete. Not product/perceptual qualification.
+    also pass. R5 is reopened because the verified release artifact is now missing;
+    this does not invalidate the recorded source tests or imply perceptual qualification.
 - R4: Preserve authority, admission, failure, and native-mode boundaries.
   - Source: approved plan sections 3–5; repository AGENTS/SECURITY; latest user
     request to avoid losing Rust TUI features.
@@ -139,17 +140,20 @@ expected result; record the exact evidence and smallest unlock.
     and pushed to verified origin; setup and limitations are documented.
   - Primary evidence: exact command outcomes, review result, release binary
     `target/release/oc2`, and commit/push confirmation.
-  - Status: verified
+  - Status: blocked
   - Evidence: fixture build/Clippy/formatting/syntax, actual stock and candidate
     PTY probes, upstream owner tests and native build pass. Production plugin
     typecheck and the functional matrix pass. The full offline gate completes by
     resuming its failed stage after the exhaustive-match correction: formatting,
     strict Clippy, nextest, doctests and debug CLI smoke pass on the reviewed code.
-    `CARGO_BUILD_JOBS=4 cargo build -p oc2 --bin oc2 --locked --release` passes;
-    release help/version and isolated basic/lifecycle probes pass. Source review
+    `CARGO_BUILD_JOBS=4 cargo build -p oc2 --bin oc2 --locked --release` passed;
+    release help/version and isolated basic/lifecycle probes passed. Source review
     is closed with no blockers. Implementation commit
     `d3979661528540f91d784466f12e488dc46a7c70` was pushed normally to verified
-    `git@github.com:0FL01/oc.git`, `master`. Not whole-product READY.
+    `git@github.com:0FL01/oc.git`, `master`. Acceptance subsequently found the entire
+    root `target` absent. No accessible matching release artifact or alternate
+    Cargo target was established; see Current State. Historical build/probe success
+    is not current artifact availability. Not whole-product READY.
 - R6: Implement and qualify the user-selected awaited upstream lifecycle hook.
   - Source: option 2 recommendation and the user's subsequent implementation
     instruction quoted in Approved lifecycle decision above.
@@ -400,17 +404,21 @@ installation/visual qualification is separate; do not claim it from offline PASS
 
 ## Current Checkpoint
 
-- Complete: R1–R6 are verified. Implementation, current gates/review, release
-  artifact and ordinary push are recorded below. This documentation-only closeout
-  does not change the accepted semantic source. Stop; full feature/high-refresh
-  perceptual parity requires the separate subsequent contract discussion.
+- R5 is blocked on release-artifact availability; R1–R4/R6 retain their recorded
+  verification. Source and documentation were pushed, but the promised release
+  path is no longer accessible.
+- Resolve the unexplained loss of the root target before restoring an artifact or
+  authorizing a release-only rebuild. Do not overwrite an unattributed filesystem
+  change, relocate Cargo output, or rerun the full gate. Recovery must establish
+  artifact provenance and availability; historical logs alone cannot close R5.
 
 ## Current State
 
-- Resolved: R1–R6. The eight-case synthetic functional matrix, subsequent targeted
-  corrections, native gates and release artifact checks pass. Implementation
+- Resolved: R1–R4/R6. The eight-case synthetic functional matrix, subsequent targeted
+  corrections, native gates and historical release artifact checks passed. Implementation
   `d3979661528540f91d784466f12e488dc46a7c70` is pushed to verified `origin/master`;
-  not whole-product READY.
+  documentation closeout `ea180863f985cbe7651de5de259b6de2a888e3a8` was also pushed.
+  R5 is reopened for the artifact discrepancy below; not whole-product READY.
 - Current Sol corrections: capture the actual Home composer-agent for fresh
   create (including `/new`), keep question drafts local to each source view, and
   refuse unsupported picker rename/delete before opening/pending state. The prior
@@ -435,16 +443,37 @@ installation/visual qualification is separate; do not claim it from offline PASS
   (`oc2 0.2.0`). New unit modules
   live at owner/tests.rs with unchanged discovery names; no assertions or workloads
   were removed.
-- Release artifact: `CARGO_BUILD_JOBS=4 cargo build -p oc2 --bin oc2 --locked
-  --release` passes after 15m50s cold dependency compilation. Actual binary
-  `target/release/oc2` passes `--help` and `--version` (`oc2 0.2.0`), SHA256
+- Historical release evidence: `CARGO_BUILD_JOBS=4 cargo build -p oc2 --bin oc2 --locked
+  --release` passed after 15m50s cold dependency compilation. At verification time,
+  `target/release/oc2` passed `--help` and `--version` (`oc2 0.2.0`), SHA256
   `393680cea4d60ede9a51126b42e7daa93bc6e07be722e65638bb5fd8e4ec1ba8`.
-  The existing functional harness with `--oc2 target/release/oc2` passes `basic`
+  The existing functional harness with `--oc2 target/release/oc2` passed `basic`
   and `lifecycle`; artifacts are `/home/opencode/.cache/opencode-tmp/oc2-functional-rwlo3xcu`
   and `oc2-functional-ye64xmx_`. Both restore termios/cursor with no owned orphan;
   basic also checks settled Rust reopen and stock history, and lifecycle checks
   actual child crash/re-enable/disable/parent shutdown. These are synthetic
   qualification, not live/visual/high-Hz measurements.
+- Artifact discrepancy found during acceptance: both sessions now confirm
+  `/home/opencode/ai/oc/target` and its promised `release/oc2` are absent.
+  `cargo metadata --offline --locked --no-deps --format-version 1` reports workspace
+  `/home/opencode/ai/oc` and target `/home/opencode/ai/oc/target`; Cargo resolves to
+  the normal Rustup executable. Current target environment overrides are unset,
+  and no repository/ancestor/Cargo-home target configuration or active repository
+  hook explains another output location. Read-only searches under approved scratch
+  and the user cache find no matching release artifact. The surviving task copies
+  are older debug binaries; the two other cached installed binaries have different
+  hashes and October timestamps, so none can replace the reviewed release.
+  The saved verification log and both result files remain: the log completed at
+  2026-11-12 20:43:45 +01:00 with the hash above. The worktree directory's recorded
+  mtime is 20:45:20 +01:00, after those checks and before the implementation commit
+  at 20:47:03. This establishes no responsible actor or deletion mechanism; there
+  is no evidence of a legitimate Cargo relocation. The earlier availability claim
+  was not rechecked at final delivery and is withdrawn. No clean, target deletion,
+  target override, rebuild or artifact replacement was performed in this investigation.
+  Affected artifact mutation is stopped pending resolution of this unexplained change.
+  Smallest unlock: recover the verified artifact with its provenance, or resolve
+  the target-loss ownership and permit a release-only rebuild and artifact check;
+  unchanged source does not require another broad test gate or source review.
 - Final source review closes at the accepted semantic tree `f7358cc0759b417ff0d15f54627cd9a10101fa03`:
   all three findings remain fixed, native gate evidence is checked, and no blocking
   defect remains. Subsequent changes only record these results in the goal/README;
@@ -455,7 +484,7 @@ installation/visual qualification is separate; do not claim it from offline PASS
   passes four transport/deck tests, including unknown-effect/no-interrupt, priority
   viewer release, fragmented reads and the saved session in the final return frame.
   Test bodies take 0.00s/0.01s; the latest cold compilation takes 3m55s/7m06s.
-  The rebuilt `target/debug/oc2` passes in 1m02s. External `plugin-check` project
+  The recorded debug build completed in 1m02s. External `plugin-check` project
   `bun run typecheck` passes (191 files); runtime uses the already-hosted Effect
   schema, not an unavailable runtime `@opencode/client` import or a new dependency.
 - The fixture owns its rootless loopback namespace, drops capabilities, then
@@ -546,9 +575,8 @@ installation/visual qualification is separate; do not claim it from offline PASS
   <scratch>/Cargo.toml` and scoped Clippy pass (6.64s/1.62s warm); Rust formatting,
   Python syntax and whitespace pass. Canonical patches apply with zero fuzz to
   pristine pinned files and byte-match all 7 OpenCode/3 OpenTUI tested files.
-  Rust production workspace gate/release build await actual integration.
 - User configuration/service, credentials, oracle refs, Rust renderer/frame-rate
-  features and foreign `progress/` remain untouched. No commit/push has occurred.
+  features and foreign `progress/` remain untouched.
 
 ## Checkpoint History
 
@@ -592,20 +620,28 @@ installation/visual qualification is separate; do not claim it from offline PASS
   only the authorized scoped commit/push and delivery closeout remain.
 - 2026-11-12: R5 delivery — conventional implementation commit
   `d3979661528540f91d784466f12e488dc46a7c70` pushed normally from the verified
-  baseline to `origin/master`. Only this factual goal closeout follows; reviewed
-  code and artifact remain unchanged.
+  baseline to `origin/master`, followed by the documentation closeout. Reviewed
+  source code did not change; artifact availability was not rechecked at commit time.
+- 2026-11-12: Acceptance found the promised root release artifact missing despite
+  preserved successful build/hash/PTY logs. Read-only investigation confirms the
+  default target path is absent and finds no matching cached release or configured
+  relocation. Cause is not established. Reopen R5 and mark this goal blocked;
+  preserve historical checks and stop affected artifact mutation. Correct stale
+  Current State statements; no production code or tests change.
 
 ## Completion
 
-- Resolved outcomes: R1–R6 verified; final status **complete** for the approved
-  pinned Linux/x64 candidate slice.
+- Resolved outcomes: R1–R4/R6 verified; R5 **blocked** on the missing release
+  artifact. The previous complete status is withdrawn at acceptance.
 - Delivery: `d3979661528540f91d784466f12e488dc46a7c70`, pushed to verified
   `origin/master`; final source review accepts the semantic code at tree
   `f7358cc0759b417ff0d15f54627cd9a10101fa03`, with only factual docs afterward.
-- Artifact: `target/release/oc2`, SHA256
+- Expected artifact: `/home/opencode/ai/oc/target/release/oc2` is currently absent.
+  Its historical verification SHA256 was
   `393680cea4d60ede9a51126b42e7daa93bc6e07be722e65638bb5fd8e4ec1ba8`;
   native gate 2749 passed/26 configured skips and actual release basic/lifecycle
-  probes pass. Exact commands and upstream/functional evidence are above.
+  probes passed. These records do not supply a currently accessible release binary.
+  Exact commands, investigation and upstream/functional evidence are above.
 - Constraint/diff closure: only the 54 authorized source/test/docs/plugin paths
   were delivered; foreign `progress/` is untouched. No Rust dependency, storage
   migration, native backend startup in source mode, installed host/config/service

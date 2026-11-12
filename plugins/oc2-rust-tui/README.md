@@ -1,8 +1,9 @@
 # Rust TUI plugin — candidate integration
 
 The package root contains the actual plugin; `test/fixture` is the separate,
-minimal lifecycle probe. **The agreed Linux/x64 candidate slice passes offline
-and isolated functional qualification**; see the
+minimal lifecycle probe. **The agreed Linux/x64 candidate slice passed offline
+and isolated functional qualification, but release-artifact availability is
+currently blocked**; see the
 [execution contract](../../docs/goals/2026-11-12-rust-tui-opencode-plugin.md) for exact
 gates, artifacts and limits. Do not enable the test package or modify a live owner to try
 the candidate. Stock 2.2.7 has a demonstrated shutdown defect; the required
