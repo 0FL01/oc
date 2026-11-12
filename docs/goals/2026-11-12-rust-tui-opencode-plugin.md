@@ -1,6 +1,6 @@
 # Goal: Rust TUI as an OpenCode 2 plugin
 
-Status: blocked
+Status: complete
 Source: user-approved RECON plan and execution request, 2026-11-12
 Last updated: 2026-11-12
 
@@ -140,7 +140,7 @@ expected result; record the exact evidence and smallest unlock.
     and pushed to verified origin; setup and limitations are documented.
   - Primary evidence: exact command outcomes, review result, release binary
     `target/release/oc2`, and commit/push confirmation.
-  - Status: blocked
+  - Status: verified
   - Evidence: fixture build/Clippy/formatting/syntax, actual stock and candidate
     PTY probes, upstream owner tests and native build pass. Production plugin
     typecheck and the functional matrix pass. The full offline gate completes by
@@ -151,9 +151,12 @@ expected result; record the exact evidence and smallest unlock.
     is closed with no blockers. Implementation commit
     `d3979661528540f91d784466f12e488dc46a7c70` was pushed normally to verified
     `git@github.com:0FL01/oc.git`, `master`. Acceptance subsequently found the entire
-    root `target` absent. No accessible matching release artifact or alternate
-    Cargo target was established; see Current State. Historical build/probe success
-    is not current artifact availability. Not whole-product READY.
+    root `target` absent; no alternate Cargo target or loss mechanism was established.
+    The single subsequently authorized release-only rebuild passed in 14m05s.
+    Its root artifact and separate preserved scratch copy are byte-identical to
+    the original release hash, pass help/version, and pass the existing release
+    basic/lifecycle probes again. Both paths and source provenance are recorded
+    below. No broad gate or source review was rerun. Not whole-product READY.
 - R6: Implement and qualify the user-selected awaited upstream lifecycle hook.
   - Source: option 2 recommendation and the user's subsequent implementation
     instruction quoted in Approved lifecycle decision above.
@@ -404,21 +407,21 @@ installation/visual qualification is separate; do not claim it from offline PASS
 
 ## Current Checkpoint
 
-- R5 is blocked on release-artifact availability; R1–R4/R6 retain their recorded
-  verification. Source and documentation were pushed, but the promised release
-  path is no longer accessible.
-- Resolve the unexplained loss of the root target before restoring an artifact or
-  authorizing a release-only rebuild. Do not overwrite an unattributed filesystem
-  change, relocate Cargo output, or rerun the full gate. Recovery must establish
-  artifact provenance and availability; historical logs alone cannot close R5.
+- Resolved: R1–R6. The single authorized restoration and scoped artifact checks
+  succeeded. Both the normal Cargo output and a separate preserved release copy
+  are available with the same verified hash and recorded source provenance.
+- No remaining implementation/verification checkpoint. This factual goal/README
+  closeout records delivery; no source change, further broad gate, source review,
+  installation or parity work is needed.
 
 ## Current State
 
-- Resolved: R1–R4/R6. The eight-case synthetic functional matrix, subsequent targeted
+- Resolved: R1–R6. The eight-case synthetic functional matrix, subsequent targeted
   corrections, native gates and historical release artifact checks passed. Implementation
   `d3979661528540f91d784466f12e488dc46a7c70` is pushed to verified `origin/master`;
   documentation closeout `ea180863f985cbe7651de5de259b6de2a888e3a8` was also pushed.
-  R5 is reopened for the artifact discrepancy below; not whole-product READY.
+  The release artifact was subsequently restored and preserved as recorded below;
+  not whole-product READY.
 - Current Sol corrections: capture the actual Home composer-agent for fresh
   create (including `/new`), keep question drafts local to each source view, and
   refuse unsupported picker rename/delete before opening/pending state. The prior
@@ -453,27 +456,40 @@ installation/visual qualification is separate; do not claim it from offline PASS
   basic also checks settled Rust reopen and stock history, and lifecycle checks
   actual child crash/re-enable/disable/parent shutdown. These are synthetic
   qualification, not live/visual/high-Hz measurements.
-- Artifact discrepancy found during acceptance: both sessions now confirm
-  `/home/opencode/ai/oc/target` and its promised `release/oc2` are absent.
-  `cargo metadata --offline --locked --no-deps --format-version 1` reports workspace
-  `/home/opencode/ai/oc` and target `/home/opencode/ai/oc/target`; Cargo resolves to
-  the normal Rustup executable. Current target environment overrides are unset,
-  and no repository/ancestor/Cargo-home target configuration or active repository
-  hook explains another output location. Read-only searches under approved scratch
-  and the user cache find no matching release artifact. The surviving task copies
-  are older debug binaries; the two other cached installed binaries have different
-  hashes and October timestamps, so none can replace the reviewed release.
-  The saved verification log and both result files remain: the log completed at
-  2026-11-12 20:43:45 +01:00 with the hash above. The worktree directory's recorded
-  mtime is 20:45:20 +01:00, after those checks and before the implementation commit
-  at 20:47:03. This establishes no responsible actor or deletion mechanism; there
-  is no evidence of a legitimate Cargo relocation. The earlier availability claim
-  was not rechecked at final delivery and is withdrawn. No clean, target deletion,
-  target override, rebuild or artifact replacement was performed in this investigation.
-  Affected artifact mutation is stopped pending resolution of this unexplained change.
-  Smallest unlock: recover the verified artifact with its provenance, or resolve
-  the target-loss ownership and permit a release-only rebuild and artifact check;
-  unchanged source does not require another broad test gate or source review.
+- Prior acceptance discrepancy: both sessions found the root `target` absent.
+  Cargo metadata still selected `/home/opencode/ai/oc/target`, target overrides
+  were unset, and no target configuration, active hook or matching cached release
+  explained another location. Historical verification logs remained genuine, but
+  did not establish later availability. No responsible actor or deletion mechanism
+  was identified; do not describe the loss as a proven Cargo relocation or a fixed
+  cleanup mechanism. The read-only investigation and superseded stop are retained
+  in history and commit `3aa571a0fef6a300ade1612ca3517650f266cda9`.
+- Authorized restoration: preflight confirmed UID 1003, only foreign `progress/`,
+  unchanged accepted source, no Cargo/compiler process, over 8 GiB available RAM
+  and over 126 GiB free disk. Exactly one `CARGO_BUILD_JOBS=4 cargo build -p oc2
+  --bin oc2 --locked --release` in `/home/opencode/ai/oc` passed in 14m05s. Neither
+  target override, clean/deletion, source change nor broad gate rerun was used.
+  Build HEAD was `3aa571a0fef6a300ade1612ca3517650f266cda9`; implementation source
+  remains `d3979661528540f91d784466f12e488dc46a7c70`, accepted semantic tree
+  `f7358cc0759b417ff0d15f54627cd9a10101fa03`. Differences from that tree are only
+  this goal and the plugin README.
+- Current release artifacts (separate files, not an installation):
+  `/home/opencode/ai/oc/target/release/oc2` and
+  `/home/opencode/.cache/opencode-tmp/opencode/rust-tui-plugin-v227/artifacts/oc2`.
+  Both pass `--help` and `--version` (`oc2 0.2.0`) and have SHA256
+  `393680cea4d60ede9a51126b42e7daa93bc6e07be722e65638bb5fd8e4ec1ba8`, matching
+  the original release. The copy was created exclusively in a new owned directory,
+  byte-verified and fsynced without overwriting any unrelated artifact or deleting
+  the original. `artifacts/provenance.json` beside it records both absolute paths,
+  source/review identifiers, build command, version, hash and verification time.
+- Fresh scoped verification used the preserved exact release copy with the existing
+  `functional.py --opencode <pinned candidate> --oc2 <preserved copy> --screen
+  <existing decoder> --case basic` and `--case lifecycle`; both pass. New artifacts
+  are `/home/opencode/.cache/opencode-tmp/oc2-functional-g4wd70o5` and
+  `oc2-functional-2vbk6qky`. They restore termios/cursor and leave no owned orphan;
+  basic also verifies settled Rust/stock history, and lifecycle exercises actual
+  child crash/re-enable/disable/parent shutdown. No disappearance recurred during
+  these checks. Prior native gate/source review remain current and were not rerun.
 - Final source review closes at the accepted semantic tree `f7358cc0759b417ff0d15f54627cd9a10101fa03`:
   all three findings remain fixed, native gate evidence is checked, and no blocking
   defect remains. Subsequent changes only record these results in the goal/README;
@@ -628,20 +644,31 @@ installation/visual qualification is separate; do not claim it from offline PASS
   relocation. Cause is not established. Reopen R5 and mark this goal blocked;
   preserve historical checks and stop affected artifact mutation. Correct stale
   Current State statements; no production code or tests change.
+- 2026-11-12: Scoped acceptance clarified that unidentified disappearance alone
+  does not prohibit a safe in-scope rebuild. Authorized one standard release
+  restoration plus a second verified scratch copy, existing basic/lifecycle
+  smokes and factual documentation only; no broad gate or source review rerun.
+- 2026-11-12: R5 restoration — that one release build passes in 14m05s, producing
+  the original SHA256 at the normal root path. A separate owned scratch copy and
+  provenance record preserve the exact binary; both help/version and fresh
+  release basic/lifecycle probes pass. Close R5 without source changes or a broad
+  rerun. The unexplained prior disappearance is not claimed to be diagnosed.
 
 ## Completion
 
-- Resolved outcomes: R1–R4/R6 verified; R5 **blocked** on the missing release
-  artifact. The previous complete status is withdrawn at acceptance.
+- Resolved outcomes: R1–R6 verified. The single authorized restoration re-establishes
+  release availability with two verified copies and fresh scoped checks.
 - Delivery: `d3979661528540f91d784466f12e488dc46a7c70`, pushed to verified
   `origin/master`; final source review accepts the semantic code at tree
   `f7358cc0759b417ff0d15f54627cd9a10101fa03`, with only factual docs afterward.
-- Expected artifact: `/home/opencode/ai/oc/target/release/oc2` is currently absent.
-  Its historical verification SHA256 was
+- Current artifacts: `/home/opencode/ai/oc/target/release/oc2` and
+  `/home/opencode/.cache/opencode-tmp/opencode/rust-tui-plugin-v227/artifacts/oc2`.
+  Both are verified as `oc2 0.2.0`, SHA256
   `393680cea4d60ede9a51126b42e7daa93bc6e07be722e65638bb5fd8e4ec1ba8`;
   native gate 2749 passed/26 configured skips and actual release basic/lifecycle
-  probes passed. These records do not supply a currently accessible release binary.
-  Exact commands, investigation and upstream/functional evidence are above.
+  probes passed, including the fresh preserved-copy probes above. Source provenance
+  is recorded beside the copy and in Current State. Exact commands, investigation
+  and upstream/functional evidence are above; no current artifact absence remains.
 - Constraint/diff closure: only the 54 authorized source/test/docs/plugin paths
   were delivered; foreign `progress/` is untouched. No Rust dependency, storage
   migration, native backend startup in source mode, installed host/config/service

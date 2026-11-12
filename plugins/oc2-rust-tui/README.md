@@ -2,13 +2,21 @@
 
 The package root contains the actual plugin; `test/fixture` is the separate,
 minimal lifecycle probe. **The agreed Linux/x64 candidate slice passed offline
-and isolated functional qualification, but release-artifact availability is
-currently blocked**; see the
+and isolated functional qualification**; see the
 [execution contract](../../docs/goals/2026-11-12-rust-tui-opencode-plugin.md) for exact
 gates, artifacts and limits. Do not enable the test package or modify a live owner to try
 the candidate. Stock 2.2.7 has a demonstrated shutdown defect; the required
 awaited lifecycle candidate is under [upstream/](upstream/README.md), not in an
 official release by assertion.
+
+The prior generated root target disappeared after its historical verification;
+the loss mechanism was not established. One authorized release-only rebuild has
+restored `target/release/oc2` and a separate verified copy at
+`/home/opencode/.cache/opencode-tmp/opencode/rust-tui-plugin-v227/artifacts/oc2`.
+Both have SHA256 `393680cea4d60ede9a51126b42e7daa93bc6e07be722e65638bb5fd8e4ec1ba8`
+and pass help/version; fresh basic/lifecycle probes pass on the preserved copy.
+Source/build provenance is in `provenance.json` beside that copy and in the goal.
+These are local delivery artifacts, not an installation or an upstream release.
 
 ## Entry point and boundaries
 
