@@ -1,6 +1,6 @@
 # Goal: Rust TUI as an OpenCode 2 plugin
 
-Status: active
+Status: complete
 Source: user-approved RECON plan and execution request, 2026-11-12
 Last updated: 2026-11-12
 
@@ -114,7 +114,7 @@ expected result; record the exact evidence and smallest unlock.
     all three corrections now pass eight source UI/four adapter regressions and
     the affected selection/tools PTY cases. Incremental Sol review accepts source
     tree `f7358cc0759b417ff0d15f54627cd9a10101fa03`. Native integration gates
-    also pass; R5 release/delivery remains open. Not product/perceptual qualification.
+    also pass, and R5 release/delivery is complete. Not product/perceptual qualification.
 - R4: Preserve authority, admission, failure, and native-mode boundaries.
   - Source: approved plan sections 3–5; repository AGENTS/SECURITY; latest user
     request to avoid losing Rust TUI features.
@@ -139,7 +139,7 @@ expected result; record the exact evidence and smallest unlock.
     and pushed to verified origin; setup and limitations are documented.
   - Primary evidence: exact command outcomes, review result, release binary
     `target/release/oc2`, and commit/push confirmation.
-  - Status: in_progress
+  - Status: verified
   - Evidence: fixture build/Clippy/formatting/syntax, actual stock and candidate
     PTY probes, upstream owner tests and native build pass. Production plugin
     typecheck and the functional matrix pass. The full offline gate completes by
@@ -147,7 +147,9 @@ expected result; record the exact evidence and smallest unlock.
     strict Clippy, nextest, doctests and debug CLI smoke pass on the reviewed code.
     `CARGO_BUILD_JOBS=4 cargo build -p oc2 --bin oc2 --locked --release` passes;
     release help/version and isolated basic/lifecycle probes pass. Source review
-    is closed with no blockers. Feature commit/push remains. Not product READY.
+    is closed with no blockers. Implementation commit
+    `d3979661528540f91d784466f12e488dc46a7c70` was pushed normally to verified
+    `git@github.com:0FL01/oc.git`, `master`. Not whole-product READY.
 - R6: Implement and qualify the user-selected awaited upstream lifecycle hook.
   - Source: option 2 recommendation and the user's subsequent implementation
     instruction quoted in Approved lifecycle decision above.
@@ -398,20 +400,16 @@ installation/visual qualification is separate; do not claim it from offline PASS
 
 ## Current Checkpoint
 
-- Closes: R5.
-- Smallest next action: perform the approved scoped commit/push and record delivery.
-  Native gates and incremental Sol review accept the corrected implementation.
-- Expected evidence: current successful gates/review and a release artifact, with
-  native semantics and existing renderer/pacing retained. Do not expand the slice
-  into full feature/high-refresh perceptual parity.
-- Stop or replan if: a proven build/environment blocker prevents qualification,
-  the lifecycle needs scope beyond the approved hook, or the gate remains unsafe.
-  The lifecycle gate is now accepted; unrelated public/backend expansion remains forbidden.
+- Complete: R1–R6 are verified. Implementation, current gates/review, release
+  artifact and ordinary push are recorded below. This documentation-only closeout
+  does not change the accepted semantic source. Stop; full feature/high-refresh
+  perceptual parity requires the separate subsequent contract discussion.
 
 ## Current State
 
-- Resolved: R1/R2/R3/R4/R6. The eight-case synthetic functional matrix, subsequent
-  targeted corrections, native gates and release artifact checks pass. R5 delivery remains open;
+- Resolved: R1–R6. The eight-case synthetic functional matrix, subsequent targeted
+  corrections, native gates and release artifact checks pass. Implementation
+  `d3979661528540f91d784466f12e488dc46a7c70` is pushed to verified `origin/master`;
   not whole-product READY.
 - Current Sol corrections: capture the actual Home composer-agent for fresh
   create (including `/new`), keep question drafts local to each source view, and
@@ -592,10 +590,25 @@ installation/visual qualification is separate; do not claim it from offline PASS
 - 2026-11-12: The release build, help/version and actual release-binary basic and
   lifecycle probes pass. Final semantic source review is closed without blockers;
   only the authorized scoped commit/push and delivery closeout remain.
+- 2026-11-12: R5 delivery — conventional implementation commit
+  `d3979661528540f91d784466f12e488dc46a7c70` pushed normally from the verified
+  baseline to `origin/master`. Only this factual goal closeout follows; reviewed
+  code and artifact remain unchanged.
 
 ## Completion
 
-- Final status: active, not complete. R1/R2/R3/R4/R6 and current scoped review pass;
-  R5 commit/push remains open; release artifact qualification passes.
-  Upstream acceptance, complete feature/high-Hz parity and live readiness are not
-  claimed by the synthetic qualification.
+- Resolved outcomes: R1–R6 verified; final status **complete** for the approved
+  pinned Linux/x64 candidate slice.
+- Delivery: `d3979661528540f91d784466f12e488dc46a7c70`, pushed to verified
+  `origin/master`; final source review accepts the semantic code at tree
+  `f7358cc0759b417ff0d15f54627cd9a10101fa03`, with only factual docs afterward.
+- Artifact: `target/release/oc2`, SHA256
+  `393680cea4d60ede9a51126b42e7daa93bc6e07be722e65638bb5fd8e4ec1ba8`;
+  native gate 2749 passed/26 configured skips and actual release basic/lifecycle
+  probes pass. Exact commands and upstream/functional evidence are above.
+- Constraint/diff closure: only the 54 authorized source/test/docs/plugin paths
+  were delivered; foreign `progress/` is untouched. No Rust dependency, storage
+  migration, native backend startup in source mode, installed host/config/service
+  mutation, or renderer/pacing downgrade was introduced.
+- Limit: upstream acceptance, automatic future-version compatibility, complete
+  feature/high-Hz parity and live readiness are not claimed by synthetic qualification.
